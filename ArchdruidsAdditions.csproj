@@ -1,0 +1,90 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>11</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="0Harmony20">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\0Harmony20.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="BepInEx">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\BepInEx.dll</HintPath>
+    </Reference>
+    <Reference Include="BepInEx.Harmony">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\BepInEx.Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="BepInEx.Preloader">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\BepInEx.Preloader.dll</HintPath>
+    </Reference>
+    <Reference Include="com.rlabrecque.steamworks.net">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\com.rlabrecque.steamworks.net.dll</HintPath>
+    </Reference>
+    <Reference Include="Fisobs">
+      <HintPath>..\..\References\Fisobs.dll</HintPath>
+    </Reference>
+    <Reference Include="GoKit">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\GoKit.dll</HintPath>
+    </Reference>
+    <Reference Include="HarmonyXInterop">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\HarmonyXInterop.dll</HintPath>
+    </Reference>
+    <Reference Include="HOOKS-Assembly-CSharp">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\HOOKS-Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Cecil">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\Mono.Cecil.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Cecil.Mdb">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\Mono.Cecil.Mdb.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Cecil.Pdb">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\Mono.Cecil.Pdb.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Cecil.Rocks">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\Mono.Cecil.Rocks.dll</HintPath>
+    </Reference>
+    <Reference Include="MonoMod">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\MonoMod.dll</HintPath>
+    </Reference>
+    <Reference Include="MonoMod.RuntimeDetour">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\MonoMod.RuntimeDetour.dll</HintPath>
+    </Reference>
+    <Reference Include="MonoMod.Utils">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\MonoMod.Utils.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Pom">
+      <HintPath>D:\SteamLibrary\steamapps\workshop\content\312520\2920439169\plugins\Pom.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>D:\SteamLibrary\steamapps\common\Rain World\RainWorld_Data\Managed\Unity.Mathematics.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;C:\Users\dogar\OneDrive\Desktop\ProgramStuff\RainWorldMods&quot;" />
+    </Target>
+
+</Project>
