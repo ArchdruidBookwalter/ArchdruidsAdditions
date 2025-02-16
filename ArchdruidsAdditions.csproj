@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <LangVersion>11</LangVersion>
+    <LangVersion>12</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -84,7 +84,7 @@
   </ItemGroup>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;C:\Users\dogar\OneDrive\Desktop\ProgramStuff\RainWorldMods&quot;" />
+        <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;D:\SteamLibrary\steamapps\common\Rain World\RainWorld_Data\StreamingAssets\mods\archdruidsadditions\plugins&quot;" />
     </Target>
 
 </Project>

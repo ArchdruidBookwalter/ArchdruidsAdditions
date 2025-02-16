@@ -59,7 +59,6 @@ namespace ArchdruidsAdditions
                 if (pobj.active && pobj.type == PlacedObjectType.ScarletFlowerStem)
                 {
                     self.AddObject(new ScarletFlowerStem(pobj));
-                    break;
                 }
             }
         }
