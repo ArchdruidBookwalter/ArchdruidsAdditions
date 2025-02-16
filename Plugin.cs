@@ -6,12 +6,13 @@ using UnityEngine;
 namespace ArchdruidsAdditions
 {
     [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
-    public class Plugin : BaseUnityPlugin
+    public sealed class Plugin : BaseUnityPlugin
     {
         public const string PLUGIN_GUID = "archdruidbookwalter.archdruidsadditions";
         public const string PLUGIN_NAME = "ArchdruidsAdditions";
         public const string PLUGIN_VERSION = "1.0.0";
 
+        #region Enums
         public static class PlacedObjectType
         {
             public static void UnregisterValues()
@@ -24,6 +25,9 @@ namespace ArchdruidsAdditions
             }
             public static PlacedObject.Type ScarletFlowerStem = new("ScarletFlowerStem", true);
         }
+        #endregion
+
+        #region Hooks
 
         public void OnEnable()
         {
@@ -62,6 +66,10 @@ namespace ArchdruidsAdditions
                 }
             }
         }
+
+        #endregion
+
+        #region Objects
 
         class ScarletFlowerStem : UpdatableAndDeletable, IDrawable
         {
@@ -102,5 +110,7 @@ namespace ArchdruidsAdditions
                 sLeaser.sprites[0].color = palette.blackColor;
             }
         }
+
+        #endregion
     }
 }
