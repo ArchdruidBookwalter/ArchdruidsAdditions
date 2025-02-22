@@ -7,6 +7,7 @@ using DevInterface;
 using UnityEngine;
 using RWCustom;
 using MonoMod.Cil;
+using Mono.Cecil.Cil;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -31,14 +32,6 @@ public static class DevtoolsHooks
         {
             orig(self, type, pobj);
         }
-    }
-    internal static ObjectsPage.DevObjectCategories ObjectsPage_DevObjectGetCategoryFromPlacedType(On.DevInterface.ObjectsPage.orig_DevObjectGetCategoryFromPlacedType orig, ObjectsPage self, PlacedObject.Type type)
-    {
-        if (type == Enums.PlacedObjectType.ScarletFlower)
-        {
-            return ObjectsPage.DevObjectCategories.Unsorted;
-        }
-        return orig(self, type);
     }
     internal static void PlacedObject_GenerateEmptyData(On.PlacedObject.orig_GenerateEmptyData orig, PlacedObject self)
     {

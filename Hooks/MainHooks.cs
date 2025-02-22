@@ -11,14 +11,27 @@ public static class MainHooks
     internal static void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
     {
         orig(self);
+
+        #region MultiplayerUnlocks
         if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ScarletFlower))
         {
             MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.ScarletFlower);
         }
+        #endregion
+
+        #region Atlases
         if (!Futile.atlasManager.DoesContainAtlas("ScarletFlowerStem"))
         {
             Futile.atlasManager.LoadAtlas("atlases/ScarletFlowerStem");
         }
+        if (!Futile.atlasManager.DoesContainAtlas("ScarletFlowerBulb"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/ScarletFlowerBulb");
+        }
+        #endregion
+
+        Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions");
+
         UnityEngine.Debug.Log("\"Archdruid's Additions\" HAS SUCCESSFULY HOOKED, \"OnModsInit\" METHOD. =============================================");
     }
 
@@ -47,7 +60,6 @@ public static class MainHooks
                 Enums.MultiplayerItemType.UnregisterValues();
                 Enums.PlacedObjectType.UnregisterValues();
                 Enums.SandboxUnlockID.UnregisterValues();
-                Enums.DevObjectCategories.UnregisterValues();
                 break;
             }
         }

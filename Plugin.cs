@@ -21,16 +21,24 @@ public sealed class Plugin : BaseUnityPlugin
 
     public void OnEnable()
     {
-        #region Main Hooks
-        On.RainWorld.OnModsInit += Hooks.MainHooks.RainWorld_OnModsInit;
-        On.RainWorld.UnloadResources += Hooks.MainHooks.RainWorld_UnloadResources;
-        On.RainWorld.OnModsDisabled += Hooks.MainHooks.RainWorld_OnModsDisabled;
+        #region AbstractPhysicalObject Hooks
+        On.AbstractPhysicalObject.Realize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Realize;
         #endregion
 
         #region Devtools Hooks
         On.DevInterface.ObjectsPage.CreateObjRep += Hooks.DevtoolsHooks.ObjectsPage_CreateObjRep;
-        On.DevInterface.ObjectsPage.DevObjectGetCategoryFromPlacedType += Hooks.DevtoolsHooks.ObjectsPage_DevObjectGetCategoryFromPlacedType;
         On.PlacedObject.GenerateEmptyData += Hooks.DevtoolsHooks.PlacedObject_GenerateEmptyData;
+        #endregion
+
+        #region Item Symbol Hooks
+        On.ItemSymbol.SpriteNameForItem += Hooks.ItemSymbolHooks.ItemSymbol_SpriteNameForItem;
+        On.ItemSymbol.ColorForItem += Hooks.ItemSymbolHooks.ItemSymbol_ColorForItem;
+        #endregion
+
+        #region Main Hooks
+        On.RainWorld.OnModsInit += Hooks.MainHooks.RainWorld_OnModsInit;
+        On.RainWorld.UnloadResources += Hooks.MainHooks.RainWorld_UnloadResources;
+        On.RainWorld.OnModsDisabled += Hooks.MainHooks.RainWorld_OnModsDisabled;
         #endregion
 
         #region Room Hooks

@@ -10,6 +10,7 @@ namespace ArchdruidsAdditions.Enums;
 public static class AbstractObjectType
 {
     public static AbstractPhysicalObject.AbstractObjectType ScarletFlower = new("ScarletFlower", true);
+    public static AbstractPhysicalObject.AbstractObjectType ScarletFlowerBulb = new("ScarletFlowerBulb", true);
     public static void UnregisterValues()
     {
         if (ScarletFlower != null)
@@ -17,17 +18,10 @@ public static class AbstractObjectType
             ScarletFlower.Unregister();
             ScarletFlower = null;
         }
-    }
-}
-public static class DevObjectCategories
-{
-    public static ObjectsPage.DevObjectCategories ArchdruidsAdditions = new("ArchdruidsAdditions", true);
-    public static void UnregisterValues()
-    {
-        if (ArchdruidsAdditions != null)
+        if (ScarletFlowerBulb != null)
         {
-            ArchdruidsAdditions.Unregister();
-            ArchdruidsAdditions = null;
+            ScarletFlowerBulb.Unregister();
+            ScarletFlowerBulb = null;
         }
     }
 }

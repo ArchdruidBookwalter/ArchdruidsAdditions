@@ -55,38 +55,38 @@ public class ScarletFlower : UpdatableAndDeletable, IDrawable
     }
 
 public class ScarletFlowerData : PlacedObject.Data
+{
+    public Vector2 rotation;
+
+    public ScarletFlowerData(PlacedObject owner) : base(owner)
     {
-        public Vector2 rotation;
-
-        public ScarletFlowerData(PlacedObject owner) : base(owner)
-        {
-            rotation = new Vector2(0f, 100f);
-        }
-
-        protected string BaseSaveString()
-        {
-            return string.Format(CultureInfo.InvariantCulture, "{0}~{1}", new object[]
-            {
-                rotation.x,
-                rotation.y
-            });
-        }
-
-        public override void FromString(string s)
-        {
-            string[] array = Regex.Split(s, "~");
-            rotation.x = float.Parse(array[0], NumberStyles.Any, CultureInfo.InvariantCulture);
-            rotation.y = float.Parse(array[1], NumberStyles.Any, CultureInfo.InvariantCulture);
-            unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 2);
-        }
-
-        public override string ToString()
-        {
-            string text = this.BaseSaveString();
-            text = SaveState.SetCustomData(this, text);
-            return SaveUtils.AppendUnrecognizedStringAttrs(text, "~", unrecognizedAttributes);
-        }
+        rotation = new Vector2(0f, 100f);
     }
+
+    protected string BaseSaveString()
+    {
+        return string.Format(CultureInfo.InvariantCulture, "{0}~{1}", new object[]
+        {
+            rotation.x,
+            rotation.y,
+        });
+    }
+
+    public override void FromString(string s)
+    {
+        string[] array = Regex.Split(s, "~");
+        rotation.x = float.Parse(array[0], NumberStyles.Any, CultureInfo.InvariantCulture);
+        rotation.y = float.Parse(array[1], NumberStyles.Any, CultureInfo.InvariantCulture);
+        unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 2);
+    }
+
+    public override string ToString()
+    {
+        string text = this.BaseSaveString();
+        text = SaveState.SetCustomData(this, text);
+        return SaveUtils.AppendUnrecognizedStringAttrs(text, "~", unrecognizedAttributes);
+    }
+}
 
 public class ScarletFlowerRepresentation : PlacedObjectRepresentation
 {
