@@ -38,6 +38,7 @@ public sealed class Plugin : BaseUnityPlugin
         #region Main Hooks
         On.RainWorld.OnModsInit += Hooks.MainHooks.RainWorld_OnModsInit;
         On.RainWorld.UnloadResources += Hooks.MainHooks.RainWorld_UnloadResources;
+        On.RainWorld.OnModsEnabled += Hooks.MainHooks.RainWorld_OnModsEnabled;
         On.RainWorld.OnModsDisabled += Hooks.MainHooks.RainWorld_OnModsDisabled;
         #endregion
 

@@ -127,6 +127,7 @@ public class ScarletFlowerBulb : Weapon, IDrawable
             rotation.y = -Mathf.Abs(rotation.y) + 90;
             frozen = false;
         }
+        if (!frozen)
         if (setRotation != null)
         {
             rotation = setRotation.Value;

@@ -8,6 +8,7 @@ namespace ArchdruidsAdditions.Hooks;
 
 public static class MainHooks
 {
+    static bool oneShot;
     internal static void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
     {
         orig(self);
@@ -30,7 +31,11 @@ public static class MainHooks
         }
         #endregion
 
-        Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions");
+        if (oneShot == false)
+        {
+            Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions");
+            oneShot = true;
+        }
 
         UnityEngine.Debug.Log("\"Archdruid's Additions\" HAS SUCCESSFULY HOOKED, \"OnModsInit\" METHOD. =============================================");
     }
@@ -42,6 +47,11 @@ public static class MainHooks
         {
             Futile.atlasManager.UnloadAtlas("ScarletFlowerStem");
         }
+    }
+
+    internal static void RainWorld_OnModsEnabled(On.RainWorld.orig_OnModsEnabled orig, RainWorld self, ModManager.Mod[] newlyEnabledMods)
+    {
+        orig(self, newlyEnabledMods); 
     }
 
     internal static void RainWorld_OnModsDisabled(On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
