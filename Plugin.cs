@@ -23,6 +23,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         #region AbstractPhysicalObject Hooks
         On.AbstractPhysicalObject.Realize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Realize;
+        On.AbstractConsumable.IsTypeConsumable += Hooks.AbstractPhysicalObjectHooks.AbstractConsumable_IsTypeConsumable;
         #endregion
 
         #region Devtools Hooks

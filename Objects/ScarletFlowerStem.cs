@@ -12,14 +12,22 @@ using System.Runtime.CompilerServices;
 
 namespace ArchdruidsAdditions.Objects;
 
-public class ScarletFlower : UpdatableAndDeletable, IDrawable
+public class ScarletFlowerStem : UpdatableAndDeletable, IDrawable
 {
     private PlacedObject pobj;
     private Vector2 rotation;
-    public ScarletFlower(PlacedObject pobj, Vector2 rotation)
+
+    public AbstractConsumable consumable;
+
+    public ScarletFlowerStem(PlacedObject pobj, Vector2 rotation)
     {
         this.pobj = pobj;
         this.rotation = rotation;
+    }
+
+    public override void Update(bool eu)
+    {
+        base.Update(eu);
     }
 
     public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
@@ -55,12 +63,12 @@ public class ScarletFlower : UpdatableAndDeletable, IDrawable
     }
 }
 
-public class ScarletFlowerData : PlacedObject.Data
+public class ScarletFlowerData : PlacedObject.ConsumableObjectData
 {
-    public Vector2 panelPos;
+    new public Vector2 panelPos;
     public Vector2 rotation;
-    public int minRegen;
-    public int maxRegen;
+    new public int minRegen;
+    new public int maxRegen;
 
     public ScarletFlowerData(PlacedObject owner) : base(owner)
     {
@@ -70,16 +78,16 @@ public class ScarletFlowerData : PlacedObject.Data
         maxRegen = 3;
     }
 
-    protected string BaseSaveString()
+    new protected string BaseSaveString()
     {
         return string.Format(CultureInfo.InvariantCulture, "{0}~{1}~{2}~{3}~{4}~{5}", new object[]
         {
             panelPos.x,
             panelPos.y,
-            rotation.x,
-            rotation.y,
             minRegen,
             maxRegen,
+            rotation.x,
+            rotation.y,
         });
     }
 
@@ -88,10 +96,10 @@ public class ScarletFlowerData : PlacedObject.Data
         string[] array = Regex.Split(s, "~");
         panelPos.x = float.Parse(array[0], NumberStyles.Any, CultureInfo.InvariantCulture);
         panelPos.y = float.Parse(array[1], NumberStyles.Any, CultureInfo.InvariantCulture);
-        rotation.x = float.Parse(array[2], NumberStyles.Any, CultureInfo.InvariantCulture);
-        rotation.y = float.Parse(array[3], NumberStyles.Any, CultureInfo.InvariantCulture);
-        minRegen = int.Parse(array[4], NumberStyles.Any, CultureInfo.InvariantCulture);
-        maxRegen = int.Parse(array[5], NumberStyles.Any, CultureInfo.InvariantCulture);
+        minRegen = int.Parse(array[2], NumberStyles.Any, CultureInfo.InvariantCulture);
+        maxRegen = int.Parse(array[3], NumberStyles.Any, CultureInfo.InvariantCulture);
+        rotation.x = float.Parse(array[4], NumberStyles.Any, CultureInfo.InvariantCulture);
+        rotation.y = float.Parse(array[5], NumberStyles.Any, CultureInfo.InvariantCulture);
         unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 6);
     }
 
@@ -109,6 +117,7 @@ public class ScarletFlowerRepresentation : PlacedObjectRepresentation
     public Handle rotationHandle;
     public ScarletFlowerPanel panel;
 
+    
     public class ScarletFlowerPanel : Panel
     {
         public ScarletFlowerPanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, Vector2 size, string title) :
@@ -127,7 +136,7 @@ public class ScarletFlowerRepresentation : PlacedObjectRepresentation
             }
             public override void Refresh()
             {
-                base.Refresh(); 
+                base.Refresh();
                 float num = 0f;
                 if (data.minRegen == 0)
                 {
@@ -171,6 +180,7 @@ public class ScarletFlowerRepresentation : PlacedObjectRepresentation
             }
         }
     }
+    
     public ScarletFlowerRepresentation(DevUI owner, string IDstring, DevUINode parentNode, PlacedObject pobj, string name) :
         base(owner, IDstring, parentNode, pobj, name)
     {
@@ -194,9 +204,11 @@ public class ScarletFlowerRepresentation : PlacedObjectRepresentation
         fSprites[1].rotation = Custom.AimFromOneVectorToAnother(absPos, rotationHandle.absPos);
         (pObj.data as ScarletFlowerData).rotation = rotationHandle.pos;
 
+        
         MoveSprite(2, absPos);
         fSprites[2].scaleY = panel.pos.magnitude;
         fSprites[2].rotation = Custom.AimFromOneVectorToAnother(absPos, panel.absPos);
         (pObj.data as ScarletFlowerData).panelPos = panel.pos;
+        
     }
 }

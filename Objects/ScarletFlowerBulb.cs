@@ -7,102 +7,81 @@ using IL;
 using UnityEngine;
 using RWCustom;
 using On;
+using IL.MoreSlugcats;
 
 namespace ArchdruidsAdditions.Objects;
 
 public class ScarletFlowerBulb : Weapon, IDrawable
 {
-
     #region Variables
-    private static float Rand => UnityEngine.Random.value;
-
-    new public Vector2 rotation;
-    new public Vector2 lastRotation;
-    new public Vector2? setRotation;
+    new public Vector2 rotation, lastRotation;
 
     public LightSource lightSource;
 
-    public Color lightColor = new Color(1f, 0f, 0f);
+    public Color lightColor;
 
-    private bool charged;
-    private bool exploded;
-    private bool frozen;
+    public Color redColor = new(1f, 0f, 0f);
+    public Color blueColor = new(0f, 0f, 1f);
 
-    private readonly float rotationOffset;
+    public bool charged, exploded, frozen;
+
+    private Vector2 homePos;
+
     #endregion
 
-    private AbstractConsumable Consumable
+    public AbstractConsumable AbstrConsumable
     {
         get
         {
-            return abstractPhysicalObject as AbstractConsumable;
+            return this.abstractPhysicalObject as AbstractConsumable;
         }
     }
 
-    public ScarletFlowerBulb(AbstractPhysicalObject abstr, World world) : base(abstr, world)
+    public ScarletFlowerBulb(AbstractPhysicalObject abstractPhysicalObject, World world, bool frozen, Vector2 rotation) : base(abstractPhysicalObject, world)
     {
-        bodyChunks = new[]
+        bodyChunks = [new BodyChunk(this, 0, default, 5f, 0.35f)];
+        bodyChunkConnections = [];
+
+        if (frozen)
         {
-            new BodyChunk(this, 0, default, 5f, 0.35f)
-        };
-        bodyChunkConnections = Array.Empty<BodyChunkConnection>();
+            collisionLayer = 0;
+            CollideWithObjects = false;
+            CollideWithSlopes = false;
+            CollideWithTerrain = false;
+            gravity = 0f;
+            lightColor = redColor;
+        }
+        else
+        {
+            collisionLayer = 1;
+            CollideWithObjects = true;
+            CollideWithSlopes = true;
+            CollideWithTerrain = true;
+            gravity = 0.9f;
+            lightColor = redColor;
+        }
 
         airFriction = 0.999f;
-        gravity = 0.9f;
         bounce = 0.2f;
         surfaceFriction = 0.2f;
-        collisionLayer = 1;
         waterFriction = 0.92f;
         buoyancy = 1.2f;
 
-        rotationOffset = Rand * 30 - 15;
+        this.rotation = rotation;
+        this.frozen = frozen;
     }
 
     #region Object Behavior
-
-    private void Explode()
+    public override void PlaceInRoom(Room placeRoom)
     {
-        if (exploded == false)
+        base.PlaceInRoom(placeRoom);
+        if (!AbstrConsumable.isConsumed && AbstrConsumable.placedObjectIndex >= 0 && AbstrConsumable.placedObjectIndex < placeRoom.roomSettings.placedObjects.Count)
         {
-            var num = UnityEngine.Random.Range(5, 8);
-            Vector2 vector = Vector2.Lerp(firstChunk.pos, firstChunk.lastPos, 0.35f);
-            Vector2 vector2 = Custom.RNV();
-
-            for (int k = 0; k < num; k++)
-            {
-                Vector2 pos = firstChunk.pos + Custom.RNV() * 5f * Rand;
-                Vector2 vel = Custom.RNV() * 4f * (1 + Rand);
-                room.AddObject(new Spark(pos, vel, lightColor, null, 20, 40));
-            }
-
-            for (int i = 0; i < room.abstractRoom.creatures.Count; i++)
-            {
-                Vector2 creaturePosition = room.abstractRoom.creatures[i].realizedCreature.mainBodyChunk.pos;
-                if (Custom.DistLess(firstChunk.pos, creaturePosition, 1600f) && room.abstractRoom.creatures[i].realizedCreature != null &&
-                    room.abstractRoom.creatures[i].creatureTemplate.type != CreatureTemplate.Type.Slugcat)
-                {
-                    room.PlaySound(SoundID.Centipede_Shock, creaturePosition, 0.75f, 1.25f);
-                    room.AddObject(new Explosion.ExplosionSmoke(creaturePosition, vector2, 1.1f));
-                    room.AddObject(new Explosion.ExplosionLight(creaturePosition, 100f, 1f, 7, new Color(1f, 0f, 0f)));
-                    room.abstractRoom.creatures[i].realizedCreature.Stun(200);
-                }
-            }
-
-            var num2 = UnityEngine.Random.Range(0.2f, 0.3f);
-
-            room.PlaySound(SoundID.Bomb_Explode, firstChunk.pos, 0.75f, 1.25f);
-            room.PlaySound(SoundID.Bomb_Explode, firstChunk.pos, 0.75f, num2);
-            room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, firstChunk.pos, 0.75f, num2);
-
-            room.AddObject(new Explosion.ExplosionSmoke(vector, vector2, 1.1f));
-            room.AddObject(new Explosion.ExplosionLight(vector, 400f, 1f, 7, lightColor));
-            room.AddObject(new ExplosionSpikes(room, vector, 14, 30f, 9f, 7f, 170f, lightColor));
-            room.AddObject(new ShockWave(vector, 4000f, 0.05f, 20, true));
+            homePos = placeRoom.roomSettings.placedObjects[AbstrConsumable.placedObjectIndex].pos;
+            firstChunk.HardSetPosition(placeRoom.roomSettings.placedObjects[AbstrConsumable.placedObjectIndex].pos);
+            return;
         }
-        exploded = true;
-        AllGraspsLetGoOfThisObject(true);
-        abstractPhysicalObject.LoseAllStuckObjects();
-        Destroy();
+        firstChunk.HardSetPosition(placeRoom.MiddleOfTile(abstractPhysicalObject.pos));
     }
 
     public override void Update(bool eu)
@@ -110,11 +89,11 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         base.Update(eu);
 
         #region Behavior
-        if (grabbedBy.Count == 0)
+        if (grabbedBy.Count == 0 && !frozen)
         {
             ChangeCollisionLayer(1);
+            SetLocalGravity(0.9f);
         }
-
         lastRotation = rotation;
         firstChunk.collideWithTerrain = grabbedBy.Count == 0;
         if (charged && (firstChunk.ContactPoint.x != 0 || firstChunk.ContactPoint.y != 0))
@@ -125,13 +104,6 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         {
             rotation = Custom.PerpendicularVector(Custom.DirVec(firstChunk.pos, grabbedBy[0].grabber.mainBodyChunk.pos));
             rotation.y = -Mathf.Abs(rotation.y) + 90;
-            frozen = false;
-        }
-        if (!frozen)
-        if (setRotation != null)
-        {
-            rotation = setRotation.Value;
-            setRotation = null;
         }
         rotation = (rotation - Custom.PerpendicularVector(rotation) * (firstChunk.ContactPoint.y < 0 ? 0.15f : 0.05f) * firstChunk.vel.x).normalized;
         if (firstChunk.ContactPoint.y < 0)
@@ -139,10 +111,11 @@ public class ScarletFlowerBulb : Weapon, IDrawable
             BodyChunk firstChunk = base.firstChunk;
             firstChunk.vel.x = firstChunk.vel.x * 0.8f;
         }
-        if (abstractPhysicalObject is AbstractConsumable && grabbedBy.Count > 0 && !(abstractPhysicalObject as AbstractConsumable).isConsumed)
-
+        if (!AbstrConsumable.isConsumed && (Vector2.Distance(firstChunk.pos, homePos) > 5f || grabbedBy.Count > 0))
         {
-            (abstractPhysicalObject as AbstractConsumable).Consume();
+            frozen = false;
+            room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.8f, 1.6f + UnityEngine.Random.value / 10f);
+            AbstrConsumable.Consume();
         }
         #endregion
 
@@ -203,8 +176,8 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         {
             for (int i = 0; i < 2; i++)
             {
-                Vector2 pos = firstChunk.pos + Custom.RNV() * 5f * Rand;
-                Vector2 vel = Custom.RNV() * 4f * (1 + Rand);
+                Vector2 pos = firstChunk.pos + Custom.RNV() * 5f * UnityEngine.Random.value;
+                Vector2 vel = Custom.RNV() * 4f * (1 + UnityEngine.Random.value);
                 room.AddObject(new Spark(pos, vel, lightColor, null, 20, 40));
             }
         }
@@ -219,14 +192,6 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         room.PlaySound(SoundID.Slugcat_Pick_Up_Flare_Bomb, firstChunk);
     }
 
-    public override void PlaceInRoom(Room placeRoom)
-    {
-        base.PlaceInRoom(placeRoom);
-        firstChunk.HardSetPosition(placeRoom.MiddleOfTile(abstractPhysicalObject.pos));
-        rotation = Custom.RNV();
-        lastRotation = rotation;
-    }
-
     public override void Thrown(Creature thrownBy, Vector2 thrownPos, Vector2? firstFrameTraceFromPos, IntVector2 throwDir, float frc, bool eu)
     {
         base.Thrown(thrownBy, thrownPos, firstFrameTraceFromPos, throwDir, frc, eu);
@@ -237,6 +202,51 @@ public class ScarletFlowerBulb : Weapon, IDrawable
             return;
         }
         room.PlaySound(SoundID.Slugcat_Throw_Flare_Bomb, firstChunk);
+    }
+
+    private void Explode()
+    {
+        if (exploded == false)
+        {
+            var num = UnityEngine.Random.Range(5, 8);
+            Vector2 vector = Vector2.Lerp(firstChunk.pos, firstChunk.lastPos, 0.35f);
+            Vector2 vector2 = Custom.RNV();
+
+            for (int k = 0; k < num; k++)
+            {
+                Vector2 pos = firstChunk.pos + Custom.RNV() * 5f * UnityEngine.Random.value;
+                Vector2 vel = Custom.RNV() * 4f * (1 + UnityEngine.Random.value);
+                room.AddObject(new Spark(pos, vel, lightColor, null, 20, 40));
+            }
+
+            for (int i = 0; i < room.abstractRoom.creatures.Count; i++)
+            {
+                Vector2 creaturePosition = room.abstractRoom.creatures[i].realizedCreature.mainBodyChunk.pos;
+                if (Custom.DistLess(firstChunk.pos, creaturePosition, 1600f) && room.abstractRoom.creatures[i].realizedCreature != null &&
+                    room.abstractRoom.creatures[i].creatureTemplate.type != CreatureTemplate.Type.Slugcat)
+                {
+                    room.PlaySound(SoundID.Centipede_Shock, creaturePosition, 0.25f, 1.25f);
+                    room.AddObject(new Explosion.ExplosionSmoke(creaturePosition, vector2, 1.1f));
+                    room.AddObject(new Explosion.ExplosionLight(creaturePosition, 100f, 1f, 7, new Color(1f, 0f, 0f)));
+                    room.abstractRoom.creatures[i].realizedCreature.Stun(200);
+                }
+            }
+
+            var num2 = UnityEngine.Random.Range(0.2f, 0.3f);
+
+            room.PlaySound(SoundID.Bomb_Explode, firstChunk.pos, 0.75f, 1.25f);
+            room.PlaySound(SoundID.Bomb_Explode, firstChunk.pos, 0.75f, num2);
+            room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, firstChunk.pos, 0.75f, num2);
+
+            room.AddObject(new Explosion.ExplosionSmoke(vector, vector2, 1.1f));
+            room.AddObject(new Explosion.ExplosionLight(vector, 400f, 1f, 7, lightColor));
+            room.AddObject(new ExplosionSpikes(room, vector, 14, 30f, 9f, 7f, 170f, lightColor));
+            room.AddObject(new ShockWave(vector, 4000f, 0.05f, 20, true));
+        }
+        exploded = true;
+        AllGraspsLetGoOfThisObject(true);
+        abstractPhysicalObject.LoseAllStuckObjects();
+        Destroy();
     }
     #endregion
 
