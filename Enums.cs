@@ -21,25 +21,25 @@ public static class AbstractObjectType
 }
 public static class MiscItemType
 {
-    public static SLOracleBehaviorHasMark.MiscItemType ScarletFlower = new("ScarletFlower", true);
+    public static SLOracleBehaviorHasMark.MiscItemType ScarletFlowerBulb = new("ScarletFlowerBulb", true);
     public static void UnregisterValues()
     {
-        if (ScarletFlower != null)
+        if (ScarletFlowerBulb != null)
         {
-            ScarletFlower.Unregister();
-            ScarletFlower = null;
+            ScarletFlowerBulb.Unregister();
+            ScarletFlowerBulb = null;
         }
     }
 }
 public static class MultiplayerItemType
 {
-    public static PlacedObject.MultiplayerItemData.Type ScarletFlower = new("ScarletFlower", true);
+    public static PlacedObject.MultiplayerItemData.Type ScarletFlowerBulb = new("ScarletFlowerBulb", true);
     public static void UnregisterValues()
     {
-        if (ScarletFlower != null)
+        if (ScarletFlowerBulb != null)
         {
-            ScarletFlower.Unregister();
-            ScarletFlower = null;
+            ScarletFlowerBulb.Unregister();
+            ScarletFlowerBulb = null;
         }
     }
 }
@@ -57,13 +57,13 @@ public static class PlacedObjectType
 }
 public static class SandboxUnlockID
 {
-    public static MultiplayerUnlocks.SandboxUnlockID ScarletFlower = new("ScarletFlower", true);
+    public static MultiplayerUnlocks.SandboxUnlockID ScarletFlowerBulb = new("ScarletFlowerBulb", true);
     public static void UnregisterValues()
     {
-        if (ScarletFlower != null)
+        if (ScarletFlowerBulb != null)
         {
-            ScarletFlower.Unregister();
-            ScarletFlower = null;
+            ScarletFlowerBulb.Unregister();
+            ScarletFlowerBulb = null;
         }
     }
 }

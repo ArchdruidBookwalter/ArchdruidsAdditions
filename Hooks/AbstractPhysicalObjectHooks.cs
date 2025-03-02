@@ -17,7 +17,7 @@ public static class AbstractPhysicalObjectHooks
         {
             if (self.type == Enums.AbstractObjectType.ScarletFlowerBulb)
             {
-                self.realizedObject = new Objects.ScarletFlowerBulb(self, self.world, false, Custom.RNV());
+                self.realizedObject = new Objects.ScarletFlowerBulb(self, self.world, false, Custom.RNV(), new(1f, 0f, 0f));
                 UnityEngine.Debug.Log("SPAWNED \"Scarlet Flower Bulb\" OBJECT IN DEFAULT STATE");
             }
         }

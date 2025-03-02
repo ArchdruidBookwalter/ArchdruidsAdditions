@@ -14,9 +14,9 @@ public static class MainHooks
         orig(self);
 
         #region MultiplayerUnlocks
-        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ScarletFlower))
+        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ScarletFlowerBulb))
         {
-            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.ScarletFlower);
+            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.ScarletFlowerBulb);
         }
         #endregion
 
@@ -61,9 +61,9 @@ public static class MainHooks
         {
             if (mod.id == "archdruidbookwalter.archdruidsadditions")
             {
-                if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ScarletFlower))
+                if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ScarletFlowerBulb))
                 {
-                    MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.ScarletFlower);
+                    MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.ScarletFlowerBulb);
                 }
                 Enums.AbstractObjectType.UnregisterValues();
                 Enums.MiscItemType.UnregisterValues();

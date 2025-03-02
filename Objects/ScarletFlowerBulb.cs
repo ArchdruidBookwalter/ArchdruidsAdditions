@@ -37,7 +37,7 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         }
     }
 
-    public ScarletFlowerBulb(AbstractPhysicalObject abstractPhysicalObject, World world, bool frozen, Vector2 rotation) : base(abstractPhysicalObject, world)
+    public ScarletFlowerBulb(AbstractPhysicalObject abstractPhysicalObject, World world, bool frozen, Vector2 rotation, Color color) : base(abstractPhysicalObject, world)
     {
         bodyChunks = [new BodyChunk(this, 0, default, 5f, 0.35f)];
         bodyChunkConnections = [];
@@ -49,7 +49,6 @@ public class ScarletFlowerBulb : Weapon, IDrawable
             CollideWithSlopes = false;
             CollideWithTerrain = false;
             gravity = 0f;
-            lightColor = redColor;
         }
         else
         {
@@ -58,7 +57,6 @@ public class ScarletFlowerBulb : Weapon, IDrawable
             CollideWithSlopes = true;
             CollideWithTerrain = true;
             gravity = 0.9f;
-            lightColor = redColor;
         }
 
         airFriction = 0.999f;
@@ -67,8 +65,26 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         waterFriction = 0.92f;
         buoyancy = 1.2f;
 
-        this.rotation = rotation;
         this.frozen = frozen;
+        this.rotation = rotation;
+
+        double randomNumBig = UnityEngine.Random.Range(0f, 100f);
+        float randomNum1;
+        float randomNum2;
+        float randomNum3;
+        if (randomNumBig > 90)
+        {
+            randomNum1 = UnityEngine.Random.Range(-0.3f, 0.3f);
+            randomNum2 = UnityEngine.Random.Range(-0.3f, 0.3f);
+            randomNum3 = UnityEngine.Random.Range(-0.3f, 0.3f);
+        }
+        else
+        {
+            randomNum1 = UnityEngine.Random.Range(-0.1f, 0.1f);
+            randomNum2 = UnityEngine.Random.Range(-0.1f, 0.1f);
+            randomNum3 = UnityEngine.Random.Range(-0.1f, 0.1f);
+        }
+        this.lightColor = new(color.r + randomNum1, color.g + randomNum2, color.b + randomNum3);
     }
 
     #region Object Behavior
@@ -206,6 +222,10 @@ public class ScarletFlowerBulb : Weapon, IDrawable
 
     private void Explode()
     {
+        if (!AbstrConsumable.isConsumed)
+        {
+            AbstrConsumable.Consume();
+        }
         if (exploded == false)
         {
             var num = UnityEngine.Random.Range(5, 8);
@@ -235,8 +255,6 @@ public class ScarletFlowerBulb : Weapon, IDrawable
             var num2 = UnityEngine.Random.Range(0.2f, 0.3f);
 
             room.PlaySound(SoundID.Bomb_Explode, firstChunk.pos, 0.75f, 1.25f);
-            room.PlaySound(SoundID.Bomb_Explode, firstChunk.pos, 0.75f, num2);
-            room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, firstChunk.pos, 0.75f, num2);
 
             room.AddObject(new Explosion.ExplosionSmoke(vector, vector2, 1.1f));
             room.AddObject(new Explosion.ExplosionLight(vector, 400f, 1f, 7, lightColor));

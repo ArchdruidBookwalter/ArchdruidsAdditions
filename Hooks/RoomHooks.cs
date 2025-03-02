@@ -41,7 +41,7 @@ public static class RoomHooks
                         self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data as PlacedObject.ConsumableObjectData)
                     { isConsumed = false };
 
-                    abstractConsumable.realizedObject = new Objects.ScarletFlowerBulb(abstractConsumable, self.world, true, data.rotation);
+                    abstractConsumable.realizedObject = new Objects.ScarletFlowerBulb(abstractConsumable, self.world, true, data.rotation, new(1f, 0f, 0f));
 
                     self.abstractRoom.AddEntity(abstractConsumable);
 
