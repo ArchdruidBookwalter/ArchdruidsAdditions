@@ -29,6 +29,10 @@ public static class MainHooks
         {
             Futile.atlasManager.LoadAtlas("atlases/ScarletFlowerBulb");
         }
+        if (!Futile.atlasManager.DoesContainAtlas("ParrySword"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/ParrySword");
+        }
         #endregion
 
         if (oneShot == false)
@@ -47,6 +51,14 @@ public static class MainHooks
         {
             Futile.atlasManager.UnloadAtlas("ScarletFlowerStem");
         }
+        if (Futile.atlasManager.DoesContainAtlas("ScarletFlowerBulb"))
+        {
+            Futile.atlasManager.UnloadAtlas("ScarletFlowerBulb");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("ParrySword"))
+        {
+            Futile.atlasManager.UnloadAtlas("ParrySword");
+        }
     }
 
     internal static void RainWorld_OnModsEnabled(On.RainWorld.orig_OnModsEnabled orig, RainWorld self, ModManager.Mod[] newlyEnabledMods)
@@ -64,6 +76,10 @@ public static class MainHooks
                 if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ScarletFlowerBulb))
                 {
                     MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.ScarletFlowerBulb);
+                }
+                if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ParrySword))
+                {
+                    MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.ParrySword);
                 }
                 Enums.AbstractObjectType.UnregisterValues();
                 Enums.MiscItemType.UnregisterValues();

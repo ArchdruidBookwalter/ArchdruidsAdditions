@@ -16,6 +16,10 @@ public static class ItemSymbolHooks
         {
             text = "Icon_ScarletFlowerBulb";
         }
+        else if (itemType == Enums.AbstractObjectType.ParrySword)
+        {
+            text = "Icon_ParrySword";
+        }
         else
         {
             text = orig.Invoke(itemType, intData);
@@ -29,6 +33,10 @@ public static class ItemSymbolHooks
         if (itemType == Enums.AbstractObjectType.ScarletFlowerBulb)
         {
             color = new Color(1f, 0f, 0f);
+        }
+        else if (itemType == Enums.AbstractObjectType.ParrySword)
+        {
+            color = new Color(0f, 1f, 0.5f);
         }
         else
         {

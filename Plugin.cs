@@ -43,6 +43,11 @@ public sealed class Plugin : BaseUnityPlugin
         On.RainWorld.OnModsDisabled += Hooks.MainHooks.RainWorld_OnModsDisabled;
         #endregion
 
+        #region Player
+        On.Player.IsObjectThrowable += Hooks.PlayerHooks.Player_IsObjectThrowable;
+        On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
+        #endregion
+
         #region Room Hooks
         On.Room.Loaded += Hooks.RoomHooks.Room_Loaded;
         #endregion

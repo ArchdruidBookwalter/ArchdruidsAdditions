@@ -14,6 +14,7 @@ namespace ArchdruidsAdditions.Objects;
 public class ScarletFlowerBulb : Weapon, IDrawable
 {
     #region Variables
+
     new public Vector2 rotation, lastRotation;
 
     public LightSource lightSource;
