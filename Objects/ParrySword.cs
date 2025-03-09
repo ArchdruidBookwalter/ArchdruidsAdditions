@@ -7,6 +7,7 @@ using UnityEngine;
 using RWCustom;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
+using IL;
 
 namespace ArchdruidsAdditions.Objects;
 
@@ -23,7 +24,7 @@ public class ParrySword : Weapon, IDrawable
     public LightSource lightSource;
 
     public bool useBool;
-    public float useTime;
+    public float useTime, cooldown;
 
     public ParrySword(AbstractPhysicalObject abstractPhysicalObject, World world, Color color) : base(abstractPhysicalObject, world)
     {
@@ -142,7 +143,7 @@ public class ParrySword : Weapon, IDrawable
                             || grabbedPlayer.animation == Player.AnimationIndex.ZeroGPoleGrab)
                         {
                             hand.pos = grabbedPlayer.mainBodyChunk.pos + new Vector2(aimDirection.x * 20, 0) * 1;
-                            rotation = Custom.DegToVec(-10 * grasp);
+                            rotation = Custom.DegToVec(190 * grasp);
                         }
                         else
                         {
@@ -153,14 +154,15 @@ public class ParrySword : Weapon, IDrawable
                 }
                 else
                 {
-                    hand.pos = grabbedPlayer.mainBodyChunk.pos + new Vector2(0, aimDirection.y * 20);
                     if (aimDirection.y == 1)
                     {
-                        rotation = Custom.DegToVec(-100 * grasp);
+                        hand.pos = grabbedPlayer.mainBodyChunk.pos + Custom.rotateVectorDeg(new Vector2(0, aimDirection.y * 20), 45 * grasp);
+                        rotation = Custom.DegToVec(-80 * grasp);
                     }
                     else
                     {
-                        rotation = Custom.DegToVec(100 * grasp);
+                        hand.pos = grabbedPlayer.mainBodyChunk.pos + Custom.rotateVectorDeg(new Vector2(0, aimDirection.y * 20), 45 * grasp);
+                        rotation = Custom.DegToVec(80 * grasp);
                     }
                 }
             }
@@ -208,6 +210,11 @@ public class ParrySword : Weapon, IDrawable
         {
             useTime = 1;
         }
+
+        if (cooldown > 0)
+        {
+            cooldown--;
+        }
     }
 
     public override void HitByWeapon(Weapon weapon)
@@ -238,10 +245,13 @@ public class ParrySword : Weapon, IDrawable
 
     public void Use()
     {
-        room.PlaySound(SoundID.Fly_Wing_Flap, firstChunk.pos, 1f, 1f);
-        room.AddObject(new ParryHitbox(this, grabbedBy[0].grabber.mainBodyChunk.pos, aimDirection, 1f, 1f));
-        useBool = true;
-        UnityEngine.Debug.Log("Sword has been used.");
+        if (cooldown == 0)
+        {
+            room.PlaySound(SoundID.Fly_Wing_Flap, firstChunk.pos, 1f, 1f);
+            room.AddObject(new ParryHitbox(this, grabbedBy[0].grabber.mainBodyChunk.pos, aimDirection, 1f, 1f));
+            useBool = true;
+            cooldown = 10;
+        }
     }
     #endregion
 
@@ -335,6 +345,7 @@ public class ParryHitbox : UpdatableAndDeletable
     public Vector2 position, rotation;
     public float scaleX, scaleY, lifetime, collisionRange;
     public ParrySword sword;
+    public bool entityDetected, alreadyParried;
     public ParryHitbox (ParrySword sword, Vector2 position, Vector2 rotation, float scaleX, float scaleY)
     {
         this.sword = sword;
@@ -343,23 +354,78 @@ public class ParryHitbox : UpdatableAndDeletable
         this.scaleX = scaleX;
         this.scaleY = scaleY;
         lifetime = 10f;
-        collisionRange = 50f;
+        collisionRange = 500f;
+        entityDetected = false;
+        alreadyParried = false;
+        UnityEngine.Debug.Log("");
         UnityEngine.Debug.Log("Created Hitbox!");
     }
     public override void Update(bool eu)
     {
         base.Update(eu);
-        UnityEngine.Debug.Log("Hitbox Lifetime:" + lifetime);
-        if (lifetime == 10)
+
+        //room.AddObject(new ExplosionSpikes(room, position, 60, collisionRange, 5f, 7f, 100f, new(0f, 0f, 1f)));
+        if (!entityDetected)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                var physicalObjects = room.physicalObjects;
+                foreach (PhysicalObject obj in physicalObjects[i])
+                {
+                    if (obj is not ParrySword)
+                    {
+                        if (obj is Vulture vulture && vulture.IsKing)
+                        {
+                            for (int j = 0; j < 2; j++)
+                            {
+                                KingTusks.Tusk[] tusks = vulture.kingTusks.tusks;
+                                KingTusks.Tusk tusk = vulture.kingTusks.tusks[j];
+                                Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
+                                Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
+                                Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
+
+                                //room.AddObject(new ExplosionSpikes(room, tuskPos1, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                                //room.AddObject(new ExplosionSpikes(room, tuskPos2, 14, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
+                                //room.AddObject(new ExplosionSpikes(room, tuskPoint, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+
+                                if (vulture.kingTusks.tusks[j].mode == KingTusks.Tusk.Mode.ShootingOut && Custom.DistNoSqrt(tuskPoint, position) < collisionRange)
+                                {
+                                    UnityEngine.Debug.Log("Parried object, King Vulture Harpoon");
+                                    vulture.kingTusks.tusks[j].SwitchMode(KingTusks.Tusk.Mode.Dangling);
+                                    entityDetected = true;
+                                }
+                            }
+                        }
+                        if (Custom.DistNoSqrt(obj.firstChunk.pos, position) < collisionRange)
+                        {
+                            if (obj is Weapon && obj.firstChunk.vel.magnitude > 5)
+                            {
+                                UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
+                                (obj as Weapon).WeaponDeflect(Vector2.Lerp(position, obj.firstChunk.pos, 0.5f), -obj.firstChunk.vel * 2, 1f);
+                                (obj as Weapon).ChangeMode(Weapon.Mode.Thrown);
+                                entityDetected = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (entityDetected && !alreadyParried)
         {
             room.AddObject(new Explosion.ExplosionLight(position, 100f, 1f, 5, sword.swordColor));
             room.AddObject(new ExplosionSpikes(room, position, 14, 2f, 5f, 7f, 100f, sword.swordColor));
             room.AddObject(new ShockWave(position, 100f, 0.05f, 5, false));
+            room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 1f, 2f);
+            room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 1f, 0.5f);
+            alreadyParried = true;
         }
-        if (lifetime <= 0)
+
+        if (lifetime <= 0 || entityDetected)
         {
             this.Destroy();
             UnityEngine.Debug.Log("Hitbox Was Destroyed!");
+            UnityEngine.Debug.Log("");
         }
         lifetime--;
     }
