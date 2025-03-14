@@ -8,6 +8,7 @@ using RWCustom;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using IL;
+using On;
 
 namespace ArchdruidsAdditions.Objects;
 
@@ -19,16 +20,22 @@ public class ParrySword : Weapon, IDrawable
     public string faceDirection;
 
     public Player grabbedPlayer;
+    int playerMaxKarma;
 
     public Color swordColor;
-    public LightSource lightSource;
+    public LightSource lightSource1;
+    public LightSource lightSource2;
 
-    public bool useBool;
-    public float useTime, cooldown;
+    public bool useBool, activeBool;
+    public float useTime, charge, rejectTime, cooldown;
+    public int usedNum;
+
+    new public ChunkDynamicSoundLoop soundLoop;
 
     public ParrySword(AbstractPhysicalObject abstractPhysicalObject, World world, Color color) : base(abstractPhysicalObject, world)
     {
-        bodyChunks = [new BodyChunk(this, 0, default, 5f, 0.35f)];
+        bodyChunks = new BodyChunk[1];
+        bodyChunks[0] = new BodyChunk(this, 0, default, 5f, 0.1f);
         bodyChunkConnections = [];
 
         collisionLayer = 1;
@@ -38,7 +45,7 @@ public class ParrySword : Weapon, IDrawable
         gravity = 0.9f;
 
         airFriction = 0.999f;
-        bounce = 0.1f;
+        bounce = 0.3f;
         surfaceFriction = 0.2f;
         waterFriction = 0.92f;
         buoyancy = 0.2f;
@@ -48,6 +55,14 @@ public class ParrySword : Weapon, IDrawable
         this.aimDirection = new(0f, 1f);
         this.faceDirection = "left";
         this.lastDirection = 0f;
+        this.soundLoop = new ChunkDynamicSoundLoop(this.firstChunk);
+        this.soundLoop.sound = SoundID.Vulture_Grub_Laser_LOOP;
+        this.soundLoop.Volume = 0f;
+        rejectTime = 0f;
+        charge = 0f;
+        usedNum = 0;
+        activeBool = false;
+        playerMaxKarma = 1;
     }
 
     #region Behavior
@@ -60,8 +75,12 @@ public class ParrySword : Weapon, IDrawable
     public override void Update(bool eu)
     {
         base.Update(eu);
+        soundLoop.Update();
 
         #region Behavior
+
+        room.AddObject(new ExplosionSpikes(room, bodyChunks[0].pos, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+
         lastRotation = rotation;
         firstChunk.collideWithTerrain = grabbedBy.Count == 0;
 
@@ -70,6 +89,110 @@ public class ParrySword : Weapon, IDrawable
             grabbedPlayer = grabbedBy[0].grabber as Player;
             Player.InputPackage input = grabbedPlayer.input[0];
 
+            #region Charge
+
+            playerMaxKarma = grabbedPlayer.KarmaCap + 1;
+            if (charge < 1000 / playerMaxKarma)
+            {
+                charge++;
+            }
+            else if (charge == 1000 / playerMaxKarma && !activeBool)
+            {
+                for (int a = 0; a < 3; a++)
+                {
+                    room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, swordColor, null, 50, 50));
+                }
+                room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, firstChunk.pos, 0.5f, 1.8f);
+                room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
+                room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
+                room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
+
+                activeBool = true;
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                var physicalObjects = room.physicalObjects[i];
+                for (var j = 0; j < physicalObjects.Count(); j++)
+                {
+                    var obj = physicalObjects[j];
+
+
+                    if (obj is Lizard lizard)
+                    {
+                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[0].pos, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[1].pos, 14, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
+                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[2].pos, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+                        room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+
+                        if (lizard.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 14, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        }
+                        if (lizard.animation == Lizard.Animation.PrepareToJump)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 14, 20f, 2f, 7f, 5f, new(1f, 1f, 0f)));
+                        }
+                    }
+
+
+                    if (obj is Vulture vulture)
+                    {
+                        room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+
+                        if (vulture.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 14, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        }
+
+                        if (vulture.IsKing)
+                        {
+                            for (int k = 0; k < 2; k++)
+                            {
+                                KingTusks.Tusk[] tusks = vulture.kingTusks.tusks;
+                                KingTusks.Tusk tusk = vulture.kingTusks.tusks[k];
+                                Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
+                                Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
+                                Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
+
+                                room.AddObject(new ExplosionSpikes(room, tuskPos1, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                                room.AddObject(new ExplosionSpikes(room, tuskPos2, 14, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
+                                room.AddObject(new ExplosionSpikes(room, tuskPoint, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+                            }
+                        }
+                    }
+                }
+            }
+
+            #endregion
+
+            #region Reject Player
+            if (grabbedPlayer.KarmaCap < 1)
+            {
+                rejectTime++;
+                soundLoop.Volume = 1f;
+                soundLoop.Pitch = 1f + rejectTime / 100f;
+            }
+            if (rejectTime > 0 && rejectTime % 10 == 0)
+            {
+                room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, new(1f, 0f, 0f)));
+            }
+            if (rejectTime == 50f)
+            {
+                soundLoop.Volume = 0f;
+                room.PlaySound(SoundID.Centipede_Shock, grabbedPlayer.mainBodyChunk.pos, 1f, 1f);
+                room.AddObject(new Explosion(room, this, firstChunk.pos, 10, 50, 50, 0, 10, 0.1f, null, 0f, 10, 10));
+                room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
+                room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
+                room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
+                grabbedPlayer.Stun(200);
+                room.AddObject(new CreatureSpasmer(grabbedPlayer, false, grabbedPlayer.stun));
+                grabbedPlayer.LoseAllGrasps();
+                rejectTime = 0f;
+            }
+            #endregion
+
+            #region Rotation
             int grasp;
             if (grabbedBy[0].graspUsed == 0)
             {
@@ -119,7 +242,7 @@ public class ParrySword : Weapon, IDrawable
                 }
             }
 
-            if (useBool == true)
+            if (useBool == true && rejectTime == 0f)
             {
                 if (aimDirection.y == 0)
                 {
@@ -154,10 +277,18 @@ public class ParrySword : Weapon, IDrawable
                 }
                 else
                 {
-                    if (aimDirection.y == 1)
+                    if (aimDirection.y > 0)
                     {
-                        hand.pos = grabbedPlayer.mainBodyChunk.pos + Custom.rotateVectorDeg(new Vector2(0, aimDirection.y * 20), 45 * grasp);
-                        rotation = Custom.DegToVec(-80 * grasp);
+                        if (aimDirection.x == 0)
+                        {
+                            hand.pos = grabbedPlayer.mainBodyChunk.pos + Custom.rotateVectorDeg(new Vector2(0, 20), 45 * grasp);
+                            rotation = Custom.DegToVec(-80 * grasp);
+                        }
+                        else
+                        {
+                            hand.pos = grabbedPlayer.mainBodyChunk.pos + Custom.rotateVectorDeg(new Vector2(aimDirection.x * 20, 20), Custom.VecToDeg(aimDirection));
+                            rotation = Custom.DegToVec(-45 * aimDirection.x);
+                        }
                     }
                     else
                     {
@@ -166,10 +297,17 @@ public class ParrySword : Weapon, IDrawable
                     }
                 }
             }
+            #endregion
         }
         else
         {
             rotation = (rotation - Custom.PerpendicularVector(rotation) * (firstChunk.ContactPoint.y < 0 ? 0.15f : 0.05f) * firstChunk.vel.x).normalized;
+            if (charge > 0)
+            {
+                charge--;
+            }
+            activeBool = false;
+            soundLoop.Volume = 0f;
         }
 
         if (firstChunk.ContactPoint.y < 0)
@@ -177,26 +315,11 @@ public class ParrySword : Weapon, IDrawable
             BodyChunk firstChunk = base.firstChunk;
             firstChunk.vel.x = firstChunk.vel.x * 0.8f;
         }
-        #endregion
 
-        #region Visuals
-        if (lightSource == null)
+        if (usedNum >= 3)
         {
-            lightSource = new LightSource(firstChunk.pos, false, swordColor, this);
-            lightSource.affectedByPaletteDarkness = 0.5f;
-            room.AddObject(lightSource);
+            ActivateLongCooldown();
         }
-        else
-        {
-            lightSource.setPos = new Vector2?(firstChunk.pos);
-            lightSource.setRad = new float?(50f);
-            lightSource.setAlpha = new float?(1f);
-            if (lightSource.slatedForDeletetion || lightSource.room != room)
-            {
-                lightSource = null;
-            }
-        }
-        #endregion
 
         if (useBool == true)
         {
@@ -206,7 +329,7 @@ public class ParrySword : Weapon, IDrawable
                 useBool = false;
             }
         }
-        if (useBool == false)
+        else
         {
             useTime = 1;
         }
@@ -215,27 +338,76 @@ public class ParrySword : Weapon, IDrawable
         {
             cooldown--;
         }
-    }
 
-    public override void HitByWeapon(Weapon weapon)
-    {
-        base.HitByWeapon(weapon);
-        room.PlaySound(SoundID.Spear_Bounce_Off_Wall, firstChunk.pos, 0.35f, 2f);
-    }
+        #endregion
 
-    public override bool HitSomething(SharedPhysics.CollisionResult result, bool eu)
-    {
-        if (result.chunk == null)
+        float alpha;
+        if (activeBool)
         {
-            return false;
+            alpha = 1f;
         }
-        room.PlaySound(SoundID.Spear_Bounce_Off_Wall, firstChunk.pos, 0.35f, 2f);
-        return base.HitSomething(result, eu);
+        else
+        {
+            alpha = 1f * (charge / (1000 / playerMaxKarma));
+        }
+
+        #region Visuals
+
+        if (lightSource1 == null)
+        {
+            lightSource1 = new LightSource(firstChunk.pos, true, swordColor, this);
+            lightSource1.affectedByPaletteDarkness = 0.5f;
+            room.AddObject(lightSource1);
+        }
+        else
+        {
+            lightSource1.setPos = new Vector2?(firstChunk.pos + rotation * 30);
+            lightSource1.setRad = new float?(100f);
+            lightSource1.setAlpha = new float?(0.5f * alpha);
+            if (lightSource1.slatedForDeletetion || lightSource1.room != room)
+            {
+                lightSource1 = null;
+            }
+        }
+        
+        if (lightSource2 == null)
+        {
+            lightSource2 = new LightSource(firstChunk.pos, true, swordColor, this);
+            lightSource2.affectedByPaletteDarkness = 0.5f;
+            lightSource2.flat = true;
+            room.AddObject(lightSource2);
+        }
+        else
+        {
+            lightSource2.HardSetPos(firstChunk.pos + rotation * 30);
+            lightSource2.setRad = new float?(40f);
+            lightSource2.setAlpha = new float?(0.3f * alpha);
+            if (lightSource2.slatedForDeletetion || lightSource2.room != room)
+            {
+                lightSource2 = null;
+            }
+        }
+        
+        #endregion
+
+        
     }
 
-    public override void HitWall()
+    public override void TerrainImpact(int chunk, IntVector2 direction, float speed, bool firstContact)
     {
-        room.PlaySound(SoundID.Spear_Bounce_Off_Wall, firstChunk.pos, 0.35f, 2f);
+        if (firstChunk.vel.magnitude > 50)
+        {
+            room.PlaySound(SoundID.Spear_Bounce_Off_Wall, firstChunk.pos, 1f, 1.2f);
+            for (int i = 0; i < 3; i++)
+            {
+                room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, new(1f, 1f, 1f), null, 50, 50));
+            }
+        }
+        else if (firstChunk.vel.magnitude > 10)
+        {
+            room.PlaySound(SoundID.Spear_Stick_In_Ground, firstChunk.pos, 1f, 1.2f);
+        }
+        base.TerrainImpact(chunk, direction, speed, firstContact);
     }
 
     public override void PickedUp(Creature upPicker)
@@ -245,12 +417,31 @@ public class ParrySword : Weapon, IDrawable
 
     public void Use()
     {
-        if (cooldown == 0)
+        if (cooldown == 0 && activeBool)
         {
             room.PlaySound(SoundID.Fly_Wing_Flap, firstChunk.pos, 1f, 1f);
             room.AddObject(new ParryHitbox(this, grabbedBy[0].grabber.mainBodyChunk.pos, aimDirection, 1f, 1f));
             useBool = true;
             cooldown = 10;
+        }
+    }
+
+    public void ActivateLongCooldown()
+    {
+        if (grabbedPlayer.KarmaCap == 9)
+        {
+            return;
+        }
+        else
+        {
+            room.PlaySound(SoundID.Centipede_Shock, firstChunk.pos);
+            for (int i = 0; i < 3; i++)
+            {
+                room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, swordColor, null, 50, 50));
+            }
+            usedNum = 0;
+            charge = 0;
+            activeBool = false;
         }
     }
     #endregion
@@ -265,19 +456,14 @@ public class ParrySword : Weapon, IDrawable
             fsprite.RemoveFromContainer();
             newContainer.AddChild(fsprite);
         }
-
-        rCam.ReturnFContainer("GrabShaders").AddChild(sLeaser.sprites[2]);
     }
 
     public override void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
     {
-        sLeaser.sprites = new FSprite[3];
+        sLeaser.sprites = new FSprite[2];
 
         sLeaser.sprites[0] = new FSprite("ParrySwordBlade", true);
         sLeaser.sprites[1] = new FSprite("ParrySwordHandle", true);
-
-        sLeaser.sprites[2] = new FSprite("Futile_White", true);
-        sLeaser.sprites[2].shader = rCam.game.rainWorld.Shaders["FlatLightBehindTerrain"];
 
         AddToContainer(sLeaser, rCam, null);
     }
@@ -313,15 +499,19 @@ public class ParrySword : Weapon, IDrawable
         sLeaser.sprites[0].rotation = Custom.VecToDeg(rotVec);
         sLeaser.sprites[0].scaleX = scale;
 
+        if (activeBool)
+        {
+            sLeaser.sprites[0].color = swordColor;
+        }
+        else
+        {
+            sLeaser.sprites[0].color = new(0.9f, 0.9f, 0.9f);
+        }
+
         sLeaser.sprites[1].x = newPosVec.x;
         sLeaser.sprites[1].y = newPosVec.y;
         sLeaser.sprites[1].rotation = sLeaser.sprites[0].rotation;
         sLeaser.sprites[1].scaleX = scale;
-
-        Vector2 spriteVec2 = newPosVec + rotVec * yCoordinate;
-        sLeaser.sprites[2].x = spriteVec2.x;
-        sLeaser.sprites[2].y = spriteVec2.y;
-        sLeaser.sprites[2].scale = 10f;
 
         if (slatedForDeletetion || room != rCam.room)
         {
@@ -331,9 +521,6 @@ public class ParrySword : Weapon, IDrawable
 
     public override void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
     {
-        sLeaser.sprites[0].color = swordColor;
-        sLeaser.sprites[2].color = swordColor;
-        sLeaser.sprites[2].alpha = 0.2f;
         sLeaser.sprites[1].color = palette.blackColor;
     }
     #endregion
@@ -346,6 +533,8 @@ public class ParryHitbox : UpdatableAndDeletable
     public float scaleX, scaleY, lifetime, collisionRange;
     public ParrySword sword;
     public bool entityDetected, alreadyParried;
+    public Player player;
+    public SlugcatStats.Name playerName;
     public ParryHitbox (ParrySword sword, Vector2 position, Vector2 rotation, float scaleX, float scaleY)
     {
         this.sword = sword;
@@ -357,6 +546,8 @@ public class ParryHitbox : UpdatableAndDeletable
         collisionRange = 500f;
         entityDetected = false;
         alreadyParried = false;
+        player = sword.grabbedPlayer;
+        playerName = player.SlugCatClass;
         UnityEngine.Debug.Log("");
         UnityEngine.Debug.Log("Created Hitbox!");
     }
@@ -364,61 +555,135 @@ public class ParryHitbox : UpdatableAndDeletable
     {
         base.Update(eu);
 
-        //room.AddObject(new ExplosionSpikes(room, position, 60, collisionRange, 5f, 7f, 100f, new(0f, 0f, 1f)));
-        if (!entityDetected)
+        /*
+        try
         {
-            for (int i = 0; i < 3; i++)
+            if (!entityDetected)
             {
-                var physicalObjects = room.physicalObjects;
-                foreach (PhysicalObject obj in physicalObjects[i])
+                for (int i = 0; i < 3; i++)
                 {
-                    if (obj is not ParrySword)
+                    var physicalObjects = room.physicalObjects[i];
+                    for (var j = 0; j < physicalObjects.Count(); j++)
                     {
-                        if (obj is Vulture vulture && vulture.IsKing)
+                        var obj = physicalObjects[j];
+                        if (obj is not ParrySword)
                         {
-                            for (int j = 0; j < 2; j++)
+                            if (obj is Vulture vulture && vulture.IsKing)
                             {
-                                KingTusks.Tusk[] tusks = vulture.kingTusks.tusks;
-                                KingTusks.Tusk tusk = vulture.kingTusks.tusks[j];
-                                Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
-                                Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
-                                Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
-
-                                //room.AddObject(new ExplosionSpikes(room, tuskPos1, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                                //room.AddObject(new ExplosionSpikes(room, tuskPos2, 14, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
-                                //room.AddObject(new ExplosionSpikes(room, tuskPoint, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
-
-                                if (vulture.kingTusks.tusks[j].mode == KingTusks.Tusk.Mode.ShootingOut && Custom.DistNoSqrt(tuskPoint, position) < collisionRange)
+                                for (int k = 0; k < 2; k++)
                                 {
-                                    UnityEngine.Debug.Log("Parried object, King Vulture Harpoon");
-                                    vulture.kingTusks.tusks[j].SwitchMode(KingTusks.Tusk.Mode.Dangling);
-                                    entityDetected = true;
+                                    KingTusks.Tusk[] tusks = vulture.kingTusks.tusks;
+                                    KingTusks.Tusk tusk = vulture.kingTusks.tusks[k];
+                                    Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
+                                    Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
+                                    Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
+
+                                    //room.AddObject(new ExplosionSpikes(room, tuskPos1, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                                    //room.AddObject(new ExplosionSpikes(room, tuskPos2, 14, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
+                                    //room.AddObject(new ExplosionSpikes(room, tuskPoint, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+
+                                    if (vulture.kingTusks.tusks[k].mode == KingTusks.Tusk.Mode.ShootingOut && Custom.DistNoSqrt(tuskPoint, position) < collisionRange)
+                                    {
+                                        UnityEngine.Debug.Log("Parried object, King Vulture Harpoon");
+                                        //vulture.kingTusks.tusks[k].SwitchMode(KingTusks.Tusk.Mode.Dangling);
+                                        entityDetected = true;
+                                    }
                                 }
                             }
-                        }
-                        if (Custom.DistNoSqrt(obj.firstChunk.pos, position) < collisionRange)
-                        {
                             if (obj is Weapon && obj.firstChunk.vel.magnitude > 5)
                             {
-                                UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
-                                (obj as Weapon).WeaponDeflect(Vector2.Lerp(position, obj.firstChunk.pos, 0.5f), -obj.firstChunk.vel * 2, 1f);
-                                (obj as Weapon).ChangeMode(Weapon.Mode.Thrown);
-                                entityDetected = true;
+                                if (Custom.DistNoSqrt(obj.firstChunk.pos, position) < collisionRange)
+                                {
+                                    UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
+                                    //(obj as Weapon).WeaponDeflect(Vector2.Lerp(position, obj.firstChunk.pos, 0.5f), rotation * obj.firstChunk.vel.magnitude * 2, 1.1f);
+                                    //(obj as Weapon).ChangeMode(Weapon.Mode.Thrown);
+                                    entityDetected = true;
+                                }
                             }
                         }
                     }
                 }
             }
         }
+        catch
+        {
+            UnityEngine.Debug.Log("ERROR!");
+        }
+        */
+        
+        //room.AddObject(new ExplosionSpikes(room, position, 60, collisionRange, 5f, 7f, 100f, new(0f, 0f, 1f)));
+        if (!entityDetected)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                var physicalObjects = room.physicalObjects[i];
+                for(var j = 0; j < physicalObjects.Count(); j++)
+                {
+                    var obj = physicalObjects[j];
+
+                    
+                    if (obj is Lizard lizard)
+                    {
+                        if (lizard.AI.DynamicRelationship((sword.grabbedPlayer as Creature).abstractCreature).GoForKill
+                            && Custom.DistNoSqrt((lizard.graphicsModule as LizardGraphics).head.pos, position) < collisionRange)
+                        {
+                            UnityEngine.Debug.Log("Parried object, Lizard");
+                            lizard.Stun(20);
+                            lizard.bodyChunks[0].vel = rotation * 30;
+                            entityDetected = true;
+                        }
+                    }
+                    
+
+                    if (obj is Vulture vulture)
+                    {
+                        if (vulture.AI.DynamicRelationship((sword.grabbedPlayer as Creature).abstractCreature).GoForKill
+                            && Custom.DistNoSqrt(vulture.Head().pos, position) < collisionRange)
+                        {
+                            UnityEngine.Debug.Log("Parried object, Vulture");
+                            vulture.Stun(20);
+                            vulture.Head().vel = rotation * 30;
+                            entityDetected = true;
+                        }
+                        if (vulture.IsKing)
+                        {
+                            for (int k = 0; k < 2; k++)
+                            {
+                                KingTusks.Tusk[] tusks = vulture.kingTusks.tusks;
+                                KingTusks.Tusk tusk = vulture.kingTusks.tusks[k];
+                                Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
+                                Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
+                                Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
+                                if (vulture.kingTusks.tusks[k].mode == KingTusks.Tusk.Mode.ShootingOut && Custom.DistNoSqrt(tuskPoint, position) < collisionRange)
+                                {
+                                    UnityEngine.Debug.Log("Parried object, King Vulture Harpoon");
+                                    vulture.kingTusks.tusks[k].SwitchMode(KingTusks.Tusk.Mode.Dangling);
+                                    entityDetected = true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (obj is Weapon && obj is not ParrySword && obj.firstChunk.vel.magnitude > 5)
+                    {
+                        if (Custom.DistNoSqrt(obj.firstChunk.pos, position) < collisionRange)
+                        {
+                            UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
+                            var objVel = obj.firstChunk.vel / 10;
+                            (obj as Weapon).Thrown(sword.grabbedPlayer, sword.grabbedPlayer.mainBodyChunk.pos,
+                                sword.grabbedPlayer.mainBodyChunk.pos - objVel, new(-(int)objVel.x, -(int)objVel.y), 1f, eu);
+                            (obj as Weapon).ChangeMode(Weapon.Mode.Thrown);
+                            entityDetected = true;
+                        }
+                    }
+                }
+            }
+        }
+        
 
         if (entityDetected && !alreadyParried)
         {
-            room.AddObject(new Explosion.ExplosionLight(position, 100f, 1f, 5, sword.swordColor));
-            room.AddObject(new ExplosionSpikes(room, position, 14, 2f, 5f, 7f, 100f, sword.swordColor));
-            room.AddObject(new ShockWave(position, 100f, 0.05f, 5, false));
-            room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 1f, 2f);
-            room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 1f, 0.5f);
-            alreadyParried = true;
+            Activate();
         }
 
         if (lifetime <= 0 || entityDetected)
@@ -430,8 +695,16 @@ public class ParryHitbox : UpdatableAndDeletable
         lifetime--;
     }
 
-    public void Collide(PhysicalObject otherObj, int myChunk, int otherChunk)
+    public void Activate()
     {
-
+        sword.grabbedPlayer.mainBodyChunk.vel += -rotation * 6;
+        sword.usedNum++;
+        room.AddObject(new Explosion.ExplosionLight(position, 100f, 1f, 5, sword.swordColor));
+        room.AddObject(new ExplosionSpikes(room, position, 14, 2f, 5f, 7f, 100f, sword.swordColor));
+        room.AddObject(new ShockWave(position, 100f, 0.05f, 5, false));
+        room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 1f, 2f);
+        room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 1f, 0.5f);
+        alreadyParried = true;
     }
+
 }
