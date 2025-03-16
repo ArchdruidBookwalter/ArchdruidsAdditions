@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using IL;
 using On;
+using MoreSlugcats;
 
 namespace ArchdruidsAdditions.Objects;
 
@@ -66,6 +67,7 @@ public class ParrySword : Weapon, IDrawable
     }
 
     #region Behavior
+
     public override void PlaceInRoom(Room placeRoom)
     {
         base.PlaceInRoom(placeRoom);
@@ -79,7 +81,7 @@ public class ParrySword : Weapon, IDrawable
 
         #region Behavior
 
-        room.AddObject(new ExplosionSpikes(room, bodyChunks[0].pos, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+        //room.AddObject(new ExplosionSpikes(room, bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
 
         lastRotation = rotation;
         firstChunk.collideWithTerrain = grabbedBy.Count == 0;
@@ -110,6 +112,10 @@ public class ParrySword : Weapon, IDrawable
                 activeBool = true;
             }
 
+            #endregion
+
+            #region Object Detector
+
             for (int i = 0; i < 3; i++)
             {
                 var physicalObjects = room.physicalObjects[i];
@@ -117,32 +123,60 @@ public class ParrySword : Weapon, IDrawable
                 {
                     var obj = physicalObjects[j];
 
-
-                    if (obj is Lizard lizard)
+                    /*
+                    if (obj is BigNeedleWorm noodlefly)
                     {
-                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[0].pos, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[1].pos, 14, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
-                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[2].pos, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
-                        room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+                        noodlefly.BigAI.SocialEvent(SocialEventRecognizer.EventID.Killing, grabbedPlayer as Creature, noodlefly, null);
+                        Vector2 fangPos1 = noodlefly.bodyChunks[0].pos + (noodlefly.fangLength * Custom.DirVec(noodlefly.bodyChunks[1].pos, noodlefly.bodyChunks[0].pos) * 1f);
 
-                        if (lizard.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
+                        room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        room.AddObject(new ExplosionSpikes(room, fangPos1, 50, 1f, 2f, 7f, 5f, new(1f, 1f, 1f)));
+
+                        if (noodlefly.AI.behavior == NeedleWormAI.Behavior.Attack)
                         {
-                            room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 14, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                            UnityEngine.Debug.Log("Noodlefly Detected. Velocity: " + noodlefly.mainBodyChunk.vel.magnitude);
+                            room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].pos, 50, 10f, 50f, 7f, 5f, new(0f, 0f, 1f)));
                         }
-                        if (lizard.animation == Lizard.Animation.PrepareToJump)
+                        if (noodlefly.chargingAttack > 0.5f || noodlefly.swishDir != null)
                         {
-                            room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 14, 20f, 2f, 7f, 5f, new(1f, 1f, 0f)));
+                            room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackFromPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
+                            room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackTargetPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
                         }
                     }
 
+                    if (obj is Cicada squidcada)
+                    {
+                        room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        if (squidcada.Charging)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        }
+                    }
+
+                    if (obj is Lizard lizard)
+                    {
+                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[1].pos, 50, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
+                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[2].pos, 50, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+                        room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 50, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+
+                        if (lizard.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        }
+                        if (lizard.animation == Lizard.Animation.PrepareToJump)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 50, 20f, 2f, 7f, 5f, new(1f, 1f, 0f)));
+                        }
+                    }
 
                     if (obj is Vulture vulture)
                     {
-                        room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
 
                         if (vulture.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
                         {
-                            room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 14, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                            room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
                         }
 
                         if (vulture.IsKing)
@@ -155,23 +189,30 @@ public class ParrySword : Weapon, IDrawable
                                 Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
                                 Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
 
-                                room.AddObject(new ExplosionSpikes(room, tuskPos1, 14, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                                room.AddObject(new ExplosionSpikes(room, tuskPos2, 14, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
-                                room.AddObject(new ExplosionSpikes(room, tuskPoint, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+                                room.AddObject(new ExplosionSpikes(room, tuskPos1, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                                room.AddObject(new ExplosionSpikes(room, tuskPos2, 50, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
+                                room.AddObject(new ExplosionSpikes(room, tuskPoint, 50, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
                             }
                         }
                     }
+                    */
                 }
             }
 
             #endregion
 
             #region Reject Player
+
             if (grabbedPlayer.KarmaCap < 1)
             {
                 rejectTime++;
                 soundLoop.Volume = 1f;
                 soundLoop.Pitch = 1f + rejectTime / 100f;
+            }
+            else
+            {
+                soundLoop.Volume = 0f;
+                rejectTime = 0;
             }
             if (rejectTime > 0 && rejectTime % 10 == 0)
             {
@@ -308,6 +349,7 @@ public class ParrySword : Weapon, IDrawable
             }
             activeBool = false;
             soundLoop.Volume = 0f;
+            rejectTime = 0f;
         }
 
         if (firstChunk.ContactPoint.y < 0)
@@ -341,6 +383,8 @@ public class ParrySword : Weapon, IDrawable
 
         #endregion
 
+        #region Visuals
+
         float alpha;
         if (activeBool)
         {
@@ -350,8 +394,6 @@ public class ParrySword : Weapon, IDrawable
         {
             alpha = 1f * (charge / (1000 / playerMaxKarma));
         }
-
-        #region Visuals
 
         if (lightSource1 == null)
         {
@@ -419,7 +461,7 @@ public class ParrySword : Weapon, IDrawable
     {
         if (cooldown == 0 && activeBool)
         {
-            room.PlaySound(SoundID.Fly_Wing_Flap, firstChunk.pos, 1f, 1f);
+            room.PlaySound(SoundID.Slugcat_Throw_Spear, firstChunk.pos, 0.2f, 0.6f);
             room.AddObject(new ParryHitbox(this, grabbedBy[0].grabber.mainBodyChunk.pos, aimDirection, 1f, 1f));
             useBool = true;
             cooldown = 10;
@@ -444,6 +486,7 @@ public class ParrySword : Weapon, IDrawable
             activeBool = false;
         }
     }
+
     #endregion
 
     #region Appearance
@@ -535,6 +578,8 @@ public class ParryHitbox : UpdatableAndDeletable
     public bool entityDetected, alreadyParried;
     public Player player;
     public SlugcatStats.Name playerName;
+    public FloatRect collisionRect;
+
     public ParryHitbox (ParrySword sword, Vector2 position, Vector2 rotation, float scaleX, float scaleY)
     {
         this.sword = sword;
@@ -543,18 +588,20 @@ public class ParryHitbox : UpdatableAndDeletable
         this.scaleX = scaleX;
         this.scaleY = scaleY;
         lifetime = 10f;
-        collisionRange = 500f;
+        collisionRange = 30f;
         entityDetected = false;
         alreadyParried = false;
         player = sword.grabbedPlayer;
         playerName = player.SlugCatClass;
         UnityEngine.Debug.Log("");
         UnityEngine.Debug.Log("Created Hitbox!");
+
+        Vector2 playerPos = sword.grabbedPlayer.mainBodyChunk.pos;
     }
+
     public override void Update(bool eu)
     {
         base.Update(eu);
-
         /*
         try
         {
@@ -610,8 +657,20 @@ public class ParryHitbox : UpdatableAndDeletable
             UnityEngine.Debug.Log("ERROR!");
         }
         */
-        
-        //room.AddObject(new ExplosionSpikes(room, position, 60, collisionRange, 5f, 7f, 100f, new(0f, 0f, 1f)));
+
+        collisionRect = new(position.x - collisionRange + rotation.x * 8,
+            position.y - collisionRange + rotation.y * 8,
+            position.x + collisionRange + rotation.x * 8,
+            position.y + collisionRange + rotation.y * 8);
+
+        /*
+        room.AddObject(new ExplosionSpikes(room, position, 60, 1, 5f, 7f, 5f, new(0f, 0f, 1f)));
+        room.AddObject(new ExplosionSpikes(room, collisionRect.GetCorner(FloatRect.CornerLabel.A), 60, 1, 5f, 7f, 5f, new(1f, 0f, 0f)));
+        room.AddObject(new ExplosionSpikes(room, collisionRect.GetCorner(FloatRect.CornerLabel.B), 60, 1, 5f, 7f, 5f, new(0f, 1f, 0f)));
+        room.AddObject(new ExplosionSpikes(room, collisionRect.GetCorner(FloatRect.CornerLabel.C), 60, 1, 5f, 7f, 5f, new(0f, 0f, 1f)));
+        room.AddObject(new ExplosionSpikes(room, collisionRect.GetCorner(FloatRect.CornerLabel.D), 60, 1, 5f, 7f, 5f, new(1f, 1f, 0f)));
+        */
+
         if (!entityDetected)
         {
             for (int i = 0; i < 3; i++)
@@ -621,27 +680,57 @@ public class ParryHitbox : UpdatableAndDeletable
                 {
                     var obj = physicalObjects[j];
 
-                    
-                    if (obj is Lizard lizard)
+                    if (obj is BigNeedleWorm noodlefly)
                     {
-                        if (lizard.AI.DynamicRelationship((sword.grabbedPlayer as Creature).abstractCreature).GoForKill
-                            && Custom.DistNoSqrt((lizard.graphicsModule as LizardGraphics).head.pos, position) < collisionRange)
+                        if (noodlefly.swishDir != null || noodlefly.chargingAttack > 0.8f)
                         {
-                            UnityEngine.Debug.Log("Parried object, Lizard");
-                            lizard.Stun(20);
-                            lizard.bodyChunks[0].vel = rotation * 30;
+                            Vector2 aimDir = Custom.DirVec(noodlefly.bodyChunks[1].pos, noodlefly.bodyChunks[0].pos);
+                            Vector2 fangPos = noodlefly.bodyChunks[0].pos + (noodlefly.fangLength * aimDir * 1f);
+                            if (Custom.VectorRectDistance(fangPos + aimDir * 2, collisionRect) < 50f ||
+                                Custom.VectorRectDistance(fangPos, collisionRect) < 50f)
+                            {
+                                UnityEngine.Debug.Log("Parried object, Noodlefly");
+                                noodlefly.impaleChunk = null;
+                                noodlefly.swishCounter = 0;
+                                noodlefly.swishDir = null;
+                                noodlefly.Stun(100);
+                                noodlefly.bodyChunks[0].vel = rotation * 20;
+                                entityDetected = true;
+                                return;
+                            }
+                        }
+                    }
+                    
+                    if (obj is Cicada squidcada)
+                    {
+                        if (squidcada.Charging && collisionRect.Vector2Inside(squidcada.bodyChunks[0].pos))
+                        {
+                            UnityEngine.Debug.Log("Parried object, Squidcada");
+                            squidcada.Stun(100);
+                            squidcada.bodyChunks[0].vel = rotation * 30;
                             entityDetected = true;
                         }
                     }
                     
+                    if (obj is Lizard lizard)
+                    {
+                        if (lizard.AI.DynamicRelationship((sword.grabbedPlayer as Creature).abstractCreature).GoForKill
+                            && collisionRect.Vector2Inside((lizard.graphicsModule as LizardGraphics).head.pos))
+                        {
+                            UnityEngine.Debug.Log("Parried object, Lizard");
+                            lizard.Stun(100);
+                            lizard.bodyChunks[0].vel = rotation * 30;
+                            entityDetected = true;
+                        }
+                    }
 
                     if (obj is Vulture vulture)
                     {
                         if (vulture.AI.DynamicRelationship((sword.grabbedPlayer as Creature).abstractCreature).GoForKill
-                            && Custom.DistNoSqrt(vulture.Head().pos, position) < collisionRange)
+                            && collisionRect.Vector2Inside(vulture.Head().pos))
                         {
                             UnityEngine.Debug.Log("Parried object, Vulture");
-                            vulture.Stun(20);
+                            vulture.Stun(100);
                             vulture.Head().vel = rotation * 30;
                             entityDetected = true;
                         }
@@ -654,7 +743,7 @@ public class ParryHitbox : UpdatableAndDeletable
                                 Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
                                 Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
                                 Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
-                                if (vulture.kingTusks.tusks[k].mode == KingTusks.Tusk.Mode.ShootingOut && Custom.DistNoSqrt(tuskPoint, position) < collisionRange)
+                                if (vulture.kingTusks.tusks[k].mode == KingTusks.Tusk.Mode.ShootingOut && collisionRect.Vector2Inside(tuskPoint))
                                 {
                                     UnityEngine.Debug.Log("Parried object, King Vulture Harpoon");
                                     vulture.kingTusks.tusks[k].SwitchMode(KingTusks.Tusk.Mode.Dangling);
@@ -666,7 +755,7 @@ public class ParryHitbox : UpdatableAndDeletable
                     
                     if (obj is Weapon && obj is not ParrySword && obj.firstChunk.vel.magnitude > 5)
                     {
-                        if (Custom.DistNoSqrt(obj.firstChunk.pos, position) < collisionRange)
+                        if (collisionRect.Vector2Inside(obj.firstChunk.pos))
                         {
                             UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
                             var objVel = obj.firstChunk.vel / 10;
@@ -697,13 +786,14 @@ public class ParryHitbox : UpdatableAndDeletable
 
     public void Activate()
     {
+        float randomNum = UnityEngine.Random.Range(-0.1f, 0.1f);
         sword.grabbedPlayer.mainBodyChunk.vel += -rotation * 6;
         sword.usedNum++;
         room.AddObject(new Explosion.ExplosionLight(position, 100f, 1f, 5, sword.swordColor));
         room.AddObject(new ExplosionSpikes(room, position, 14, 2f, 5f, 7f, 100f, sword.swordColor));
         room.AddObject(new ShockWave(position, 100f, 0.05f, 5, false));
-        room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 1f, 2f);
-        room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 1f, 0.5f);
+        room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 2f, 0.6f + randomNum);
+        room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, position, 2f, 1.5f + randomNum);
         alreadyParried = true;
     }
 
