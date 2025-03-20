@@ -152,24 +152,71 @@ public class ParrySword : Weapon, IDrawable
                             room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
                         }
                     }
+                    
 
                     if (obj is Lizard lizard)
                     {
-                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[1].pos, 50, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
-                        room.AddObject(new ExplosionSpikes(room, lizard.bodyChunks[2].pos, 50, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
-                        room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 50, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
-
-                        if (lizard.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
+                        Vector2 vel = new(20, 20);
+                        vel = Custom.rotateVectorDeg(vel, UnityEngine.Random.Range(0, 360));
+                        if (lizard.animation == Lizard.Animation.FightingStance)
                         {
-                            room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0f, 0f), null, 50, 50)); //Black
+                        }
+                        if (lizard.animation == Lizard.Animation.HearSound)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0f, 1f), null, 50, 50)); //Blue
+                        }
+                        if (lizard.animation == Lizard.Animation.Jumping)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 1f, 0f), null, 50, 50)); //Green
+                        }
+                        if (lizard.animation == Lizard.Animation.Lounge)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 0f), null, 50, 50)); //Red
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 0f), null, 50, 50)); 
                         }
                         if (lizard.animation == Lizard.Animation.PrepareToJump)
                         {
-                            room.AddObject(new ExplosionSpikes(room, (lizard.graphicsModule as LizardGraphics).head.pos, 50, 20f, 2f, 7f, 5f, new(1f, 1f, 0f)));
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0.5f, 0f), null, 50, 50)); //Dark Green
+                        }
+                        if (lizard.animation == Lizard.Animation.PrepareToLounge)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0f, 0f), null, 50, 50)); //Dark Red
+                        }
+                        if (lizard.animation == Lizard.Animation.PreyReSpotted)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 1f, 0f), null, 50, 50)); //Yellow
+                        }
+                        if (lizard.animation == Lizard.Animation.PreySpotted)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 1f), null, 50, 50)); //Magenta
+                        }
+                        if (lizard.animation == Lizard.Animation.ShakePrey)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 1f, 1f), null, 50, 50)); //Cyan
+                        }
+                        if (lizard.animation == Lizard.Animation.ShootTongue)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0.5f, 0f), null, 50, 50)); //Orange
+                        }
+                        if (lizard.animation == Lizard.Animation.Spit)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0f, 1f), null, 50, 50)); //Purple
+                        }
+                        if (lizard.animation == Lizard.Animation.Standard)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0.5f, 0f), null, 50, 50)); //Dark Yellow
+                        }
+                        if (lizard.animation == Lizard.Animation.ThreatReSpotted)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0.5f, 0.5f), null, 50, 50)); //Dark Magenta
+                        }
+                        if (lizard.animation == Lizard.Animation.ThreatSpotted)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 1f, 1f), null, 50, 50)); //White
                         }
                     }
-
+                    
                     if (obj is Vulture vulture)
                     {
                         room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
@@ -680,6 +727,28 @@ public class ParryHitbox : UpdatableAndDeletable
                 {
                     var obj = physicalObjects[j];
 
+                    if (obj is DartMaggot maggot)
+                    {
+                        if (maggot.mode == DartMaggot.Mode.Shot && collisionRect.Vector2Inside(maggot.firstChunk.pos))
+                        {
+                            UnityEngine.Debug.Log("Parried object, Dart Maggot");
+                            maggot.mode = DartMaggot.Mode.Free;
+                            maggot.firstChunk.vel = rotation * 30;
+                            entityDetected = true;
+                        }
+                    }
+
+                    if (obj is BigSpider spider)
+                    {
+                        if (spider.jumping && collisionRect.Vector2Inside(spider.mainBodyChunk.pos))
+                        {
+                            UnityEngine.Debug.Log("Parried object, Big Spider");
+                            spider.Stun(100);
+                            spider.mainBodyChunk.vel = rotation * 30;
+                            entityDetected = true;
+                        }
+                    }
+
                     if (obj is BigNeedleWorm noodlefly)
                     {
                         if (noodlefly.swishDir != null || noodlefly.chargingAttack > 0.8f)
@@ -694,7 +763,7 @@ public class ParryHitbox : UpdatableAndDeletable
                                 noodlefly.swishCounter = 0;
                                 noodlefly.swishDir = null;
                                 noodlefly.Stun(100);
-                                noodlefly.bodyChunks[0].vel = rotation * 20;
+                                noodlefly.bodyChunks[0].vel = rotation * 30;
                                 entityDetected = true;
                                 return;
                             }
@@ -714,8 +783,10 @@ public class ParryHitbox : UpdatableAndDeletable
                     
                     if (obj is Lizard lizard)
                     {
-                        if (lizard.AI.DynamicRelationship((sword.grabbedPlayer as Creature).abstractCreature).GoForKill
-                            && collisionRect.Vector2Inside((lizard.graphicsModule as LizardGraphics).head.pos))
+                        if (lizard.AI.DynamicRelationship((sword.grabbedPlayer as Creature).abstractCreature).GoForKill &&
+                            lizard.JawOpen > 0.3f &&
+                            !lizard.Stunned &&
+                            collisionRect.Vector2Inside((lizard.graphicsModule as LizardGraphics).head.pos))
                         {
                             UnityEngine.Debug.Log("Parried object, Lizard");
                             lizard.Stun(100);
@@ -726,8 +797,7 @@ public class ParryHitbox : UpdatableAndDeletable
 
                     if (obj is Vulture vulture)
                     {
-                        if (vulture.AI.DynamicRelationship((sword.grabbedPlayer as Creature).abstractCreature).GoForKill
-                            && collisionRect.Vector2Inside(vulture.Head().pos))
+                        if (vulture.ChargingSnap && collisionRect.Vector2Inside(vulture.Head().pos))
                         {
                             UnityEngine.Debug.Log("Parried object, Vulture");
                             vulture.Stun(100);

@@ -36,6 +36,11 @@ public sealed class Plugin : BaseUnityPlugin
         On.ItemSymbol.ColorForItem += Hooks.ItemSymbolHooks.ItemSymbol_ColorForItem;
         #endregion
 
+        #region Iterator Hooks
+        On.SLOracleBehaviorHasMark.MoonConversation.AddEvents += Hooks.IteratorHooks.On_MoonConversation_AddEvents;
+        On.SLOracleBehaviorHasMark.TypeOfMiscItem += Hooks.IteratorHooks.On_SLOracleBehaviorHasMark_TypeOfMiscItem;
+        #endregion
+
         #region Main Hooks
         On.RainWorld.OnModsInit += Hooks.MainHooks.RainWorld_OnModsInit;
         On.RainWorld.UnloadResources += Hooks.MainHooks.RainWorld_UnloadResources;
