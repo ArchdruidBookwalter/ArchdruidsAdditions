@@ -19,7 +19,8 @@ public static class IteratorHooks
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
                     "This is the spore-releasing bulb of a mycelial root network." +
-                    "<LINE>My creators used to call it Monksweed, as it frustrated them to no end whenever it managed to grow inside their old temples and monasteries."
+                    "<LINE>My creators used to call it Monksweed, as it frustrated them to no end whenever it managed to grow inside their old temples and monasteries." +
+                    "<LINE>The roots can extend for miles below the surface, and are nearly impossible to remove once they infect an area."
 
                     ), 0));
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
