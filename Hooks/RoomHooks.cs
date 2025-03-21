@@ -20,10 +20,11 @@ public static class RoomHooks
         var placedObjects = self.roomSettings.placedObjects;
         var session = self.game.session;
 
+        /*
         if (firstTimeRealized)
         {
             UnityEngine.Debug.Log("FIRST TIME REALIZED!");
-        }
+        }*/
 
         foreach (var pobj in placedObjects)
         {

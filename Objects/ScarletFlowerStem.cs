@@ -115,81 +115,20 @@ public class ScarletFlowerRepresentation : ConsumableRepresentation
 {
     public ScarletFlowerData data;
     public Handle rotationHandle;
-    public ScarletFlowerPanel panel;
-
-    public class ScarletFlowerPanel : Panel
-    {
-        public ScarletFlowerPanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string title) :
-            base(owner, IDstring, parentNode, pos, new(250f, 55f), title)
-        {
-            subNodes.Add(new ScarletFlowerSlider(owner, "Min_Regen_Slider", this, new Vector2(5f, 5f), "Min Cycles: "));
-            subNodes.Add(new ScarletFlowerSlider(owner, "Max_Regen_Slider", this, new Vector2(5f, 25f), "Max Cycles: "));
-        }
-        public class ScarletFlowerSlider : Slider
-        {
-            public ScarletFlowerData data;
-            public ScarletFlowerSlider(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string title) :
-                base(owner, IDstring, parentNode, pos, title, false, 110f)
-            {
-                data = (parentNode.parentNode as ScarletFlowerRepresentation).data;
-            }
-            
-            public override void Refresh()
-            {
-                base.Refresh();
-                float num = 0f;
-                if (data.minRegen == 0)
-                {
-                    NumberText = "N/A";
-                    num = 0f;
-                }
-                else
-                {
-                    if (IDstring != null)
-                    {
-                        if (IDstring == "Min_Regen_Slider")
-                        {
-                            NumberText = data.minRegen.ToString();
-                            num = data.minRegen / 50f;
-                        }
-                        else if (IDstring == "Max_Regen_Slider")
-                        {
-                            NumberText = data.maxRegen.ToString();
-                            num = data.maxRegen / 50f;
-                        }
-                    }
-                }
-                RefreshNubPos(num);
-            } 
-
-            public override void NubDragged(float nubPos)
-            {
-                if (IDstring != null)
-                {
-                    if (IDstring == "Min_Regen_Slider")
-                    {
-                        data.minRegen = Math.Min((int)(nubPos * 50f), data.maxRegen);
-                    }
-                    else if (IDstring == "Max_Regen_Slider")
-                    {
-                        data.maxRegen = Math.Max((int)(nubPos * 50f), data.minRegen);
-                    }
-                }
-                this.parentNode.parentNode.Refresh();
-                this.Refresh();
-            }
-        }
-    }
+    public ConsumableControlPanel controlPanel;
     
     public ScarletFlowerRepresentation(DevUI owner, string IDstring, DevUINode parentNode, PlacedObject pobj, string name) :
         base(owner, IDstring, parentNode, pobj, name)
     {
         data = pobj.data as ScarletFlowerData;
         rotationHandle = new(owner, "Rotation_Handle", this, data.rotation);
-        panel = new(owner, "ScarletFlower_Panel", this, data.panelPos, "Consumable: Scarlet Flower");
+        controlPanel = new(owner, "ScarletFlower_Panel", this, data.panelPos, "Consumable: Scarlet Flower");
+
+        subNodes[0].ClearSprites();
+        subNodes.RemoveAt(0);
 
         subNodes.Add(rotationHandle);
-        subNodes.Add(panel);
+        subNodes.Add(controlPanel);
         fSprites.Add(new FSprite("pixel") { anchorY = 0f });
         fSprites.Add(new FSprite("pixel") { anchorY = 0f });
         owner.placedObjectsContainer.AddChild(fSprites[1]);
@@ -199,15 +138,24 @@ public class ScarletFlowerRepresentation : ConsumableRepresentation
     public override void Refresh()
     {
         base.Refresh();
-
+        
         MoveSprite(1, absPos);
         fSprites[1].scaleY = rotationHandle.pos.magnitude;
         fSprites[1].rotation = Custom.AimFromOneVectorToAnother(absPos, rotationHandle.absPos);
         (pObj.data as ScarletFlowerData).rotation = rotationHandle.pos;
         
         MoveSprite(2, absPos);
-        fSprites[2].scaleY = panel.pos.magnitude;
-        fSprites[2].rotation = Custom.AimFromOneVectorToAnother(absPos, panel.absPos);
-        (pObj.data as ScarletFlowerData).panelPos = panel.pos;
+        fSprites[2].scaleY = controlPanel.pos.magnitude;
+        fSprites[2].rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
+        (pObj.data as ScarletFlowerData).panelPos = controlPanel.pos;
+
+        /*
+        UnityEngine.Debug.Log("");
+        for (int i = 0; i < subNodes.Count; i++)
+        {
+            UnityEngine.Debug.Log(i + ": " + subNodes[i]);
+        }
+        UnityEngine.Debug.Log("");
+        */
     }
 }
