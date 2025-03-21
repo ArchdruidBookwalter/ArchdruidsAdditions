@@ -122,11 +122,10 @@ public class ScarletFlowerBulb : Weapon, IDrawable
             rotation = Custom.PerpendicularVector(Custom.DirVec(firstChunk.pos, grabbedBy[0].grabber.mainBodyChunk.pos));
             rotation.y = -Mathf.Abs(rotation.y) + 90;
         }
-        rotation = (rotation - Custom.PerpendicularVector(rotation) * (firstChunk.ContactPoint.y < 0 ? 0.15f : 0.05f) * firstChunk.vel.x).normalized;
         if (firstChunk.ContactPoint.y < 0)
         {
             BodyChunk firstChunk = base.firstChunk;
-            firstChunk.vel.x = firstChunk.vel.x * 0.8f;
+            firstChunk.vel.x = firstChunk.vel.x * 0.3f;
         }
         if (!AbstrConsumable.isConsumed && (Vector2.Distance(firstChunk.pos, homePos) > 5f || grabbedBy.Count > 0))
         {
@@ -134,6 +133,7 @@ public class ScarletFlowerBulb : Weapon, IDrawable
             room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.8f, 1.6f + UnityEngine.Random.value / 10f);
             AbstrConsumable.Consume();
         }
+        rotation = (rotation - Custom.PerpendicularVector(rotation) * (firstChunk.ContactPoint.y < 0 ? 0.3f : 0f) * firstChunk.vel.x).normalized;
         #endregion
 
         #region Visuals

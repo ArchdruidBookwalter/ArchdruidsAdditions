@@ -34,33 +34,21 @@ public static class IteratorHooks
             {
                 self.events.Add(new Conversation.TextEvent(self, 80, self.Translate(
 
-                    "Is... Is this the blade of Five Sacred Sigils upon a Mountain?!?" +
-                    "<LINE>How in all the six realms did you even manage to find it, much less bypass its defenses!?"
+                    "Is... Is this the blade of Five Sacred Sigils upon a Mountain!?" +
+                    "<LINE>In times long past, this was one of the most holy and revered relics ever held by my creators! How ever did you manage to find it!?"
 
                     ), 0));
-                if (self.myBehavior.player.KarmaCap == 9)
-                {
-                    self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
+                self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
-                    "...My creators once said that it could only be wielded by one who had achieved the highest level of enlightenment." +
-                    "<LINE>You do not seem particularly grand or noble, but now that I think about it, your presence does bring an odd sense of tranquility."
+                    "They once said that it could only be wielded by one who had achieved the highest level of enlightenment." +
+                    "<LINE>I do not know how you would even be able to touch it, much less carry it all the way here, unless..."
 
                     ), 0));
-                    self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
+                self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
-                    "Perhaps I misjudged you, <PLAYERNAME>."
-
-                    ), 0));
-                }
-                else
-                {
-                    self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
-
-                    "<CAPPLAYERNAME>, I am not normally one for superstition, but you must return this immediately." +
-                    "<LINE>This was one of the most sacred relics of my creators. If anything could summon their wrath from the depths of the Void, it would be this."
+                    "...Perhaps there is more to you than what meets the eye, <PLAYERNAME>."
 
                     ), 0));
-                }
             }
         }
     }
