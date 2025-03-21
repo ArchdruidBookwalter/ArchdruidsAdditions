@@ -69,23 +69,36 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         this.frozen = frozen;
         this.rotation = rotation;
 
-        double randomNumBig = UnityEngine.Random.Range(0f, 100f);
-        float randomNum1;
-        float randomNum2;
-        float randomNum3;
-        if (randomNumBig > 90)
+        double randomNum1 = UnityEngine.Random.Range(0f, 100f);
+        double randomNum2 = UnityEngine.Random.Range(0f, 100f);
+        float redNum;
+        float greenNum;
+        float blueNum;
+        float alphaNum;
+        if (randomNum1 > 90)
         {
-            randomNum1 = UnityEngine.Random.Range(-0.3f, 0.3f);
-            randomNum2 = UnityEngine.Random.Range(-0.3f, 0.3f);
-            randomNum3 = UnityEngine.Random.Range(-0.3f, 0.3f);
+            redNum = UnityEngine.Random.Range(0f, 0f);
+            greenNum = UnityEngine.Random.Range(0f, 0.3f);
+            blueNum = UnityEngine.Random.Range(0f, 0.3f);
         }
         else
         {
-            randomNum1 = UnityEngine.Random.Range(-0.1f, 0.1f);
-            randomNum2 = UnityEngine.Random.Range(-0.1f, 0.1f);
-            randomNum3 = UnityEngine.Random.Range(-0.1f, 0.1f);
+            redNum = UnityEngine.Random.Range(0f, 0f);
+            greenNum = UnityEngine.Random.Range(0f, 0.1f);
+            blueNum = UnityEngine.Random.Range(0f, 0.1f);
         }
-        this.lightColor = new(color.r + randomNum1, color.g + randomNum2, color.b + randomNum3);
+        if (randomNum2 > 90)
+        {
+            alphaNum = UnityEngine.Random.Range(-0.2f, 0.2f);
+        }
+        else
+        {
+            alphaNum = 0f;
+        }
+        this.lightColor = new(
+            color.r + redNum + alphaNum,
+            color.g + greenNum + alphaNum,
+            color.b + blueNum + alphaNum);
     }
 
     #region Object Behavior

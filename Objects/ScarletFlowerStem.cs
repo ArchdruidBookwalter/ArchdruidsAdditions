@@ -111,16 +111,15 @@ public class ScarletFlowerData : PlacedObject.ConsumableObjectData
     }
 }
 
-public class ScarletFlowerRepresentation : PlacedObjectRepresentation
+public class ScarletFlowerRepresentation : ConsumableRepresentation
 {
     public ScarletFlowerData data;
     public Handle rotationHandle;
     public ScarletFlowerPanel panel;
 
-    
     public class ScarletFlowerPanel : Panel
     {
-        public ScarletFlowerPanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, Vector2 size, string title) :
+        public ScarletFlowerPanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string title) :
             base(owner, IDstring, parentNode, pos, new(250f, 55f), title)
         {
             subNodes.Add(new ScarletFlowerSlider(owner, "Min_Regen_Slider", this, new Vector2(5f, 5f), "Min Cycles: "));
@@ -134,6 +133,7 @@ public class ScarletFlowerRepresentation : PlacedObjectRepresentation
             {
                 data = (parentNode.parentNode as ScarletFlowerRepresentation).data;
             }
+            
             public override void Refresh()
             {
                 base.Refresh();
@@ -159,8 +159,8 @@ public class ScarletFlowerRepresentation : PlacedObjectRepresentation
                         }
                     }
                 }
-                base.RefreshNubPos(num);
-            }
+                RefreshNubPos(num);
+            } 
 
             public override void NubDragged(float nubPos)
             {
@@ -186,7 +186,7 @@ public class ScarletFlowerRepresentation : PlacedObjectRepresentation
     {
         data = pobj.data as ScarletFlowerData;
         rotationHandle = new(owner, "Rotation_Handle", this, data.rotation);
-        panel = new(owner, "ScarletFlower_Panel", this, data.panelPos, new(250f, 55f), "Consumable: Scarlet Flower");
+        panel = new(owner, "ScarletFlower_Panel", this, data.panelPos, "Consumable: Scarlet Flower");
 
         subNodes.Add(rotationHandle);
         subNodes.Add(panel);
@@ -195,6 +195,7 @@ public class ScarletFlowerRepresentation : PlacedObjectRepresentation
         owner.placedObjectsContainer.AddChild(fSprites[1]);
         owner.placedObjectsContainer.AddChild(fSprites[2]);
     }
+
     public override void Refresh()
     {
         base.Refresh();
@@ -203,12 +204,10 @@ public class ScarletFlowerRepresentation : PlacedObjectRepresentation
         fSprites[1].scaleY = rotationHandle.pos.magnitude;
         fSprites[1].rotation = Custom.AimFromOneVectorToAnother(absPos, rotationHandle.absPos);
         (pObj.data as ScarletFlowerData).rotation = rotationHandle.pos;
-
         
         MoveSprite(2, absPos);
         fSprites[2].scaleY = panel.pos.magnitude;
         fSprites[2].rotation = Custom.AimFromOneVectorToAnother(absPos, panel.absPos);
         (pObj.data as ScarletFlowerData).panelPos = panel.pos;
-        
     }
 }
