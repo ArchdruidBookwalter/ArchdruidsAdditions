@@ -46,7 +46,7 @@ public static class RoomHooks
 
                     self.abstractRoom.AddEntity(abstractConsumable);
 
-                    UnityEngine.Debug.Log("ABSTRACT CONSUMABLE \"Scarlet Flower\" ADDED TO ROOM.");
+                    //UnityEngine.Debug.Log("ABSTRACT CONSUMABLE \"Scarlet Flower\" ADDED TO ROOM.");
                 }
             }
         }

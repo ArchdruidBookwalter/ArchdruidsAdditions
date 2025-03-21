@@ -670,8 +670,8 @@ public class ParrySword : Weapon, IDrawable
             alreadyParried = false;
             player = sword.grabbedPlayer;
             playerName = player.SlugCatClass;
-            UnityEngine.Debug.Log("");
-            UnityEngine.Debug.Log("Created Hitbox!");
+            //UnityEngine.Debug.Log("");
+            //UnityEngine.Debug.Log("Created Hitbox!");
 
             Vector2 playerPos = sword.grabbedPlayer.mainBodyChunk.pos;
         }
@@ -761,7 +761,7 @@ public class ParrySword : Weapon, IDrawable
                         {
                             if (maggot.mode == DartMaggot.Mode.Shot && collisionRect.Vector2Inside(maggot.firstChunk.pos))
                             {
-                                UnityEngine.Debug.Log("Parried object, Dart Maggot");
+                                //UnityEngine.Debug.Log("Parried object, Dart Maggot");
                                 maggot.mode = DartMaggot.Mode.Free;
                                 maggot.firstChunk.vel = rotation * 30;
                                 entityDetected = true;
@@ -772,7 +772,7 @@ public class ParrySword : Weapon, IDrawable
                         {
                             if (spider.jumping && collisionRect.Vector2Inside(spider.mainBodyChunk.pos))
                             {
-                                UnityEngine.Debug.Log("Parried object, Big Spider");
+                                //UnityEngine.Debug.Log("Parried object, Big Spider");
                                 spider.Stun(100);
                                 spider.mainBodyChunk.vel = rotation * 30;
                                 entityDetected = true;
@@ -788,7 +788,7 @@ public class ParrySword : Weapon, IDrawable
                                 if (Custom.VectorRectDistance(fangPos + aimDir * 2, collisionRect) < 50f ||
                                     Custom.VectorRectDistance(fangPos, collisionRect) < 50f)
                                 {
-                                    UnityEngine.Debug.Log("Parried object, Noodlefly");
+                                    //UnityEngine.Debug.Log("Parried object, Noodlefly");
                                     noodlefly.impaleChunk = null;
                                     noodlefly.swishCounter = 0;
                                     noodlefly.swishDir = null;
@@ -804,7 +804,7 @@ public class ParrySword : Weapon, IDrawable
                         {
                             if (squidcada.Charging && collisionRect.Vector2Inside(squidcada.bodyChunks[0].pos))
                             {
-                                UnityEngine.Debug.Log("Parried object, Squidcada");
+                                //UnityEngine.Debug.Log("Parried object, Squidcada");
                                 squidcada.Stun(100);
                                 squidcada.bodyChunks[0].vel = rotation * 30;
                                 entityDetected = true;
@@ -818,7 +818,7 @@ public class ParrySword : Weapon, IDrawable
                                 !lizard.Stunned &&
                                 collisionRect.Vector2Inside((lizard.graphicsModule as LizardGraphics).head.pos))
                             {
-                                UnityEngine.Debug.Log("Parried object, Lizard");
+                                //UnityEngine.Debug.Log("Parried object, Lizard");
                                 lizard.Stun(100);
                                 lizard.bodyChunks[0].vel = rotation * 30;
                                 entityDetected = true;
@@ -829,7 +829,7 @@ public class ParrySword : Weapon, IDrawable
                         {
                             if (vulture.ChargingSnap && collisionRect.Vector2Inside(vulture.Head().pos))
                             {
-                                UnityEngine.Debug.Log("Parried object, Vulture");
+                                //UnityEngine.Debug.Log("Parried object, Vulture");
                                 vulture.Stun(100);
                                 vulture.Head().vel = rotation * 30;
                                 entityDetected = true;
@@ -845,7 +845,7 @@ public class ParrySword : Weapon, IDrawable
                                     Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
                                     if (vulture.kingTusks.tusks[k].mode == KingTusks.Tusk.Mode.ShootingOut && collisionRect.Vector2Inside(tuskPoint))
                                     {
-                                        UnityEngine.Debug.Log("Parried object, King Vulture Harpoon");
+                                        //UnityEngine.Debug.Log("Parried object, King Vulture Harpoon");
                                         vulture.kingTusks.tusks[k].SwitchMode(KingTusks.Tusk.Mode.Dangling);
                                         entityDetected = true;
                                     }
@@ -857,7 +857,7 @@ public class ParrySword : Weapon, IDrawable
                         {
                             if (collisionRect.Vector2Inside(obj.firstChunk.pos))
                             {
-                                UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
+                                //UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
                                 var objVel = obj.firstChunk.vel / 10;
                                 (obj as Weapon).Thrown(sword.grabbedPlayer, sword.grabbedPlayer.mainBodyChunk.pos,
                                     sword.grabbedPlayer.mainBodyChunk.pos - objVel, new(-(int)objVel.x, -(int)objVel.y), 1f, eu);
@@ -878,8 +878,8 @@ public class ParrySword : Weapon, IDrawable
             if (lifetime <= 0 || entityDetected)
             {
                 this.Destroy();
-                UnityEngine.Debug.Log("Hitbox Was Destroyed!");
-                UnityEngine.Debug.Log("");
+                //UnityEngine.Debug.Log("Hitbox Was Destroyed!");
+                //UnityEngine.Debug.Log("");
             }
             lifetime--;
         }

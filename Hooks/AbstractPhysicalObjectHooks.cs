@@ -18,12 +18,12 @@ public static class AbstractPhysicalObjectHooks
             if (self.type == Enums.AbstractObjectType.ScarletFlowerBulb)
             {
                 self.realizedObject = new Objects.ScarletFlowerBulb(self, self.world, false, Custom.RNV(), new(1f, 0f, 0f));
-                UnityEngine.Debug.Log("SPAWNED \"Scarlet Flower Bulb\" OBJECT IN DEFAULT STATE");
+                //UnityEngine.Debug.Log("SPAWNED \"Scarlet Flower Bulb\" OBJECT IN DEFAULT STATE");
             }
             if (self.type == Enums.AbstractObjectType.ParrySword)
             {
                 self.realizedObject = new Objects.ParrySword(self, self.world, new(1f, 0.9f, 0f));
-                UnityEngine.Debug.Log("SPAWNED \"Parry Sword\" OBJECT IN DEFAULT STATE");
+                //UnityEngine.Debug.Log("SPAWNED \"Parry Sword\" OBJECT IN DEFAULT STATE");
             }
         }
     }
