@@ -62,5 +62,13 @@ public sealed class Plugin : BaseUnityPlugin
         #region Room Hooks
         On.Room.Loaded += Hooks.RoomHooks.Room_Loaded;
         #endregion
+
+        #region Scavenger Hooks
+        On.ScavengerAI.CollectScore_PhysicalObject_bool += Hooks.ScavengerHooks.CollectScore;
+        #endregion
+
+        #region Slugpup Hooks
+        On.MoreSlugcats.SlugNPCAI.GetFoodType += Hooks.SlugpupHooks.SlugNPCAI_GetFoodType;
+        #endregion
     }
 }
