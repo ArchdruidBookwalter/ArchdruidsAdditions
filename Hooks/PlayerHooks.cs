@@ -8,9 +8,25 @@ namespace ArchdruidsAdditions.Hooks;
 
 public static class PlayerHooks
 {
+    internal static bool Player_CanBeSwallowed(On.Player.orig_CanBeSwallowed orig, Player self, PhysicalObject obj)
+    {
+        if (obj is Objects.ScarletFlowerBulb)
+        {
+            return true;
+        }
+        return orig(self, obj);
+    }
+    internal static Player.ObjectGrabability Player_Grabability(On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
+    {
+        if (obj is Objects.Potato)
+        {
+            return Player.ObjectGrabability.OneHand;
+        }
+        return orig(self, obj);
+    }
     internal static bool Player_IsObjectThrowable(On.Player.orig_IsObjectThrowable orig,  Player self, PhysicalObject obj)
     {
-        if (obj is  Objects.ParrySword)
+        if (obj is Objects.ParrySword)
         {
             return true;
         }

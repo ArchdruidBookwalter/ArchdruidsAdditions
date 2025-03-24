@@ -30,7 +30,7 @@ public static class IteratorHooks
 
                     ), 0));
             }
-            if (item == Enums.MiscItemType.ParrySword)
+            else if (item == Enums.MiscItemType.ParrySword)
             {
                 self.events.Add(new Conversation.TextEvent(self, 80, self.Translate(
 
@@ -50,6 +50,14 @@ public static class IteratorHooks
 
                     ), 0));
             }
+            else if (item == Enums.MiscItemType.Potato)
+            {
+                self.events.Add(new Conversation.TextEvent(self, 80, self.Translate(
+
+                    "This is a plant. What more is there to say about it? I suppose the roots look edible enough for you to eat."
+
+                    ), 0));
+            }
         }
     }
     internal static SLOracleBehaviorHasMark.MiscItemType On_SLOracleBehaviorHasMark_TypeOfMiscItem(On.SLOracleBehaviorHasMark.orig_TypeOfMiscItem orig, SLOracleBehaviorHasMark self, PhysicalObject obj)
@@ -61,6 +69,10 @@ public static class IteratorHooks
         if (obj is Objects.ParrySword)
         {
             return Enums.MiscItemType.ParrySword;
+        }
+        if (obj is Objects.Potato)
+        {
+            return Enums.MiscItemType.Potato;
         }
         return orig(self, obj);
     }

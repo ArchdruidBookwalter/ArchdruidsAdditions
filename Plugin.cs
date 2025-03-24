@@ -9,6 +9,11 @@ using System.Text;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using System.Reflection.Emit;
+using System.Security.Permissions;
+
+#pragma warning disable CS0618
+[assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
+#pragma warning restore CS0618
 
 namespace ArchdruidsAdditions;
 
@@ -49,6 +54,7 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         #region Player
+        On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
         On.Player.IsObjectThrowable += Hooks.PlayerHooks.Player_IsObjectThrowable;
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
         #endregion
