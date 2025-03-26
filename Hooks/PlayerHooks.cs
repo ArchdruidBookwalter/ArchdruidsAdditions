@@ -22,6 +22,10 @@ public static class PlayerHooks
         {
             return Player.ObjectGrabability.OneHand;
         }
+        if (obj is Objects.PotatoStem)
+        {
+            return Player.ObjectGrabability.TwoHands;
+        }
         return orig(self, obj);
     }
     internal static bool Player_IsObjectThrowable(On.Player.orig_IsObjectThrowable orig,  Player self, PhysicalObject obj)
@@ -40,5 +44,17 @@ public static class PlayerHooks
             return;
         }
         orig(self, grasp, eu);
+    }
+    internal static void SlugcatHand_Update(On.SlugcatHand.orig_Update orig,  SlugcatHand self)
+    {
+        int grasp = self.limbNumber;
+        Player player = self.owner.owner as Player;
+        if (player.grasps[grasp] != null && player.grasps[grasp].grabbed is Objects.ParrySword sword && sword.useBool == true && sword.rejectTime == 0f)
+        {
+            self.mode = Limb.Mode.HuntAbsolutePosition;
+            self.absoluteHuntPos = player.mainBodyChunk.pos + sword.aimDirection * 40;
+            return;
+        }
+        orig(self);
     }
 }

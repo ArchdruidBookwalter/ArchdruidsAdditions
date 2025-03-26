@@ -334,7 +334,7 @@ public class ParrySword : Weapon, IDrawable
                         rotation = Custom.DegToVec(30 * grasp);
                     }
                 }
-
+                /*
                 if (useBool == true && rejectTime == 0f)
                 {
                     if (aimDirection.y == 0)
@@ -344,12 +344,12 @@ public class ParrySword : Weapon, IDrawable
                             if (grabbedPlayer.animation == Player.AnimationIndex.ZeroGSwim
                                 || grabbedPlayer.animation == Player.AnimationIndex.ZeroGPoleGrab)
                             {
-                                hand.pos = grabbedPlayer.mainBodyChunk.pos + new Vector2(aimDirection.x * 20, 0) * 1;
+                                hand.absoluteHuntPos = grabbedPlayer.mainBodyChunk.pos + new Vector2(aimDirection.x * 20, 0) * 1;
                                 rotation = Custom.DegToVec(10 * grasp);
                             }
                             else
                             {
-                                hand.pos = grabbedPlayer.mainBodyChunk.pos + new Vector2(-aimDirection.x * 2, 0) * 1;
+                                hand.absoluteHuntPos = grabbedPlayer.mainBodyChunk.pos + new Vector2(-aimDirection.x * 2, 0) * 1;
                                 rotation = Custom.DegToVec(100 * grasp);
                             }
                         }
@@ -358,12 +358,12 @@ public class ParrySword : Weapon, IDrawable
                             if (grabbedPlayer.animation == Player.AnimationIndex.ZeroGSwim
                                 || grabbedPlayer.animation == Player.AnimationIndex.ZeroGPoleGrab)
                             {
-                                hand.pos = grabbedPlayer.mainBodyChunk.pos + new Vector2(aimDirection.x * 20, 0) * 1;
+                                hand.absoluteHuntPos = grabbedPlayer.mainBodyChunk.pos + new Vector2(aimDirection.x * 20, 0) * 1;
                                 rotation = Custom.DegToVec(190 * grasp);
                             }
                             else
                             {
-                                hand.pos = grabbedPlayer.mainBodyChunk.pos + new Vector2(-aimDirection.x * 2, 0) * 1;
+                                hand.absoluteHuntPos = grabbedPlayer.mainBodyChunk.pos + new Vector2(-aimDirection.x * 2, 0) * 1;
                                 rotation = Custom.DegToVec(-100 * grasp);
                             }
                         }
@@ -390,6 +390,7 @@ public class ParrySword : Weapon, IDrawable
                         }
                     }
                 }
+                */
                 #endregion
             }
         }

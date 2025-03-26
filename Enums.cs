@@ -13,6 +13,7 @@ public static class AbstractObjectType
     public static AbstractPhysicalObject.AbstractObjectType ScarletFlowerBulb = new("ScarletFlowerBulb", true);
     public static AbstractPhysicalObject.AbstractObjectType ParrySword = new("ParrySword", true);
     public static AbstractPhysicalObject.AbstractObjectType Potato = new("Potato", true);
+    public static AbstractPhysicalObject.AbstractObjectType PotatoStem = new("PotatoStem", true);
     public static void UnregisterValues()
     {
         if (ScarletFlowerBulb != null)
@@ -30,13 +31,19 @@ public static class AbstractObjectType
             Potato.Unregister();
             Potato = null;
         }
+        if (PotatoStem != null)
+        {
+            PotatoStem.Unregister();
+            PotatoStem = null;
+        }
     }
 }
 public static class MiscItemType
 {
     public static SLOracleBehaviorHasMark.MiscItemType ScarletFlowerBulb = new("ScarletFlowerBulb", true);
     public static SLOracleBehaviorHasMark.MiscItemType ParrySword = new("ParrySword", true);
-    public static SLOracleBehaviorHasMark.MiscItemType Potato = new("ParrySword", true);
+    public static SLOracleBehaviorHasMark.MiscItemType Potato = new("Potato", true);
+
     public static void UnregisterValues()
     {
         if (ScarletFlowerBulb != null)
@@ -60,7 +67,7 @@ public static class MultiplayerItemType
 {
     public static PlacedObject.MultiplayerItemData.Type ScarletFlowerBulb = new("ScarletFlowerBulb", true);
     public static PlacedObject.MultiplayerItemData.Type ParrySword = new("ParrySword", true);
-    public static PlacedObject.MultiplayerItemData.Type Potato = new("ParrySword", true);
+    public static PlacedObject.MultiplayerItemData.Type Potato = new("Potato", true);
     public static void UnregisterValues()
     {
         if (ScarletFlowerBulb != null)
@@ -96,7 +103,7 @@ public static class SandboxUnlockID
 {
     public static MultiplayerUnlocks.SandboxUnlockID ScarletFlowerBulb = new("ScarletFlowerBulb", true);
     public static MultiplayerUnlocks.SandboxUnlockID ParrySword = new("ParrySword", true);
-    public static MultiplayerUnlocks.SandboxUnlockID Potato = new("ParrySword", true);
+    public static MultiplayerUnlocks.SandboxUnlockID Potato = new("Potato", true);
     public static void UnregisterValues()
     {
         if (ScarletFlowerBulb != null)
