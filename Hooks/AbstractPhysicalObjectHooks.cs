@@ -23,7 +23,7 @@ public static class AbstractPhysicalObjectHooks
             }
             if (self.type == Enums.AbstractObjectType.ParrySword)
             {
-                self.realizedObject = new Objects.ParrySword(self, self.world, new(1f, 0.9f, 0f));
+                self.realizedObject = new Objects.ParrySword(self, self.world, new(1f, 0.79f, 0.3f));
                 //UnityEngine.Debug.Log("SPAWNED \"Parry Sword\" OBJECT IN DEFAULT STATE");
             }
             if (self.type == Enums.AbstractObjectType.Potato)

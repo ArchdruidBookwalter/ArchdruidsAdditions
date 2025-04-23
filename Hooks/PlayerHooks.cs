@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RWCustom;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -45,16 +46,23 @@ public static class PlayerHooks
         }
         orig(self, grasp, eu);
     }
+
+    /*
     internal static void SlugcatHand_Update(On.SlugcatHand.orig_Update orig,  SlugcatHand self)
     {
         int grasp = self.limbNumber;
         Player player = self.owner.owner as Player;
         if (player.grasps[grasp] != null && player.grasps[grasp].grabbed is Objects.ParrySword sword && sword.useBool == true && sword.rejectTime == 0f)
         {
-            self.mode = Limb.Mode.HuntAbsolutePosition;
-            self.absoluteHuntPos = player.mainBodyChunk.pos + sword.aimDirection * 40;
+            self.mode = Limb.Mode.HuntRelativePosition;
+            self.relativeHuntPos = Custom.RotateAroundVector(sword.aimDirection, self.pos, sword.useTime) * 80f;
+            self.huntSpeed = 90f;
+            self.quickness = 1f;
+            self.retract = false;
+            self.retractCounter = 0;
             return;
         }
         orig(self);
     }
+    */
 }

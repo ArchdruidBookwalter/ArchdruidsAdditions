@@ -10,6 +10,8 @@ using JetBrains.Annotations;
 using IL;
 using On;
 using MoreSlugcats;
+using System.IO.Ports;
+using Smoke;
 
 namespace ArchdruidsAdditions.Objects;
 
@@ -20,18 +22,20 @@ public class ParrySword : Weapon, IDrawable
     public float lastDirection;
     public string faceDirection;
 
-    public Player grabbedPlayer;
+    public Player playerHeldBy;
     int playerMaxKarma;
 
     public Color swordColor;
     public LightSource lightSource1;
     public LightSource lightSource2;
 
-    public bool useBool, activeBool, spin;
-    public float useTime, charge, rejectTime, cooldown;
-    public int usedNum;
+    public bool useBool, charged, spinning;
+    public float useTime, rejectTime, cooldown, charge, spinSpeed;
+    public int usedNum, parryNum;
 
     new public ChunkDynamicSoundLoop soundLoop;
+
+    public ExhaustSmoke smoke;
 
     public ParrySword(AbstractPhysicalObject abstractPhysicalObject, World world, Color color) : base(abstractPhysicalObject, world)
     {
@@ -46,7 +50,7 @@ public class ParrySword : Weapon, IDrawable
         gravity = 0.9f;
 
         airFriction = 0.999f;
-        bounce = 0.5f;
+        bounce = 0.3f;
         surfaceFriction = 0.2f;
         waterFriction = 0.92f;
         buoyancy = 0.2f;
@@ -62,9 +66,11 @@ public class ParrySword : Weapon, IDrawable
         rejectTime = 0f;
         charge = 0f;
         usedNum = 0;
-        activeBool = false;
+        parryNum = 0;
+        charged = false;
         playerMaxKarma = 1;
-        spin = false;
+        spinning = false;
+        spinSpeed = 0f;
     }
 
     #region Behavior
@@ -89,310 +95,280 @@ public class ParrySword : Weapon, IDrawable
 
         #region Grabbed By Player
 
-        if (grabbedBy.Count > 0)
+        if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Player)
         {
-            if (grabbedBy[0].grabber is Player)
+            playerHeldBy = grabbedBy[0].grabber as Player;
+            Player.InputPackage input = playerHeldBy.input[0];
+
+            #region Charge
+
+            playerMaxKarma = playerHeldBy.KarmaCap + 1;
+            if (charge < 1000 / playerMaxKarma)
             {
-                grabbedPlayer = grabbedBy[0].grabber as Player;
-                Player.InputPackage input = grabbedPlayer.input[0];
-
-                #region Charge
-
-                playerMaxKarma = grabbedPlayer.KarmaCap + 1;
-                if (charge < 1000 / playerMaxKarma)
+                charge++;
+            }
+            else if (charge == 1000 / playerMaxKarma && !charged)
+            {
+                for (int a = 0; a < 3; a++)
                 {
-                    charge++;
+                    room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, swordColor, null, 50, 50));
                 }
-                else if (charge == 1000 / playerMaxKarma && !activeBool)
+                room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, firstChunk.pos, 0.5f, 1.8f);
+                room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
+                room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
+                room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
+
+                charged = true;
+            }
+
+            #endregion
+
+            #region Object Detector
+
+            /*
+            for (int i = 0; i < 3; i++)
+            {
+                var physicalObjects = room.physicalObjects[i];
+                for (var j = 0; j < physicalObjects.Count(); j++)
                 {
-                    for (int a = 0; a < 3; a++)
+                    var obj = physicalObjects[j];
+
+                    
+                    if (obj is BigNeedleWorm noodlefly)
                     {
-                        room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, swordColor, null, 50, 50));
+                        noodlefly.BigAI.SocialEvent(SocialEventRecognizer.EventID.Killing, grabbedPlayer as Creature, noodlefly, null);
+                        Vector2 fangPos1 = noodlefly.bodyChunks[0].pos + (noodlefly.fangLength * Custom.DirVec(noodlefly.bodyChunks[1].pos, noodlefly.bodyChunks[0].pos) * 1f);
+
+                        room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        room.AddObject(new ExplosionSpikes(room, fangPos1, 50, 1f, 2f, 7f, 5f, new(1f, 1f, 1f)));
+
+                        if (noodlefly.AI.behavior == NeedleWormAI.Behavior.Attack)
+                        {
+                            UnityEngine.Debug.Log("Noodlefly Detected. Velocity: " + noodlefly.mainBodyChunk.vel.magnitude);
+                            room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].pos, 50, 10f, 50f, 7f, 5f, new(0f, 0f, 1f)));
+                        }
+                        if (noodlefly.chargingAttack > 0.5f || noodlefly.swishDir != null)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackFromPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
+                            room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackTargetPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
+                        }
                     }
-                    room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, firstChunk.pos, 0.5f, 1.8f);
-                    room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
-                    room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
-                    room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
 
-                    activeBool = true;
-                }
-
-                #endregion
-
-                #region Object Detector
-
-                for (int i = 0; i < 3; i++)
-                {
-                    var physicalObjects = room.physicalObjects[i];
-                    for (var j = 0; j < physicalObjects.Count(); j++)
+                    if (obj is Cicada squidcada)
                     {
-                        var obj = physicalObjects[j];
-
-                        /*
-                        if (obj is BigNeedleWorm noodlefly)
+                        room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        if (squidcada.Charging)
                         {
-                            noodlefly.BigAI.SocialEvent(SocialEventRecognizer.EventID.Killing, grabbedPlayer as Creature, noodlefly, null);
-                            Vector2 fangPos1 = noodlefly.bodyChunks[0].pos + (noodlefly.fangLength * Custom.DirVec(noodlefly.bodyChunks[1].pos, noodlefly.bodyChunks[0].pos) * 1f);
-
-                            room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                            room.AddObject(new ExplosionSpikes(room, fangPos1, 50, 1f, 2f, 7f, 5f, new(1f, 1f, 1f)));
-
-                            if (noodlefly.AI.behavior == NeedleWormAI.Behavior.Attack)
-                            {
-                                UnityEngine.Debug.Log("Noodlefly Detected. Velocity: " + noodlefly.mainBodyChunk.vel.magnitude);
-                                room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].pos, 50, 10f, 50f, 7f, 5f, new(0f, 0f, 1f)));
-                            }
-                            if (noodlefly.chargingAttack > 0.5f || noodlefly.swishDir != null)
-                            {
-                                room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackFromPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
-                                room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackTargetPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
-                            }
+                            room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
                         }
-
-                        if (obj is Cicada squidcada)
-                        {
-                            room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                            if (squidcada.Charging)
-                            {
-                                room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                            }
-                        }
-
-
-                        if (obj is Lizard lizard)
-                        {
-                            Vector2 vel = new(20, 20);
-                            vel = Custom.rotateVectorDeg(vel, UnityEngine.Random.Range(0, 360));
-                            if (lizard.animation == Lizard.Animation.FightingStance)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0f, 0f), null, 50, 50)); //Black
-                            }
-                            if (lizard.animation == Lizard.Animation.HearSound)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0f, 1f), null, 50, 50)); //Blue
-                            }
-                            if (lizard.animation == Lizard.Animation.Jumping)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 1f, 0f), null, 50, 50)); //Green
-                            }
-                            if (lizard.animation == Lizard.Animation.Lounge)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 0f), null, 50, 50)); //Red
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 0f), null, 50, 50)); 
-                            }
-                            if (lizard.animation == Lizard.Animation.PrepareToJump)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0.5f, 0f), null, 50, 50)); //Dark Green
-                            }
-                            if (lizard.animation == Lizard.Animation.PrepareToLounge)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0f, 0f), null, 50, 50)); //Dark Red
-                            }
-                            if (lizard.animation == Lizard.Animation.PreyReSpotted)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 1f, 0f), null, 50, 50)); //Yellow
-                            }
-                            if (lizard.animation == Lizard.Animation.PreySpotted)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 1f), null, 50, 50)); //Magenta
-                            }
-                            if (lizard.animation == Lizard.Animation.ShakePrey)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 1f, 1f), null, 50, 50)); //Cyan
-                            }
-                            if (lizard.animation == Lizard.Animation.ShootTongue)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0.5f, 0f), null, 50, 50)); //Orange
-                            }
-                            if (lizard.animation == Lizard.Animation.Spit)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0f, 1f), null, 50, 50)); //Purple
-                            }
-                            if (lizard.animation == Lizard.Animation.Standard)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0.5f, 0f), null, 50, 50)); //Dark Yellow
-                            }
-                            if (lizard.animation == Lizard.Animation.ThreatReSpotted)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0.5f, 0.5f), null, 50, 50)); //Dark Magenta
-                            }
-                            if (lizard.animation == Lizard.Animation.ThreatSpotted)
-                            {
-                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 1f, 1f), null, 50, 50)); //White
-                            }
-                        }
-
-                        if (obj is Vulture vulture)
-                        {
-                            room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-
-                            if (vulture.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
-                            {
-                                room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                            }
-
-                            if (vulture.IsKing)
-                            {
-                                for (int k = 0; k < 2; k++)
-                                {
-                                    KingTusks.Tusk[] tusks = vulture.kingTusks.tusks;
-                                    KingTusks.Tusk tusk = vulture.kingTusks.tusks[k];
-                                    Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
-                                    Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
-                                    Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
-
-                                    room.AddObject(new ExplosionSpikes(room, tuskPos1, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                                    room.AddObject(new ExplosionSpikes(room, tuskPos2, 50, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
-                                    room.AddObject(new ExplosionSpikes(room, tuskPoint, 50, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
-                                }
-                            }
-                        }
-                        */
                     }
+
+
+                    if (obj is Lizard lizard)
+                    {
+                        Vector2 vel = new(20, 20);
+                        vel = Custom.rotateVectorDeg(vel, UnityEngine.Random.Range(0, 360));
+                        if (lizard.animation == Lizard.Animation.FightingStance)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0f, 0f), null, 50, 50)); //Black
+                        }
+                        if (lizard.animation == Lizard.Animation.HearSound)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0f, 1f), null, 50, 50)); //Blue
+                        }
+                        if (lizard.animation == Lizard.Animation.Jumping)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 1f, 0f), null, 50, 50)); //Green
+                        }
+                        if (lizard.animation == Lizard.Animation.Lounge)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 0f), null, 50, 50)); //Red
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 0f), null, 50, 50)); 
+                        }
+                        if (lizard.animation == Lizard.Animation.PrepareToJump)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0.5f, 0f), null, 50, 50)); //Dark Green
+                        }
+                        if (lizard.animation == Lizard.Animation.PrepareToLounge)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0f, 0f), null, 50, 50)); //Dark Red
+                        }
+                        if (lizard.animation == Lizard.Animation.PreyReSpotted)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 1f, 0f), null, 50, 50)); //Yellow
+                        }
+                        if (lizard.animation == Lizard.Animation.PreySpotted)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 1f), null, 50, 50)); //Magenta
+                        }
+                        if (lizard.animation == Lizard.Animation.ShakePrey)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 1f, 1f), null, 50, 50)); //Cyan
+                        }
+                        if (lizard.animation == Lizard.Animation.ShootTongue)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0.5f, 0f), null, 50, 50)); //Orange
+                        }
+                        if (lizard.animation == Lizard.Animation.Spit)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0f, 1f), null, 50, 50)); //Purple
+                        }
+                        if (lizard.animation == Lizard.Animation.Standard)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0.5f, 0f), null, 50, 50)); //Dark Yellow
+                        }
+                        if (lizard.animation == Lizard.Animation.ThreatReSpotted)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0.5f, 0.5f), null, 50, 50)); //Dark Magenta
+                        }
+                        if (lizard.animation == Lizard.Animation.ThreatSpotted)
+                        {
+                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 1f, 1f), null, 50, 50)); //White
+                        }
+                    }
+
+                    if (obj is Vulture vulture)
+                    {
+                        room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+
+                        if (vulture.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                        }
+
+                        if (vulture.IsKing)
+                        {
+                            for (int k = 0; k < 2; k++)
+                            {
+                                KingTusks.Tusk[] tusks = vulture.kingTusks.tusks;
+                                KingTusks.Tusk tusk = vulture.kingTusks.tusks[k];
+                                Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
+                                Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
+                                Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
+
+                                room.AddObject(new ExplosionSpikes(room, tuskPos1, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                                room.AddObject(new ExplosionSpikes(room, tuskPos2, 50, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
+                                room.AddObject(new ExplosionSpikes(room, tuskPoint, 50, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+                            }
+                        }
+                    }
+                    
                 }
+            }*/
 
-                #endregion
+            #endregion
 
-                #region Reject Player
+            #region Reject Player
 
-                if (grabbedPlayer.KarmaCap < 1)
+            if (playerHeldBy.KarmaCap < 1)
+            {
+                rejectTime++;
+                soundLoop.Volume = 1f;
+                soundLoop.Pitch = 1f + rejectTime / 100f;
+            }
+            else
+            {
+                soundLoop.Volume = 0f;
+                rejectTime = 0;
+            }
+            if (rejectTime > 0 && rejectTime % 10 == 0)
+            {
+                room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, new(1f, 0f, 0f)));
+            }
+            if (rejectTime == 50f)
+            {
+                soundLoop.Volume = 0f;
+                room.PlaySound(SoundID.Centipede_Shock, playerHeldBy.mainBodyChunk.pos, 1f, 1f);
+                room.AddObject(new Explosion(room, this, firstChunk.pos, 10, 50, 50, 0, 10, 0.1f, null, 0f, 10, 10));
+                room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
+                room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
+                room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
+                playerHeldBy.Stun(200);
+                room.AddObject(new CreatureSpasmer(playerHeldBy, false, playerHeldBy.stun));
+                playerHeldBy.LoseAllGrasps();
+                rejectTime = 0f;
+            }
+            #endregion
+
+            #region Rotation
+
+            int grasp;
+            if (grabbedBy[0].graspUsed == 0) { grasp = -1; }
+            else { grasp = 1; }
+
+            if (input.x != 0 || input.y != 0)
+            {
+                aimDirection = Custom.DirVec(this.grabbedBy[0].grabber.mainBodyChunk.pos, this.grabbedBy[0].grabber.mainBodyChunk.pos + new Vector2(input.x, input.y));
+                if (aimDirection.x != 0f)
                 {
-                    rejectTime++;
-                    soundLoop.Volume = 1f;
-                    soundLoop.Pitch = 1f + rejectTime / 100f;
+                    lastDirection = aimDirection.x;
+                }
+            }
+
+            (playerHeldBy.graphicsModule as PlayerGraphics).LookAtPoint(playerHeldBy.mainBodyChunk.pos + aimDirection * 100, 10f);
+            Vector2 playerUpVec = Custom.DirVec(playerHeldBy.bodyChunks[1].pos, playerHeldBy.bodyChunks[0].pos);
+            SlugcatHand hand = (playerHeldBy.graphicsModule as PlayerGraphics).hands[grabbedBy[0].graspUsed];
+
+            if (useBool == false)
+            {
+                if (grasp == -1) { faceDirection = "left"; }
+                if (grasp == 1) { faceDirection = "right"; }
+                if (playerHeldBy.bodyMode == Player.BodyModeIndex.Crawl
+                    || playerHeldBy.bodyMode == Player.BodyModeIndex.CorridorClimb
+                    || playerHeldBy.bodyMode == Player.BodyModeIndex.ClimbIntoShortCut
+                    || playerHeldBy.animation == Player.AnimationIndex.ClimbOnBeam
+                    || playerHeldBy.animation == Player.AnimationIndex.Flip
+                    || playerHeldBy.animation == Player.AnimationIndex.Roll
+                    || playerHeldBy.animation == Player.AnimationIndex.BellySlide
+                    || playerHeldBy.animation == Player.AnimationIndex.ZeroGSwim
+                    || playerHeldBy.animation == Player.AnimationIndex.ZeroGPoleGrab)
+                {
+                    rotation = playerUpVec;
+                }
+                else if (playerHeldBy.animation == Player.AnimationIndex.HangFromBeam)
+                {
+                    rotation = Custom.rotateVectorDeg(playerUpVec, 90f);
                 }
                 else
                 {
-                    soundLoop.Volume = 0f;
-                    rejectTime = 0;
+                    rotation = Custom.rotateVectorDeg(playerUpVec, 30f * grasp);
                 }
-                if (rejectTime > 0 && rejectTime % 10 == 0)
-                {
-                    room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, new(1f, 0f, 0f)));
-                }
-                if (rejectTime == 50f)
-                {
-                    soundLoop.Volume = 0f;
-                    room.PlaySound(SoundID.Centipede_Shock, grabbedPlayer.mainBodyChunk.pos, 1f, 1f);
-                    room.AddObject(new Explosion(room, this, firstChunk.pos, 10, 50, 50, 0, 10, 0.1f, null, 0f, 10, 10));
-                    room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
-                    room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
-                    room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
-                    grabbedPlayer.Stun(200);
-                    room.AddObject(new CreatureSpasmer(grabbedPlayer, false, grabbedPlayer.stun));
-                    grabbedPlayer.LoseAllGrasps();
-                    rejectTime = 0f;
-                }
-                #endregion
+            }
 
-                #region Rotation
-                int grasp;
-                if (grabbedBy[0].graspUsed == 0)
+            if (useBool == true && rejectTime == 0f)
+            {
+                if (smoke is null || smoke.room != room)
                 {
-                    grasp = -1;
+                    smoke = new(room, this, swordColor, swordColor);
+                    room.AddObject(smoke);
+                }
+                smoke.AddParticle(firstChunk.pos + rotation * 30f, new(0f, 0f), 8f);
+                
+                //smoke.EmitParticle(firstChunk.pos + rotation * 30f, new(0f, 0f));
+
+                hand.reachingForObject = true;
+                hand.huntSpeed = 40f;
+                if ((usedNum != 1 && useTime < 5) || (usedNum == 1 && useTime >= 5))
+                {
+                    hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -60f) * 80f;
                     faceDirection = "left";
                 }
-                else
+                else if ((usedNum != 1 && useTime >= 5) || (usedNum == 1 && useTime < 5))
                 {
-                    grasp = 1;
+                    hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, 60f) * 80f;
                     faceDirection = "right";
                 }
-
-                if (input.x != 0 || input.y != 0)
+                if (useTime > 3)
                 {
-                    aimDirection = Custom.DirVec(this.grabbedBy[0].grabber.mainBodyChunk.pos, this.grabbedBy[0].grabber.mainBodyChunk.pos + new Vector2(input.x, input.y));
-                    if (aimDirection.x != 0f)
-                    {
-                        lastDirection = aimDirection.x;
-                    }
+                    rotation = Custom.DirVec(playerHeldBy.mainBodyChunk.pos, hand.pos);
                 }
-
-                (grabbedPlayer.graphicsModule as PlayerGraphics).LookAtPoint(grabbedPlayer.mainBodyChunk.pos + aimDirection * 100, 10f);
-                Vector2 playerUpVec = Custom.DirVec(grabbedPlayer.bodyChunks[1].pos, grabbedPlayer.bodyChunks[0].pos);
-                SlugcatHand hand = (grabbedPlayer.graphicsModule as PlayerGraphics).hands[grabbedBy[0].graspUsed];
-
-                if (useBool == false)
+                if (useTime == 3)
                 {
-                    if (grabbedPlayer.bodyMode == Player.BodyModeIndex.Crawl
-                        || grabbedPlayer.bodyMode == Player.BodyModeIndex.CorridorClimb
-                        || grabbedPlayer.bodyMode == Player.BodyModeIndex.ClimbIntoShortCut
-                        || grabbedPlayer.animation == Player.AnimationIndex.ClimbOnBeam
-                        || grabbedPlayer.animation == Player.AnimationIndex.Flip
-                        || grabbedPlayer.animation == Player.AnimationIndex.Roll
-                        || grabbedPlayer.animation == Player.AnimationIndex.BellySlide
-                        || grabbedPlayer.animation == Player.AnimationIndex.ZeroGSwim
-                        || grabbedPlayer.animation == Player.AnimationIndex.ZeroGPoleGrab)
-                    {
-                        rotation = playerUpVec;
-                    }
-                    else if (grabbedPlayer.animation == Player.AnimationIndex.HangFromBeam)
-                    {
-                        rotation = Custom.rotateVectorDeg(playerUpVec, 90f);
-                    }
-                    else
-                    {
-                        rotation = Custom.DegToVec(30 * grasp);
-                    }
+                    room.PlaySound(SoundID.Slugcat_Throw_Spear, firstChunk.pos, 0.5f, 1.5f);
                 }
-                /*
-                if (useBool == true && rejectTime == 0f)
-                {
-                    if (aimDirection.y == 0)
-                    {
-                        if (grasp == aimDirection.x)
-                        {
-                            if (grabbedPlayer.animation == Player.AnimationIndex.ZeroGSwim
-                                || grabbedPlayer.animation == Player.AnimationIndex.ZeroGPoleGrab)
-                            {
-                                hand.absoluteHuntPos = grabbedPlayer.mainBodyChunk.pos + new Vector2(aimDirection.x * 20, 0) * 1;
-                                rotation = Custom.DegToVec(10 * grasp);
-                            }
-                            else
-                            {
-                                hand.absoluteHuntPos = grabbedPlayer.mainBodyChunk.pos + new Vector2(-aimDirection.x * 2, 0) * 1;
-                                rotation = Custom.DegToVec(100 * grasp);
-                            }
-                        }
-                        else
-                        {
-                            if (grabbedPlayer.animation == Player.AnimationIndex.ZeroGSwim
-                                || grabbedPlayer.animation == Player.AnimationIndex.ZeroGPoleGrab)
-                            {
-                                hand.absoluteHuntPos = grabbedPlayer.mainBodyChunk.pos + new Vector2(aimDirection.x * 20, 0) * 1;
-                                rotation = Custom.DegToVec(190 * grasp);
-                            }
-                            else
-                            {
-                                hand.absoluteHuntPos = grabbedPlayer.mainBodyChunk.pos + new Vector2(-aimDirection.x * 2, 0) * 1;
-                                rotation = Custom.DegToVec(-100 * grasp);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (aimDirection.y > 0)
-                        {
-                            if (aimDirection.x == 0)
-                            {
-                                hand.pos = grabbedPlayer.mainBodyChunk.pos + Custom.rotateVectorDeg(new Vector2(0, 20), 45 * grasp);
-                                rotation = Custom.DegToVec(-80 * grasp);
-                            }
-                            else
-                            {
-                                hand.pos = grabbedPlayer.mainBodyChunk.pos + Custom.rotateVectorDeg(new Vector2(aimDirection.x * 20, 20), Custom.VecToDeg(aimDirection));
-                                rotation = Custom.DegToVec(-45 * aimDirection.x);
-                            }
-                        }
-                        else
-                        {
-                            hand.pos = grabbedPlayer.mainBodyChunk.pos + Custom.rotateVectorDeg(new Vector2(0, aimDirection.y * 20), 45 * grasp);
-                            rotation = Custom.DegToVec(80 * grasp);
-                        }
-                    }
-                }
-                */
-                #endregion
             }
+            
+            #endregion
         }
         else
         {
@@ -400,7 +376,7 @@ public class ParrySword : Weapon, IDrawable
             {
                 charge--;
             }
-            activeBool = false;
+            charged = false;
             soundLoop.Volume = 0f;
             rejectTime = 0f;
 
@@ -418,9 +394,9 @@ public class ParrySword : Weapon, IDrawable
                 BodyChunk firstChunk = base.firstChunk;
                 firstChunk.vel.x = firstChunk.vel.x * 0.1f;
             }
-            else if (spin)
+            else
             {
-                rotation = Custom.rotateVectorDeg(rotation, 45f);
+                rotation = Custom.rotateVectorDeg(rotation, spinSpeed);
             }
         }
 
@@ -428,7 +404,7 @@ public class ParrySword : Weapon, IDrawable
 
         #region Used
 
-        if (usedNum >= 3)
+        if (parryNum >= 3)
         {
             ActivateLongCooldown();
         }
@@ -458,7 +434,7 @@ public class ParrySword : Weapon, IDrawable
         #region Visuals
 
         float alpha;
-        if (activeBool)
+        if (charged)
         {
             alpha = 1f;
         }
@@ -508,26 +484,31 @@ public class ParrySword : Weapon, IDrawable
 
     public override void TerrainImpact(int chunk, IntVector2 direction, float speed, bool firstContact)
     {
-        if (firstChunk.vel.magnitude > 30)
+        if (speed > 1)
         {
-            spin = true;
-        }
-        if (firstChunk.vel.magnitude > 10)
-        {
-            room.PlaySound(SoundID.Spear_Bounce_Off_Wall, firstChunk.pos, 1f, 1.2f);
-            for (int i = 0; i < 3; i++)
+            spinning = true;
+            if (spinSpeed > 0)
+            { spinSpeed = -speed * 0.5f; }
+            else
+            { spinSpeed = speed * 0.5f; }
+
+            if (speed > 20)
             {
-                room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, new(1f, 1f, 1f), null, 50, 50));
+                room.PlaySound(SoundID.Spear_Bounce_Off_Creauture_Shell, firstChunk.pos, 1f, 1.2f);
+                for (int i = 0; i < 3; i++)
+                {
+                    room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, new(1f, 1f, 1f), null, 50, 50));
+                }
             }
-        }
-        else if (firstChunk.vel.magnitude > 5)
-        {
-            spin = false;
-            room.PlaySound(SoundID.Spear_Stick_In_Ground, firstChunk.pos, 1f, 1.2f);
+            else
+            {
+                room.PlaySound(SoundID.Spear_Stick_In_Ground, firstChunk.pos, 1f, 1.2f);
+            }
         }
         else
         {
-            spin = false;
+            spinning = false;
+            spinSpeed = 0f;
         }
         base.TerrainImpact(chunk, direction, speed, firstContact);
     }
@@ -539,18 +520,24 @@ public class ParrySword : Weapon, IDrawable
 
     public void Use()
     {
-        if (cooldown == 0 && activeBool)
+        if (cooldown == 0 && charged)
         {
-            room.PlaySound(SoundID.Slugcat_Throw_Spear, firstChunk.pos, 0.2f, 0.6f);
+            (playerHeldBy.graphicsModule as PlayerGraphics).head.vel += aimDirection * 5f;
             room.AddObject(new ParryHitbox(this, grabbedBy[0].grabber.mainBodyChunk.pos, aimDirection, 1f, 1f));
             useBool = true;
             cooldown = 10;
+
+            usedNum++;
+            if (usedNum > 1)
+            {
+                usedNum = 0;
+            }
         }
     }
 
     public void ActivateLongCooldown()
     {
-        if (grabbedPlayer.KarmaCap == 9)
+        if (playerHeldBy.KarmaCap == 9)
         {
             return;
         }
@@ -561,9 +548,10 @@ public class ParrySword : Weapon, IDrawable
             {
                 room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, swordColor, null, 50, 50));
             }
+            parryNum = 0;
             usedNum = 0;
             charge = 0;
-            activeBool = false;
+            charged = false;
         }
     }
 
@@ -622,7 +610,7 @@ public class ParrySword : Weapon, IDrawable
         sLeaser.sprites[0].rotation = Custom.VecToDeg(rotVec);
         sLeaser.sprites[0].scaleX = scale;
 
-        if (activeBool)
+        if (charged)
         {
             sLeaser.sprites[0].color = swordColor;
         }
@@ -669,12 +657,12 @@ public class ParrySword : Weapon, IDrawable
             collisionRange = 30f;
             entityDetected = false;
             alreadyParried = false;
-            player = sword.grabbedPlayer;
+            player = sword.playerHeldBy;
             playerName = player.SlugCatClass;
             //UnityEngine.Debug.Log("");
             //UnityEngine.Debug.Log("Created Hitbox!");
 
-            Vector2 playerPos = sword.grabbedPlayer.mainBodyChunk.pos;
+            Vector2 playerPos = sword.playerHeldBy.mainBodyChunk.pos;
         }
 
         public override void Update(bool eu)
@@ -814,7 +802,7 @@ public class ParrySword : Weapon, IDrawable
 
                         if (obj is Lizard lizard)
                         {
-                            if (lizard.AI.DynamicRelationship((sword.grabbedPlayer as Creature).abstractCreature).GoForKill &&
+                            if (lizard.AI.DynamicRelationship((sword.playerHeldBy as Creature).abstractCreature).GoForKill &&
                                 lizard.JawOpen > 0.3f &&
                                 !lizard.Stunned &&
                                 collisionRect.Vector2Inside((lizard.graphicsModule as LizardGraphics).head.pos))
@@ -860,8 +848,8 @@ public class ParrySword : Weapon, IDrawable
                             {
                                 //UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
                                 var objVel = obj.firstChunk.vel / 10;
-                                (obj as Weapon).Thrown(sword.grabbedPlayer, sword.grabbedPlayer.mainBodyChunk.pos,
-                                    sword.grabbedPlayer.mainBodyChunk.pos - objVel, new(-(int)objVel.x, -(int)objVel.y), 1f, eu);
+                                (obj as Weapon).Thrown(sword.playerHeldBy, sword.playerHeldBy.mainBodyChunk.pos,
+                                    sword.playerHeldBy.mainBodyChunk.pos - objVel, new(-(int)objVel.x, -(int)objVel.y), 1f, eu);
                                 (obj as Weapon).ChangeMode(Weapon.Mode.Thrown);
                                 entityDetected = true;
                             }
@@ -888,11 +876,12 @@ public class ParrySword : Weapon, IDrawable
         public void Activate()
         {
             float randomNum = UnityEngine.Random.Range(-0.1f, 0.1f);
-            sword.grabbedPlayer.mainBodyChunk.vel += -rotation * 6;
-            sword.usedNum++;
+            sword.playerHeldBy.mainBodyChunk.vel += -rotation * 6;
+            sword.parryNum++;
             room.AddObject(new Explosion.ExplosionLight(position, 100f, 1f, 5, sword.swordColor));
             room.AddObject(new ExplosionSpikes(room, position, 14, 2f, 5f, 7f, 100f, sword.swordColor));
             room.AddObject(new ShockWave(position, 100f, 0.05f, 5, false));
+
             room.PlaySound(SoundID.Spear_Bounce_Off_Wall, position, 2f, 0.6f + randomNum);
             room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, position, 2f, 1.5f + randomNum);
             alreadyParried = true;
