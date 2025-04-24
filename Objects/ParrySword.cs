@@ -26,6 +26,7 @@ public class ParrySword : Weapon, IDrawable
     int playerMaxKarma;
 
     public Color swordColor;
+    public Color blackColor;
     public LightSource lightSource1;
     public LightSource lightSource2;
 
@@ -55,14 +56,15 @@ public class ParrySword : Weapon, IDrawable
         waterFriction = 0.92f;
         buoyancy = 0.2f;
 
-        this.swordColor = color;
-        this.rotation = new(0f, 1f);
-        this.aimDirection = new(0f, 1f);
-        this.faceDirection = "left";
-        this.lastDirection = 0f;
-        this.soundLoop = new ChunkDynamicSoundLoop(this.firstChunk);
-        this.soundLoop.sound = SoundID.Vulture_Grub_Laser_LOOP;
-        this.soundLoop.Volume = 0f;
+        swordColor = color;
+        blackColor = new(0f, 0f, 0f);
+        rotation = new(0f, 1f);
+        aimDirection = new(0f, 1f);
+        faceDirection = "left";
+        lastDirection = 0f;
+        soundLoop = new ChunkDynamicSoundLoop(this.firstChunk);
+        soundLoop.sound = SoundID.Vulture_Grub_Laser_LOOP;
+        soundLoop.Volume = 0f;
         rejectTime = 0f;
         charge = 0f;
         usedNum = 0;
@@ -610,19 +612,26 @@ public class ParrySword : Weapon, IDrawable
         sLeaser.sprites[0].rotation = Custom.VecToDeg(rotVec);
         sLeaser.sprites[0].scaleX = scale;
 
-        if (charged)
-        {
-            sLeaser.sprites[0].color = swordColor;
-        }
-        else
-        {
-            sLeaser.sprites[0].color = new(0.9f, 0.9f, 0.9f);
-        }
-
         sLeaser.sprites[1].x = newPosVec.x;
         sLeaser.sprites[1].y = newPosVec.y;
         sLeaser.sprites[1].rotation = sLeaser.sprites[0].rotation;
         sLeaser.sprites[1].scaleX = scale;
+
+        if (blink > 0 && UnityEngine.Random.value < 0.5f)
+        {
+            sLeaser.sprites[0].color = blinkColor;
+            sLeaser.sprites[1].color = blinkColor;
+        }
+        else if (charged)
+        {
+            sLeaser.sprites[0].color = swordColor;
+            sLeaser.sprites[1].color = blackColor;
+        }
+        else
+        {
+            sLeaser.sprites[0].color = new(0.9f, 0.9f, 0.9f);
+            sLeaser.sprites[1].color = blackColor;
+        }
 
         if (slatedForDeletetion || room != rCam.room)
         {
@@ -632,7 +641,7 @@ public class ParrySword : Weapon, IDrawable
 
     public override void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
     {
-        sLeaser.sprites[1].color = palette.blackColor;
+        blackColor = palette.blackColor;
     }
     #endregion
 

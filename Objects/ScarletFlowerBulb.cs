@@ -23,6 +23,7 @@ public class ScarletFlowerBulb : Weapon, IDrawable
 
     public Color redColor = new(1f, 0f, 0f);
     public Color blueColor = new(0f, 0f, 1f);
+    public Color blackColor = new(0f, 0f, 0f);
 
     public bool charged, exploded, frozen;
 
@@ -317,6 +318,19 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         sLeaser.sprites[2].y = lightPos.y - rotVec.y * 3f - camPos.y;
         sLeaser.sprites[2].scale = 2f;
 
+        if (blink > 0 && UnityEngine.Random.value < 0.5f)
+        {
+            sLeaser.sprites[0].color = blinkColor;
+            sLeaser.sprites[1].color = blinkColor;
+            sLeaser.sprites[2].color = lightColor;
+        }
+        else
+        {
+            sLeaser.sprites[0].color = lightColor;
+            sLeaser.sprites[1].color = blackColor;
+            sLeaser.sprites[2].color = lightColor;
+        }
+
         if (slatedForDeletetion || room != rCam.room)
         {
             sLeaser.CleanSpritesAndRemove();
@@ -332,9 +346,7 @@ public class ScarletFlowerBulb : Weapon, IDrawable
 
     public override void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
     {
-        sLeaser.sprites[0].color = lightColor;
-        sLeaser.sprites[2].color = lightColor;
-        sLeaser.sprites[1].color = palette.blackColor;
+        blackColor = palette.blackColor;
     }
 
     public override void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)

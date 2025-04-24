@@ -15,15 +15,18 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 {
     public bool buried;
     public Vector2 rotation, lastRotation;
-    new public Color color;
-    public int bites;
+    public Color rootColor;
+    public Color blackColor = new(0f, 0f, 0f);
+    public int bites = 3;
     public Vector2 homePos;
-    public PotatoStem stem;
 
     public Potato(AbstractPhysicalObject abstractPhysicalObject, bool buried, Vector2 rotation, Color color) : base(abstractPhysicalObject)
     {
-        bodyChunks = [new BodyChunk(this, 0, default, 8f, 0.2f)];
-        bodyChunkConnections = [];
+        bodyChunks = new BodyChunk[2];
+        bodyChunks[0] = new BodyChunk(this, 0, default, 6f, 0.2f);
+        bodyChunks[1] = new BodyChunk(this, 0, default, 0.1f, 0.1f);
+        bodyChunkConnections = new BodyChunkConnection[1];
+        bodyChunkConnections[0] = new BodyChunkConnection(bodyChunks[0], bodyChunks[1], 30f, BodyChunkConnection.Type.Normal, 0.5f, -1f);
 
         if (buried)
         {
@@ -42,6 +45,8 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             gravity = 0.9f;
         }
 
+        bodyChunks[1].collideWithObjects = false;
+
         airFriction = 0.999f;
         bounce = 0.2f;
         surfaceFriction = 0.2f;
@@ -50,10 +55,10 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
         this.buried = buried;
         this.rotation = rotation;
-        this.color = color;
+        
+        rootColor = color;
 
         homePos = firstChunk.pos;
-        bites = 3;
     }
 
     #region Behavior
@@ -61,54 +66,28 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public override void Update(bool eu)
     {
         base.Update(eu);
-
         lastRotation = rotation;
 
-
-        #region
         if (room.game.devToolsActive)
         {
-            room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+            room.AddObject(new ExplosionSpikes(room, bodyChunks[0].pos, 50, 0f, 2f, 7f, 2f, new(1f, 0f, 0f)));
+            room.AddObject(new ExplosionSpikes(room, bodyChunks[1].pos, 50, 0f, 2f, 7f, 2f, new(1f, 0f, 0f)));
         }
-        #endregion
 
-
-        #region
-        if (grabbedBy.Count > 0)
-        {
-            rotation = Custom.PerpendicularVector(Custom.DirVec(firstChunk.pos, grabbedBy[0].grabber.mainBodyChunk.pos));
-            rotation.y = -Mathf.Abs(rotation.y) + 90;
-        }
-        #endregion
-
-
-        #region
         if (firstChunk.ContactPoint.y < 0)
         {
             BodyChunk firstChunk = base.firstChunk;
             firstChunk.vel.x = firstChunk.vel.x * 0.3f;
         }
-        #endregion
 
-
-        #region
-        #endregion
-
-
-        rotation = (rotation - Custom.PerpendicularVector(rotation) * (firstChunk.ContactPoint.y < 0 ? 0.3f : 0f) * firstChunk.vel.x).normalized;
+        rotation = Custom.DirVec(bodyChunks[0].pos, bodyChunks[1].pos);
     }
 
     public override void PlaceInRoom(Room placeRoom)
     {
         base.PlaceInRoom(placeRoom);
-        firstChunk.HardSetPosition(placeRoom.MiddleOfTile(abstractPhysicalObject.pos));
-
-        AbstractPhysicalObject newObj = new(abstractPhysicalObject.world, Enums.AbstractObjectType.PotatoStem, null, abstractPhysicalObject.pos, room.game.GetNewID());
-        stem = new(newObj, this);
-        room.AddObject(stem);
-        stem.firstChunk.pos = firstChunk.pos;
-
-        //new BasicAbstractStick(abstractPhysicalObject, stem.abstractPhysicalObject);
+        bodyChunks[0].HardSetPosition(placeRoom.MiddleOfTile(abstractPhysicalObject.pos));
+        bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(30f, 0f));
     }
 
     public override void Grabbed(Creature.Grasp grasp)
@@ -174,21 +153,35 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
     public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
     {
-        sLeaser.sprites = new FSprite[1];
+        sLeaser.sprites = new FSprite[3];
 
         sLeaser.sprites[0] = new FSprite("Potato1", true);
+        sLeaser.sprites[1] = new FSprite("PotatoStem1", true);
+        sLeaser.sprites[2] = new FSprite("PotatoStem2", true);
 
         AddToContainer(sLeaser, rCam, null);
     }
 
     public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
-        Vector2 posVec = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker);
+        Vector2 rootPosVec = Vector2.Lerp(bodyChunks[0].lastPos, bodyChunks[0].pos, timeStacker);
+        Vector2 leavesPosVec = Vector2.Lerp(bodyChunks[1].lastPos, bodyChunks[1].pos, timeStacker);
         Vector2 rotVec = Vector3.Slerp(lastRotation, rotation, timeStacker);
 
-        sLeaser.sprites[0].x = posVec.x - camPos.x;
-        sLeaser.sprites[0].y = posVec.y - camPos.y;
+        sLeaser.sprites[0].x = rootPosVec.x - camPos.x;
+        sLeaser.sprites[0].y = rootPosVec.y - camPos.y;
         sLeaser.sprites[0].rotation = Custom.VecToDeg(rotVec) - 30;
+
+        sLeaser.sprites[1].x = leavesPosVec.x - camPos.x;
+        sLeaser.sprites[1].y = leavesPosVec.y - camPos.y;
+        sLeaser.sprites[1].rotation = Custom.VecToDeg(rotVec) + 90;
+
+        Vector2 rootTopPosVec = rootPosVec + rotVec * 10f;
+
+        sLeaser.sprites[2].x = Vector2.Lerp(rootTopPosVec, leavesPosVec, 0.5f).x - camPos.x;
+        sLeaser.sprites[2].y = Vector2.Lerp(rootTopPosVec, leavesPosVec, 0.5f).y - camPos.y;
+        sLeaser.sprites[2].width = Custom.Dist(rootTopPosVec, leavesPosVec);
+        sLeaser.sprites[2].rotation = Custom.VecToDeg(rotVec) + 90;
 
         if (buried)
         {
@@ -203,121 +196,14 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         if (blink > 0 && UnityEngine.Random.value < 0.5f)
         {
             sLeaser.sprites[0].color = blinkColor;
-        }
-        else
-        {
-            sLeaser.sprites[0].color = color;
-        }
-
-        if (slatedForDeletetion || room != rCam.room)
-        {
-            sLeaser.CleanSpritesAndRemove();
-        }
-    }
-
-    public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
-    {
-    }
-    #endregion
-}
-
-public class PotatoStem : PlayerCarryableItem, IDrawable
-{
-    public Vector2 rotation, lastRotation;
-    public Color blackColor;
-    public Potato potato;
-    public PotatoStem(AbstractPhysicalObject abstractPhysicalObject, Potato potato) : base(abstractPhysicalObject)
-    {
-        this.potato = potato;
-        
-        bodyChunks = [new(this, 0, default, 0f, 0f)];
-        bodyChunkConnections = [];
-
-        collisionLayer = 0;
-        CollideWithTerrain = true;
-        gravity = 0.9f;
-        airFriction = 0.999f;
-        bounce = 0.2f;
-        surfaceFriction = 0.2f;
-        waterFriction = 0.92f;
-        buoyancy = 1.2f;
-
-        blackColor = new(0f, 0f, 0f);
-    }
-
-    #region Behavior
-    public override void Update(bool eu)
-    {
-        base.Update(eu);
-        lastRotation = rotation;
-
-        rotation = Custom.DirVec(firstChunk.pos, potato.firstChunk.pos);
-
-        if (room.game.devToolsActive)
-        {
-            room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-        }
-
-        if (potato.slatedForDeletetion)
-        {
-            Destroy();
-        }
-    }
-
-    public override void PlaceInRoom(Room placeRoom)
-    {
-        base.PlaceInRoom(placeRoom);
-    }
-    #endregion
-
-    #region Visuals
-    public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
-    {
-        newContainer ??= rCam.ReturnFContainer("Items");
-
-        foreach (FSprite fsprite in sLeaser.sprites)
-        {
-            fsprite.RemoveFromContainer();
-            newContainer.AddChild(fsprite);
-        }
-    }
-
-    public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
-    {
-        sLeaser.sprites = new FSprite[2];
-
-        sLeaser.sprites[0] = new FSprite("PotatoStem1", true);
-        sLeaser.sprites[1] = new FSprite("PotatoStem2", true);
-
-        AddToContainer(sLeaser, rCam, null);
-    }
-
-    public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
-    {
-        Vector2 chunk1Vec = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker);
-        Vector2 chunk2Vec = Vector2.Lerp(potato.firstChunk.lastPos, potato.firstChunk.pos, timeStacker);
-        Vector2 stemPos = Vector2.Lerp(chunk1Vec, chunk2Vec, 0.5f);
-        Vector2 rotVec = Vector3.Slerp(lastRotation, rotation, timeStacker);
-
-        sLeaser.sprites[0].x = chunk1Vec.x - camPos.x;
-        sLeaser.sprites[0].y = chunk1Vec.y - camPos.y;
-        sLeaser.sprites[0].rotation = Custom.VecToDeg(rotVec) + 90;
-
-        sLeaser.sprites[1].x = stemPos.x - camPos.x;
-        sLeaser.sprites[1].y = stemPos.y - camPos.y;
-        sLeaser.sprites[1].rotation = Custom.VecToDeg(rotVec) + 90;
-
-        sLeaser.sprites[1].width = Custom.Dist(chunk1Vec, chunk2Vec);
-
-        if (blink > 0 && UnityEngine.Random.value < 0.5f)
-        {
-            sLeaser.sprites[0].color = blinkColor;
             sLeaser.sprites[1].color = blinkColor;
+            sLeaser.sprites[2].color = blinkColor;
         }
         else
         {
-            sLeaser.sprites[0].color = blackColor;
+            sLeaser.sprites[0].color = rootColor;
             sLeaser.sprites[1].color = blackColor;
+            sLeaser.sprites[2].color = blackColor;
         }
 
         if (slatedForDeletetion || room != rCam.room)

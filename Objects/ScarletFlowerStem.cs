@@ -115,7 +115,7 @@ public class ScarletFlowerRepresentation : ConsumableRepresentation
 {
     public ScarletFlowerData data;
     public Handle rotationHandle;
-    public ConsumableControlPanel controlPanel;
+    new public ConsumableControlPanel controlPanel;
     
     public ScarletFlowerRepresentation(DevUI owner, string IDstring, DevUINode parentNode, PlacedObject pobj, string name) :
         base(owner, IDstring, parentNode, pobj, name)

@@ -74,10 +74,6 @@ public static class IteratorHooks
         {
             return Enums.MiscItemType.Potato;
         }
-        if (obj is Objects.PotatoStem)
-        {
-            return Enums.MiscItemType.Potato;
-        }
         return orig(self, obj);
     }
 }

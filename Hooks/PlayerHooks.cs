@@ -21,11 +21,18 @@ public static class PlayerHooks
     {
         if (obj is Objects.Potato)
         {
-            return Player.ObjectGrabability.OneHand;
+            if ((obj as Objects.Potato).buried)
+            {
+                return Player.ObjectGrabability.Drag;
+            }
+            else
+            {
+                return Player.ObjectGrabability.OneHand;
+            }
         }
-        if (obj is Objects.PotatoStem)
+        if (obj is Objects.ParrySword)
         {
-            return Player.ObjectGrabability.TwoHands;
+            return Player.ObjectGrabability.BigOneHand;
         }
         return orig(self, obj);
     }
@@ -39,9 +46,27 @@ public static class PlayerHooks
     }
     internal static void Player_ThrowObject(On.Player.orig_ThrowObject orig, Player self, int grasp, bool eu)
     {
-        if (self.grasps[grasp].grabbed is Objects.ParrySword)
+        for (int i = 0; i < 2; i++)
         {
-            (self.grasps[grasp].grabbed as Objects.ParrySword).Use();
+            if (self.grasps[i] == null)
+            {
+                UnityEngine.Debug.Log("Grasp " + i + ": NULL");
+            }
+            else
+            {
+                UnityEngine.Debug.Log("Grasp " + i + ":" + self.grasps[i].grabbed.ToString());
+            }
+        }
+        if (self.grasps[grasp].grabbed is Objects.ParrySword sword)
+        {
+            sword.Use();
+
+            /*
+            if (self.grasps[0 == grasp ? 1 : 0].grabbed is Objects.ParrySword sword2)
+            {
+                sword2.Use();
+            }*/
+
             return;
         }
         orig(self, grasp, eu);
