@@ -36,7 +36,7 @@ public static class RoomHooks
                 self.AddObject(flower);
 
                 if (firstTimeRealized && (session is not StoryGameSession || !(session as StoryGameSession).saveState.ItemConsumed(
-                    self.world, false,self.abstractRoom.index, placedObjects.IndexOf(pobj))))
+                    self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pobj))))
                 {
                     var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.ScarletFlowerBulb, null, self.GetWorldCoordinate(pobj.pos),
                         self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data as PlacedObject.ConsumableObjectData)
@@ -47,6 +47,22 @@ public static class RoomHooks
                     self.abstractRoom.AddEntity(abstractConsumable);
 
                     //UnityEngine.Debug.Log("ABSTRACT CONSUMABLE \"Scarlet Flower\" ADDED TO ROOM.");
+                }
+            }
+            if (pobj.active && pobj.type == Enums.PlacedObjectType.Potato)
+            {
+                Objects.PotatoData data = pobj.data as Objects.PotatoData;
+
+                if (firstTimeRealized && (session is not StoryGameSession || !(session as StoryGameSession).saveState.ItemConsumed(
+                    self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pobj))))
+                {
+                    var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.Potato, null, self.GetWorldCoordinate(pobj.pos), 
+                        self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data as PlacedObject.ConsumableObjectData)
+                    { isConsumed = false };
+
+                    abstractConsumable.realizedObject = new Objects.Potato(abstractConsumable, true, data.rotation, new(1f, 0f, 0f), true);
+
+                    self.abstractRoom.AddEntity(abstractConsumable);
                 }
             }
         }

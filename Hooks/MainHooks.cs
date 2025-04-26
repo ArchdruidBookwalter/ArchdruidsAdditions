@@ -18,6 +18,14 @@ public static class MainHooks
         {
             MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.ScarletFlowerBulb);
         }
+        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ParrySword))
+        {
+            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.ParrySword);
+        }
+        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.Potato))
+        {
+            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.Potato);
+        }
         #endregion
 
         #region Atlases
@@ -42,6 +50,7 @@ public static class MainHooks
         if (oneShot == false)
         {
             Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions");
+            Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions");
             oneShot = true;
         }
 

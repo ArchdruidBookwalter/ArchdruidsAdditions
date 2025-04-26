@@ -8,25 +8,34 @@ using RWCustom;
 using DevInterface;
 using System.Security.Policy;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace ArchdruidsAdditions.Objects;
 
 public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 {
     public bool buried;
-    public Vector2 rotation, lastRotation;
+    public Vector2 rotation, lastRotation, startRotation;
     public Color rootColor;
     public Color blackColor = new(0f, 0f, 0f);
     public int bites = 3;
     public Vector2 homePos;
 
-    public Potato(AbstractPhysicalObject abstractPhysicalObject, bool buried, Vector2 rotation, Color color) : base(abstractPhysicalObject)
+    public AbstractConsumable AbstrConsumable
+    {
+        get
+        {
+            return this.abstractPhysicalObject as AbstractConsumable; 
+        }
+    }
+
+    public Potato(AbstractPhysicalObject abstractPhysicalObject, bool buried, Vector2 rotation, Color color, bool defaultColor) : base(abstractPhysicalObject)
     {
         bodyChunks = new BodyChunk[2];
         bodyChunks[0] = new BodyChunk(this, 0, default, 6f, 0.2f);
         bodyChunks[1] = new BodyChunk(this, 0, default, 0.1f, 0.1f);
         bodyChunkConnections = new BodyChunkConnection[1];
-        bodyChunkConnections[0] = new BodyChunkConnection(bodyChunks[0], bodyChunks[1], 30f, BodyChunkConnection.Type.Normal, 0.5f, -1f);
+        bodyChunkConnections[0] = new BodyChunkConnection(bodyChunks[0], bodyChunks[1], 30f, BodyChunkConnection.Type.Normal, 0.35f, -1f);
 
         if (buried)
         {
@@ -54,11 +63,25 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         buoyancy = 1.2f;
 
         this.buried = buried;
-        this.rotation = rotation;
-        
-        rootColor = color;
+        startRotation = rotation.normalized;
 
-        homePos = firstChunk.pos;
+        if (defaultColor)
+        {
+            float randomNum = UnityEngine.Random.Range(0f, 100f);
+            if (randomNum > 95)
+            {
+                color = UnityEngine.Random.ColorHSV(0.9f, 0.95f, 0.5f, 0.8f, 0.2f, 0.3f);
+            }
+            else if (randomNum > 90)
+            {
+                color = UnityEngine.Random.ColorHSV(0.1f, 0.15f, 0.5f, 1f, 0.6f, 0.8f);
+            }
+            else
+            {
+                color = UnityEngine.Random.ColorHSV(0.05f, 0.1f, 0.5f, 0.8f, 0.6f, 0.8f);
+            }
+        }
+        rootColor = color;
     }
 
     #region Behavior
@@ -72,6 +95,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         {
             room.AddObject(new ExplosionSpikes(room, bodyChunks[0].pos, 50, 0f, 2f, 7f, 2f, new(1f, 0f, 0f)));
             room.AddObject(new ExplosionSpikes(room, bodyChunks[1].pos, 50, 0f, 2f, 7f, 2f, new(1f, 0f, 0f)));
+            room.AddObject(new ExplosionSpikes(room, homePos, 50, 0f, 2f, 7f, 2f, new(0f, 1f, 0f)));
         }
 
         if (firstChunk.ContactPoint.y < 0)
@@ -80,14 +104,81 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             firstChunk.vel.x = firstChunk.vel.x * 0.3f;
         }
 
+        if (buried)
+        {
+            bodyChunks[0].collideWithObjects = false;
+            bodyChunks[0].collideWithSlopes = false;
+            bodyChunks[0].collideWithTerrain = false;
+            bodyChunks[1].collideWithObjects = false;
+            bodyChunks[1].collideWithSlopes = false;
+            bodyChunks[1].collideWithTerrain = false;
+            gravity = 0f;
+            bodyChunks[0].vel = Vector2.zero;
+            bodyChunks[0].HardSetPosition(homePos);
+            if (Custom.Dist(bodyChunks[0].pos, bodyChunks[1].pos) > 100f)
+            {
+                AllGraspsLetGoOfThisObject(true);
+                buried = false;
+                room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.8f, 1.6f + UnityEngine.Random.value / 10f);
+                bodyChunks[0].vel += startRotation * 20f;
+                AbstrConsumable.Consume();
+            }
+            if (grabbedBy.Count == 0)
+            {
+                bodyChunks[1].vel = startRotation * 2;
+            }
+            else if (grabbedBy[0].grabbedChunk == bodyChunks[0])
+            {
+                grabbedBy[0].chunkGrabbed = 1;
+            }
+        }
+        else if (!buried && grabbedBy.Count > 0)
+        {
+            bodyChunks[0].collideWithObjects = false;
+            bodyChunks[0].collideWithSlopes = false;
+            bodyChunks[0].collideWithTerrain = false;
+            bodyChunks[1].collideWithObjects = false;
+            bodyChunks[1].collideWithSlopes = false;
+            bodyChunks[1].collideWithTerrain = false;
+            bodyChunks[1].vel = Vector2.zero;
+            Vector2 pointAtGrabber = Custom.DirVec(bodyChunks[0].pos, grabbedBy[0].grabber.mainBodyChunk.pos);
+            if (grabbedBy[0].graspUsed == 1)
+            {
+                bodyChunks[1].HardSetPosition(bodyChunks[0].pos + 30f * Custom.rotateVectorDeg(pointAtGrabber, 90f));
+            }
+            else
+            {
+                bodyChunks[1].HardSetPosition(bodyChunks[0].pos + 30f * Custom.rotateVectorDeg(pointAtGrabber, -90f));
+            }
+            gravity = 0.9f;
+        }
+        else
+        {
+            bodyChunks[0].collideWithObjects = true;
+            bodyChunks[0].collideWithSlopes = true;
+            bodyChunks[0].collideWithTerrain = true;
+            bodyChunks[1].collideWithObjects = false;
+            bodyChunks[1].collideWithSlopes = true;
+            bodyChunks[1].collideWithTerrain = true;
+            gravity = 0.9f;
+        }
+
         rotation = Custom.DirVec(bodyChunks[0].pos, bodyChunks[1].pos);
     }
 
     public override void PlaceInRoom(Room placeRoom)
     {
         base.PlaceInRoom(placeRoom);
+        if (!AbstrConsumable.isConsumed && AbstrConsumable.placedObjectIndex >= 0 && AbstrConsumable.placedObjectIndex < placeRoom.roomSettings.placedObjects.Count)
+        {
+            bodyChunks[0].HardSetPosition(placeRoom.roomSettings.placedObjects[AbstrConsumable.placedObjectIndex].pos);
+            bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(0f, 30f));
+            homePos = bodyChunks[0].pos;
+            return;
+        }
         bodyChunks[0].HardSetPosition(placeRoom.MiddleOfTile(abstractPhysicalObject.pos));
-        bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(30f, 0f));
+        bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(0f, 30f));
+        homePos = bodyChunks[0].pos;
     }
 
     public override void Grabbed(Creature.Grasp grasp)
@@ -164,9 +255,9 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
     public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
-        Vector2 rootPosVec = Vector2.Lerp(bodyChunks[0].lastPos, bodyChunks[0].pos, timeStacker);
-        Vector2 leavesPosVec = Vector2.Lerp(bodyChunks[1].lastPos, bodyChunks[1].pos, timeStacker);
         Vector2 rotVec = Vector3.Slerp(lastRotation, rotation, timeStacker);
+        Vector2 rootPosVec = Vector2.Lerp(bodyChunks[0].lastPos, bodyChunks[0].pos, timeStacker) + rotVec * -5f;
+        Vector2 leavesPosVec = Vector2.Lerp(bodyChunks[1].lastPos, bodyChunks[1].pos, timeStacker);
 
         sLeaser.sprites[0].x = rootPosVec.x - camPos.x;
         sLeaser.sprites[0].y = rootPosVec.y - camPos.y;
@@ -186,6 +277,10 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         if (buried)
         {
             sLeaser.sprites[0].alpha = 0;
+        }
+        else
+        {
+            sLeaser.sprites[0].alpha = 1;
         }
 
         if (bites > 0)
@@ -217,6 +312,103 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         blackColor = palette.blackColor;
     }
     #endregion
+}
+
+public class PotatoData : PlacedObject.ConsumableObjectData
+{
+    new public Vector2 panelPos;
+    public Vector2 rotation;
+    new public int minRegen;
+    new public int maxRegen;
+
+    public PotatoData(PlacedObject owner) : base(owner)
+    {
+        panelPos = new Vector2(0f, 100f);
+        rotation = new Vector2(0f, 100f);
+        minRegen = 2;
+        maxRegen = 3;
+    }
+
+    new protected string BaseSaveString()
+    {
+        return string.Format(CultureInfo.InvariantCulture, "{0}~{1}~{2}~{3}~{4}~{5}", new object[]
+        {
+            panelPos.x,
+            panelPos.y,
+            minRegen,
+            maxRegen,
+            rotation.x,
+            rotation.y,
+        });
+    }
+
+    public override void FromString(string s)
+    {
+        string[] array = Regex.Split(s, "~");
+        panelPos.x = float.Parse(array[0], NumberStyles.Any, CultureInfo.InvariantCulture);
+        panelPos.y = float.Parse(array[1], NumberStyles.Any, CultureInfo.InvariantCulture);
+        minRegen = int.Parse(array[2], NumberStyles.Any, CultureInfo.InvariantCulture);
+        maxRegen = int.Parse(array[3], NumberStyles.Any, CultureInfo.InvariantCulture);
+        rotation.x = float.Parse(array[4], NumberStyles.Any, CultureInfo.InvariantCulture);
+        rotation.y = float.Parse(array[5], NumberStyles.Any, CultureInfo.InvariantCulture);
+        unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 6);
+    }
+
+    public override string ToString()
+    {
+        string text = this.BaseSaveString();
+        text = SaveState.SetCustomData(this, text);
+        return SaveUtils.AppendUnrecognizedStringAttrs(text, "~", unrecognizedAttributes);
+    }
+}
+
+public class PotatoRepresentation : ConsumableRepresentation
+{
+    public PotatoData data;
+    public Handle rotationHandle;
+    //public ConsumableControlPanel controlPanel;
+
+    public PotatoRepresentation(DevUI owner, string IDstring, DevUINode parentNode, PlacedObject pobj, string name) :
+        base(owner, IDstring, parentNode, pobj, name)
+    {
+        data = pobj.data as PotatoData;
+        rotationHandle = new(owner, "Rotation_Handle", this, data.rotation);
+        controlPanel = new(owner, "Potato_Panel", this, data.panelPos, "Consumable: Potato");
+
+        subNodes[0].ClearSprites();
+        subNodes.RemoveAt(0);
+
+        subNodes.Add(rotationHandle);
+        subNodes.Add(controlPanel);
+        fSprites.Add(new FSprite("pixel") { anchorY = 0f });
+        fSprites.Add(new FSprite("pixel") { anchorY = 0f });
+        owner.placedObjectsContainer.AddChild(fSprites[1]);
+        owner.placedObjectsContainer.AddChild(fSprites[2]);
+    }
+
+    public override void Refresh()
+    {
+        base.Refresh();
+
+        MoveSprite(1, absPos);
+        fSprites[1].scaleY = rotationHandle.pos.magnitude;
+        fSprites[1].rotation = Custom.AimFromOneVectorToAnother(absPos, rotationHandle.absPos);
+        (pObj.data as PotatoData).rotation = rotationHandle.pos;
+
+        MoveSprite(2, absPos);
+        fSprites[2].scaleY = controlPanel.pos.magnitude;
+        fSprites[2].rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
+        (pObj.data as PotatoData).panelPos = controlPanel.pos;
+
+        /*
+        UnityEngine.Debug.Log("");
+        for (int i = 0; i < subNodes.Count; i++)
+        {
+            UnityEngine.Debug.Log(i + ": " + subNodes[i]);
+        }
+        UnityEngine.Debug.Log("");
+        */
+    }
 }
 
 

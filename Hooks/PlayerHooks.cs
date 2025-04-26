@@ -21,9 +21,17 @@ public static class PlayerHooks
     {
         if (obj is Objects.Potato)
         {
-            if ((obj as Objects.Potato).buried)
+            Objects.Potato potato = obj as Objects.Potato;
+            if (potato.buried)
             {
-                return Player.ObjectGrabability.Drag;
+                if (Custom.Dist(potato.bodyChunks[0].pos, self.mainBodyChunk.pos) < Custom.Dist(potato.bodyChunks[1].pos, self.mainBodyChunk.pos))
+                {
+                    return Player.ObjectGrabability.CantGrab;
+                }
+                else
+                {
+                    return Player.ObjectGrabability.Drag;
+                }
             }
             else
             {

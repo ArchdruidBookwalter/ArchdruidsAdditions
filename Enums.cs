@@ -13,7 +13,6 @@ public static class AbstractObjectType
     public static AbstractPhysicalObject.AbstractObjectType ScarletFlowerBulb = new("ScarletFlowerBulb", true);
     public static AbstractPhysicalObject.AbstractObjectType ParrySword = new("ParrySword", true);
     public static AbstractPhysicalObject.AbstractObjectType Potato = new("Potato", true);
-    public static AbstractPhysicalObject.AbstractObjectType PotatoStem = new("PotatoStem", true);
     public static void UnregisterValues()
     {
         if (ScarletFlowerBulb != null)
@@ -30,11 +29,6 @@ public static class AbstractObjectType
         {
             Potato.Unregister();
             Potato = null;
-        }
-        if (PotatoStem != null)
-        {
-            PotatoStem.Unregister();
-            PotatoStem = null;
         }
     }
 }
@@ -90,12 +84,18 @@ public static class MultiplayerItemType
 public static class PlacedObjectType
 {
     public static PlacedObject.Type ScarletFlower = new("ScarletFlower", true);
+    public static PlacedObject.Type Potato = new("Potato", true);
     public static void UnregisterValues()
     {
         if (ScarletFlower != null)
         {
             ScarletFlower.Unregister();
             ScarletFlower = null;
+        }
+        if (Potato != null)
+        {
+            Potato.Unregister();
+            Potato = null;
         }
     }
 }

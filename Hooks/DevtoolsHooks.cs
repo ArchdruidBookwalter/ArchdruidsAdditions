@@ -28,6 +28,19 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
+        else if (type == Enums.PlacedObjectType.Potato)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new Objects.PotatoRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
         else
         {
             orig(self, type, pobj);
@@ -38,6 +51,10 @@ public static class DevtoolsHooks
         if (self.type == Enums.PlacedObjectType.ScarletFlower)
         {
             self.data = new Objects.ScarletFlowerData(self);
+        }
+        if (self.type == Enums.PlacedObjectType.Potato)
+        {
+            self.data = new Objects.PotatoData(self);
         }
         else
         {
