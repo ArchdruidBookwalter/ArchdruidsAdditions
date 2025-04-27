@@ -21,6 +21,12 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public int bites = 3;
     public Vector2 homePos;
 
+    public float stemLength = 30f;
+    public float elasticity = 0.8f;
+
+    public bool playerSquint;
+    public ChunkDynamicSoundLoop soundLoop;
+
     public AbstractConsumable AbstrConsumable
     {
         get
@@ -33,9 +39,9 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     {
         bodyChunks = new BodyChunk[2];
         bodyChunks[0] = new BodyChunk(this, 0, default, 6f, 0.2f);
-        bodyChunks[1] = new BodyChunk(this, 0, default, 0.1f, 0.1f);
+        bodyChunks[1] = new BodyChunk(this, 0, default, 6f, 0.1f);
         bodyChunkConnections = new BodyChunkConnection[1];
-        bodyChunkConnections[0] = new BodyChunkConnection(bodyChunks[0], bodyChunks[1], 30f, BodyChunkConnection.Type.Normal, 0.35f, -1f);
+        bodyChunkConnections[0] = new BodyChunkConnection(bodyChunks[0], bodyChunks[1], stemLength, BodyChunkConnection.Type.Normal, elasticity, -1f);
 
         if (buried)
         {
@@ -82,6 +88,13 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             }
         }
         rootColor = color;
+
+        soundLoop = new ChunkDynamicSoundLoop(bodyChunks[1]);
+        soundLoop.sound = SoundID.Tentacle_Plant_Move_LOOP;
+        soundLoop.Volume = 0f;
+        soundLoop.Pitch = 1f;
+
+        playerSquint = false;
     }
 
     #region Behavior
@@ -89,6 +102,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public override void Update(bool eu)
     {
         base.Update(eu);
+        soundLoop.Update();
         lastRotation = rotation;
 
         if (room.game.devToolsActive)
@@ -115,21 +129,44 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             gravity = 0f;
             bodyChunks[0].vel = Vector2.zero;
             bodyChunks[0].HardSetPosition(homePos);
-            if (Custom.Dist(bodyChunks[0].pos, bodyChunks[1].pos) > 100f)
+
+
+            float dist = Custom.Dist(bodyChunks[0].pos, bodyChunks[1].pos);
+            if (dist > stemLength + 60f)
             {
-                AllGraspsLetGoOfThisObject(true);
                 buried = false;
                 room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.8f, 1.6f + UnityEngine.Random.value / 10f);
-                bodyChunks[0].vel += startRotation * 20f;
+                bodyChunks[0].vel += Custom.DirVec(bodyChunks[0].pos, grabbedBy[0].grabber.mainBodyChunk.pos) * 20f + startRotation * 10f;
                 AbstrConsumable.Consume();
+                bodyChunkConnections[0].elasticity = elasticity;
+                soundLoop.Volume = 0f;
+                playerSquint = false;
+                AllGraspsLetGoOfThisObject(true);
             }
+            else if (dist > stemLength + 8f)
+            {
+                bodyChunkConnections[0].elasticity *= 0.995f;
+                soundLoop.Volume = dist/60f;
+                playerSquint = true;
+            }
+            else
+            {
+                bodyChunkConnections[0].elasticity = elasticity;
+                soundLoop.Volume = 0f;
+                playerSquint = false;
+            }
+            
+
             if (grabbedBy.Count == 0)
             {
                 bodyChunks[1].vel = startRotation * 2;
             }
-            else if (grabbedBy[0].grabbedChunk == bodyChunks[0])
+            else
             {
-                grabbedBy[0].chunkGrabbed = 1;
+                if (grabbedBy[0].grabbedChunk == bodyChunks[0])
+                {
+                    AllGraspsLetGoOfThisObject(true);
+                }
             }
         }
         else if (!buried && grabbedBy.Count > 0)
@@ -144,13 +181,16 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             Vector2 pointAtGrabber = Custom.DirVec(bodyChunks[0].pos, grabbedBy[0].grabber.mainBodyChunk.pos);
             if (grabbedBy[0].graspUsed == 1)
             {
-                bodyChunks[1].HardSetPosition(bodyChunks[0].pos + 30f * Custom.rotateVectorDeg(pointAtGrabber, 90f));
+                bodyChunks[1].HardSetPosition(bodyChunks[0].pos + stemLength * Custom.rotateVectorDeg(pointAtGrabber, 90f));
             }
             else
             {
-                bodyChunks[1].HardSetPosition(bodyChunks[0].pos + 30f * Custom.rotateVectorDeg(pointAtGrabber, -90f));
+                bodyChunks[1].HardSetPosition(bodyChunks[0].pos + stemLength * Custom.rotateVectorDeg(pointAtGrabber, -90f));
             }
             gravity = 0.9f;
+            bodyChunkConnections[0].elasticity = elasticity;
+            soundLoop.Volume = 0f;
+            playerSquint = false;
         }
         else
         {
@@ -161,6 +201,9 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             bodyChunks[1].collideWithSlopes = true;
             bodyChunks[1].collideWithTerrain = true;
             gravity = 0.9f;
+            bodyChunkConnections[0].elasticity = elasticity;
+            soundLoop.Volume = 0;
+            playerSquint = false;
         }
 
         rotation = Custom.DirVec(bodyChunks[0].pos, bodyChunks[1].pos);
@@ -172,12 +215,12 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         if (!AbstrConsumable.isConsumed && AbstrConsumable.placedObjectIndex >= 0 && AbstrConsumable.placedObjectIndex < placeRoom.roomSettings.placedObjects.Count)
         {
             bodyChunks[0].HardSetPosition(placeRoom.roomSettings.placedObjects[AbstrConsumable.placedObjectIndex].pos);
-            bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(0f, 30f));
+            bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(0f, stemLength));
             homePos = bodyChunks[0].pos;
             return;
         }
         bodyChunks[0].HardSetPosition(placeRoom.MiddleOfTile(abstractPhysicalObject.pos));
-        bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(0f, 30f));
+        bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(0f, stemLength));
         homePos = bodyChunks[0].pos;
     }
 

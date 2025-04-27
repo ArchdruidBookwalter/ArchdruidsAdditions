@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RWCustom;
+using UnityEngine;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -22,21 +23,19 @@ public static class PlayerHooks
         if (obj is Objects.Potato)
         {
             Objects.Potato potato = obj as Objects.Potato;
+            float dist1 = Custom.Dist(potato.bodyChunks[0].pos, self.bodyChunks[0].pos);
+            float dist2 = Custom.Dist(potato.bodyChunks[1].pos, self.bodyChunks[0].pos);
+
             if (potato.buried)
             {
-                if (Custom.Dist(potato.bodyChunks[0].pos, self.mainBodyChunk.pos) < Custom.Dist(potato.bodyChunks[1].pos, self.mainBodyChunk.pos))
+                if (dist1 <= dist2)
                 {
+                    self.pickUpCandidate = null;
                     return Player.ObjectGrabability.CantGrab;
                 }
-                else
-                {
-                    return Player.ObjectGrabability.Drag;
-                }
+                return Player.ObjectGrabability.Drag;
             }
-            else
-            {
-                return Player.ObjectGrabability.OneHand;
-            }
+            return Player.ObjectGrabability.OneHand;
         }
         if (obj is Objects.ParrySword)
         {
@@ -79,23 +78,16 @@ public static class PlayerHooks
         }
         orig(self, grasp, eu);
     }
-
-    /*
-    internal static void SlugcatHand_Update(On.SlugcatHand.orig_Update orig,  SlugcatHand self)
+    internal static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser,
+        RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
-        int grasp = self.limbNumber;
-        Player player = self.owner.owner as Player;
-        if (player.grasps[grasp] != null && player.grasps[grasp].grabbed is Objects.ParrySword sword && sword.useBool == true && sword.rejectTime == 0f)
+        orig(self, sLeaser, rCam, timeStacker, camPos);
+        foreach (Creature.Grasp grasp in self.player.grasps)
         {
-            self.mode = Limb.Mode.HuntRelativePosition;
-            self.relativeHuntPos = Custom.RotateAroundVector(sword.aimDirection, self.pos, sword.useTime) * 80f;
-            self.huntSpeed = 90f;
-            self.quickness = 1f;
-            self.retract = false;
-            self.retractCounter = 0;
-            return;
+            if (grasp is not null && grasp.grabbed is Objects.Potato potato && potato.playerSquint)
+            {
+                sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
+            }
         }
-        orig(self);
     }
-    */
 }

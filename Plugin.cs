@@ -57,7 +57,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
         On.Player.IsObjectThrowable += Hooks.PlayerHooks.Player_IsObjectThrowable;
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
-        //On.SlugcatHand.Update += Hooks.PlayerHooks.SlugcatHand_Update;
+        On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
         #endregion
 
         #region Room Hooks
