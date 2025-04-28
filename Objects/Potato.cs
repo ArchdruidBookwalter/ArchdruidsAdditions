@@ -105,13 +105,6 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         soundLoop.Update();
         lastRotation = rotation;
 
-        if (room.game.devToolsActive)
-        {
-            room.AddObject(new ExplosionSpikes(room, bodyChunks[0].pos, 50, 0f, 2f, 7f, 2f, new(1f, 0f, 0f)));
-            room.AddObject(new ExplosionSpikes(room, bodyChunks[1].pos, 50, 0f, 2f, 7f, 2f, new(1f, 0f, 0f)));
-            room.AddObject(new ExplosionSpikes(room, homePos, 50, 0f, 2f, 7f, 2f, new(0f, 1f, 0f)));
-        }
-
         if (firstChunk.ContactPoint.y < 0)
         {
             BodyChunk firstChunk = base.firstChunk;
@@ -179,13 +172,16 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             bodyChunks[1].collideWithTerrain = false;
             bodyChunks[1].vel = Vector2.zero;
             Vector2 pointAtGrabber = Custom.DirVec(bodyChunks[0].pos, grabbedBy[0].grabber.mainBodyChunk.pos);
-            if (grabbedBy[0].graspUsed == 1)
+            if (grabbedBy[0].grabber is Player)
             {
-                bodyChunks[1].HardSetPosition(bodyChunks[0].pos + stemLength * Custom.rotateVectorDeg(pointAtGrabber, 90f));
-            }
-            else
-            {
-                bodyChunks[1].HardSetPosition(bodyChunks[0].pos + stemLength * Custom.rotateVectorDeg(pointAtGrabber, -90f));
+                if (grabbedBy[0].graspUsed == 1)
+                {
+                    bodyChunks[1].HardSetPosition(bodyChunks[0].pos + stemLength * Custom.rotateVectorDeg(pointAtGrabber, 90f));
+                }
+                else
+                {
+                    bodyChunks[1].HardSetPosition(bodyChunks[0].pos + stemLength * Custom.rotateVectorDeg(pointAtGrabber, -90f));
+                }
             }
             gravity = 0.9f;
             bodyChunkConnections[0].elasticity = elasticity;

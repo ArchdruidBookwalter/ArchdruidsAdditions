@@ -10,6 +10,7 @@ namespace ArchdruidsAdditions.Hooks;
 
 public static class PlayerHooks
 {
+    #region Player
     internal static bool Player_CanBeSwallowed(On.Player.orig_CanBeSwallowed orig, Player self, PhysicalObject obj)
     {
         if (obj is Objects.ScarletFlowerBulb)
@@ -22,17 +23,8 @@ public static class PlayerHooks
     {
         if (obj is Objects.Potato)
         {
-            Objects.Potato potato = obj as Objects.Potato;
-            float dist1 = Custom.Dist(potato.bodyChunks[0].pos, self.bodyChunks[0].pos);
-            float dist2 = Custom.Dist(potato.bodyChunks[1].pos, self.bodyChunks[0].pos);
-
-            if (potato.buried)
+            if ((obj as Objects.Potato).buried)
             {
-                if (dist1 <= dist2)
-                {
-                    self.pickUpCandidate = null;
-                    return Player.ObjectGrabability.CantGrab;
-                }
                 return Player.ObjectGrabability.Drag;
             }
             return Player.ObjectGrabability.OneHand;
@@ -51,35 +43,56 @@ public static class PlayerHooks
         }
         return orig(self, obj);
     }
-    internal static void Player_ThrowObject(On.Player.orig_ThrowObject orig, Player self, int grasp, bool eu)
+    internal static PhysicalObject Player_PickupCandidate(On.Player.orig_PickupCandidate orig, Player self, float favorSpears)
     {
-        for (int i = 0; i < 2; i++)
+        Objects.Potato closestPotato = null;
+        float dist;
+        float oldDist = float.MaxValue;
+        for (int i = 0; i < self.room.physicalObjects.Length; i++)
         {
-            if (self.grasps[i] == null)
+            for (int j = 0; j < self.room.physicalObjects[i].Count; j++)
             {
-                UnityEngine.Debug.Log("Grasp " + i + ": NULL");
-            }
-            else
-            {
-                UnityEngine.Debug.Log("Grasp " + i + ":" + self.grasps[i].grabbed.ToString());
+                if (self.room.physicalObjects[i][j] is Objects.Potato thisPotato && thisPotato.buried)
+                {
+                    dist = Custom.Dist(thisPotato.bodyChunks[1].pos, self.bodyChunks[0].pos);
+                    if (dist < 40f && dist < oldDist)
+                    {
+                        closestPotato = thisPotato;
+                        oldDist = dist;
+                    }
+                }
             }
         }
+        if (closestPotato != null)
+        {
+            return closestPotato;
+        }
+        return orig(self, favorSpears);
+    }
+    internal static void Player_SlugcatGrab(On.Player.orig_SlugcatGrab orig, Player self, PhysicalObject obj, int graspUsed)
+    {
+        if (obj is Objects.Potato potato && potato.buried)
+        {
+            self.Grab(obj, graspUsed, 1, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
+        }
+        else
+        {
+            orig(self, obj, graspUsed);
+        }
+    }
+    internal static void Player_ThrowObject(On.Player.orig_ThrowObject orig, Player self, int grasp, bool eu)
+    {
         if (self.grasps[grasp].grabbed is Objects.ParrySword sword)
         {
             sword.Use();
-
-            /*
-            if (self.grasps[0 == grasp ? 1 : 0].grabbed is Objects.ParrySword sword2)
-            {
-                sword2.Use();
-            }*/
-
             return;
         }
         orig(self, grasp, eu);
     }
-    internal static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser,
-        RoomCamera rCam, float timeStacker, Vector2 camPos)
+    #endregion
+
+    #region PlayerGraphics
+    internal static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
         orig(self, sLeaser, rCam, timeStacker, camPos);
         foreach (Creature.Grasp grasp in self.player.grasps)
@@ -90,4 +103,5 @@ public static class PlayerHooks
             }
         }
     }
+    #endregion
 }
