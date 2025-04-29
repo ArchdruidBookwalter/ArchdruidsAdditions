@@ -45,6 +45,10 @@ public static class PlayerHooks
     }
     internal static PhysicalObject Player_PickupCandidate(On.Player.orig_PickupCandidate orig, Player self, float favorSpears)
     {
+        if (favorSpears > 50)
+        {
+            return orig(self, favorSpears);
+        }
         Objects.Potato closestPotato = null;
         float dist;
         float oldDist = float.MaxValue;
@@ -55,7 +59,7 @@ public static class PlayerHooks
                 if (self.room.physicalObjects[i][j] is Objects.Potato thisPotato && thisPotato.buried)
                 {
                     dist = Custom.Dist(thisPotato.bodyChunks[1].pos, self.bodyChunks[0].pos);
-                    if (dist < 40f && dist < oldDist)
+                    if (dist < 20f && dist < oldDist)
                     {
                         closestPotato = thisPotato;
                         oldDist = dist;
@@ -63,7 +67,7 @@ public static class PlayerHooks
                 }
             }
         }
-        if (closestPotato != null)
+        if (closestPotato != null && self.CanIPickThisUp(closestPotato))
         {
             return closestPotato;
         }
@@ -100,6 +104,11 @@ public static class PlayerHooks
             if (grasp is not null && grasp.grabbed is Objects.Potato potato && potato.playerSquint)
             {
                 sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
+                float randomNum = UnityEngine.Random.Range(0f, 100f);
+                if (randomNum > 95)
+                {
+                    self.player.room.AddObject(new Spark(self.head.pos, Custom.RNV(), new(1f, 1f, 1f), null, 20, 20));
+                }
             }
         }
     }

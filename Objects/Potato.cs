@@ -9,6 +9,7 @@ using DevInterface;
 using System.Security.Policy;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Reflection;
 
 namespace ArchdruidsAdditions.Objects;
 
@@ -89,21 +90,85 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
         rootColor = color;
 
-        soundLoop = new ChunkDynamicSoundLoop(bodyChunks[1]);
-        soundLoop.sound = SoundID.Tentacle_Plant_Move_LOOP;
-        soundLoop.Volume = 0f;
-        soundLoop.Pitch = 1f;
+        soundLoop = new(bodyChunks[1])
+        {
+            sound = SoundID.Tentacle_Plant_Move_LOOP,
+            Volume = 0f,
+            Pitch = 1f
+        };
 
         playerSquint = false;
     }
 
     #region Behavior
 
+    public float soundTimer = 0f;
+    public int soundIndex = 0;
+    public float soundSpeed = 0f;
+
     public override void Update(bool eu)
     {
         base.Update(eu);
         soundLoop.Update();
         lastRotation = rotation;
+
+        if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Player player && room.game.devToolsActive)
+        {
+            int input = player.input[0].y;
+            if (input != 0)
+            {
+                if (soundTimer == 0f)
+                {
+                    if (input == 1)
+                    {
+                        soundIndex++;
+                        if (soundIndex > SoundID.values.entries.Count - 1)
+                        {
+                            soundIndex = 0;
+                        }
+                    }
+                    else
+                    {
+                        soundIndex--;
+                        if (soundIndex < 0)
+                        {
+                            soundIndex = SoundID.values.entries.Count - 1;
+                        }
+                    }
+                    UnityEngine.Debug.Log("Index: " + soundIndex.ToString());
+                    string name = SoundID.values.entries[soundIndex];
+                    SoundID sound = new SoundID(name);
+                    if (!name.Contains("LOOP"))
+                    {
+                        room.PlaySound(sound, player.mainBodyChunk, false, 1f, 1f);
+                        room.AddObject(new ExplosionSpikes(room, player.mainBodyChunk.pos, 50, 10f, 5f, 10f, 10f, new(0f, 1f, 0f)));
+                    }
+                    else
+                    {
+                        room.AddObject(new ExplosionSpikes(room, player.mainBodyChunk.pos, 50, 10f, 5f, 10f, 10f, new(0f, 1f, 0f)));
+                    }
+                    UnityEngine.Debug.Log(sound.ToString());
+                    soundTimer = 20f;
+                    if (soundSpeed < 10f)
+                    {
+                        soundSpeed += 1f;
+                    }
+                }
+                if (soundTimer > 0)
+                {
+                    soundTimer -= soundSpeed;
+                }
+                if (soundTimer < 0)
+                {
+                    soundTimer = 0;
+                }
+            }
+            else
+            {
+                soundTimer = 0;
+                soundSpeed = 0;
+            }
+        }
 
         if (firstChunk.ContactPoint.y < 0)
         {
@@ -113,34 +178,49 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
         if (buried)
         {
-            bodyChunks[0].collideWithObjects = false;
-            bodyChunks[0].collideWithSlopes = false;
-            bodyChunks[0].collideWithTerrain = false;
-            bodyChunks[1].collideWithObjects = false;
-            bodyChunks[1].collideWithSlopes = false;
-            bodyChunks[1].collideWithTerrain = false;
+            ChangeCollision(false, false);
             gravity = 0f;
             bodyChunks[0].vel = Vector2.zero;
             bodyChunks[0].HardSetPosition(homePos);
 
+            Color whiteColor = new(1f, 1f, 1f);
+            Color blackColor = new(0.01f, 0.01f, 0.01f);
 
             float dist = Custom.Dist(bodyChunks[0].pos, bodyChunks[1].pos);
             if (dist > stemLength + 60f)
             {
                 buried = false;
-                room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.8f, 1.6f + UnityEngine.Random.value / 10f);
+                room.PlaySound(SoundID.Spear_Stick_In_Wall, firstChunk, false, 1f, 1f);
                 bodyChunks[0].vel += Custom.DirVec(bodyChunks[0].pos, grabbedBy[0].grabber.mainBodyChunk.pos) * 20f + startRotation * 10f;
                 AbstrConsumable.Consume();
                 bodyChunkConnections[0].elasticity = elasticity;
                 soundLoop.Volume = 0f;
                 playerSquint = false;
                 AllGraspsLetGoOfThisObject(true);
+                for (int i = 0; i < UnityEngine.Random.Range(8f, 10f); i++)
+                {
+                    room.AddObject(new Spark(bodyChunks[0].pos, startRotation * 5 + Custom.RNV() * 5,
+                        UnityEngine.Random.Range(0f, 1f) > 0.8f ? whiteColor : blackColor,
+                        null, 150, 150));
+                }
             }
-            else if (dist > stemLength + 8f)
+            else if (dist > stemLength + 20f)
             {
                 bodyChunkConnections[0].elasticity *= 0.995f;
                 soundLoop.Volume = dist/60f;
                 playerSquint = true;
+                if (UnityEngine.Random.Range(0f, 100f) > 95)
+                {
+                    room.AddObject(new Spark(bodyChunks[0].pos, startRotation * 3 + Custom.RNV() * 3,
+                        UnityEngine.Random.Range(0f, 1f) > 0.8f ? whiteColor : blackColor,
+                        null, 30, 30)); 
+                }
+            }
+            else if (dist > stemLength + 10f)
+            {
+                bodyChunkConnections[0].elasticity *= 0.995f;
+                soundLoop.Volume = 0f;
+                playerSquint = false;
             }
             else
             {
@@ -164,12 +244,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
         else if (!buried && grabbedBy.Count > 0)
         {
-            bodyChunks[0].collideWithObjects = false;
-            bodyChunks[0].collideWithSlopes = false;
-            bodyChunks[0].collideWithTerrain = false;
-            bodyChunks[1].collideWithObjects = false;
-            bodyChunks[1].collideWithSlopes = false;
-            bodyChunks[1].collideWithTerrain = false;
+            ChangeCollision(false, false);
             bodyChunks[1].vel = Vector2.zero;
             Vector2 pointAtGrabber = Custom.DirVec(bodyChunks[0].pos, grabbedBy[0].grabber.mainBodyChunk.pos);
             if (grabbedBy[0].grabber is Player)
@@ -190,12 +265,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
         else
         {
-            bodyChunks[0].collideWithObjects = true;
-            bodyChunks[0].collideWithSlopes = true;
-            bodyChunks[0].collideWithTerrain = true;
-            bodyChunks[1].collideWithObjects = false;
-            bodyChunks[1].collideWithSlopes = true;
-            bodyChunks[1].collideWithTerrain = true;
+            ChangeCollision(true, true);
             gravity = 0.9f;
             bodyChunkConnections[0].elasticity = elasticity;
             soundLoop.Volume = 0;
@@ -226,6 +296,34 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         Debug.Log("Picked Up Potato");
     }
 
+    public void ChangeCollision(bool chunk1collide, bool chunk2collide)
+    {
+        if (chunk1collide)
+        {
+            bodyChunks[0].collideWithObjects = true;
+            bodyChunks[0].collideWithSlopes = true;
+            bodyChunks[0].collideWithTerrain = true;
+        }
+        else
+        {
+            bodyChunks[0].collideWithObjects = false;
+            bodyChunks[0].collideWithSlopes = false;
+            bodyChunks[0].collideWithTerrain = false;
+        }
+        if (chunk2collide)
+        {
+            bodyChunks[1].collideWithObjects = false;
+            bodyChunks[1].collideWithSlopes = true;
+            bodyChunks[1].collideWithTerrain = true;
+        }
+        else
+        {
+            bodyChunks[1].collideWithObjects = false;
+            bodyChunks[1].collideWithSlopes = false;
+            bodyChunks[1].collideWithTerrain = false;
+        }
+    }
+
     #region Edible Stuff
     public int BitesLeft
     {
@@ -239,12 +337,22 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
     public bool Edible
     {
-        get { return true; }
+        get 
+        { 
+            if (buried)
+            {  return false; }
+            return true; 
+        }
     }
 
     public bool AutomaticPickUp
     {
-        get { return true; }
+        get
+        {
+            if (buried)
+            { return false; }
+            return true;
+        }
     }
 
     public void BitByPlayer(Creature.Grasp grasp, bool eu)
