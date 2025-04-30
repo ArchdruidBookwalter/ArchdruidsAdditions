@@ -104,11 +104,6 @@ public static class PlayerHooks
             if (grasp is not null && grasp.grabbed is Objects.Potato potato && potato.playerSquint)
             {
                 sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
-                float randomNum = UnityEngine.Random.Range(0f, 100f);
-                if (randomNum > 95)
-                {
-                    self.player.room.AddObject(new Spark(self.head.pos, Custom.RNV(), new(1f, 1f, 1f), null, 20, 20));
-                }
             }
         }
     }

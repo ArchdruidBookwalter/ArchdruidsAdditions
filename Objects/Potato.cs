@@ -191,34 +191,27 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             {
                 buried = false;
                 room.PlaySound(SoundID.Spear_Stick_In_Wall, firstChunk, false, 1f, 1f);
-                bodyChunks[0].vel += Custom.DirVec(bodyChunks[0].pos, grabbedBy[0].grabber.mainBodyChunk.pos) * 20f + startRotation * 10f;
+                bodyChunks[0].vel += Custom.DirVec(bodyChunks[0].pos, bodyChunks[1].pos) * 20f + startRotation * 10f;
                 AbstrConsumable.Consume();
                 bodyChunkConnections[0].elasticity = elasticity;
                 soundLoop.Volume = 0f;
                 playerSquint = false;
                 AllGraspsLetGoOfThisObject(true);
-                for (int i = 0; i < UnityEngine.Random.Range(8f, 10f); i++)
+                for (int i = 0; i < UnityEngine.Random.Range(3f, 6f); i++)
                 {
-                    room.AddObject(new Spark(bodyChunks[0].pos, startRotation * 5 + Custom.RNV() * 5,
-                        UnityEngine.Random.Range(0f, 1f) > 0.8f ? whiteColor : blackColor,
-                        null, 150, 150));
+                    float speed = UnityEngine.Random.Range(5f, 10f);
+                    room.AddObject(new WaterDrip(bodyChunks[0].pos + startRotation * 10, startRotation * speed + Custom.RNV() * speed, false)); 
                 }
             }
             else if (dist > stemLength + 20f)
             {
-                bodyChunkConnections[0].elasticity *= 0.995f;
+                bodyChunkConnections[0].elasticity *= 0.99f;
                 soundLoop.Volume = dist/60f;
                 playerSquint = true;
-                if (UnityEngine.Random.Range(0f, 100f) > 95)
-                {
-                    room.AddObject(new Spark(bodyChunks[0].pos, startRotation * 3 + Custom.RNV() * 3,
-                        UnityEngine.Random.Range(0f, 1f) > 0.8f ? whiteColor : blackColor,
-                        null, 30, 30)); 
-                }
             }
             else if (dist > stemLength + 10f)
             {
-                bodyChunkConnections[0].elasticity *= 0.995f;
+                bodyChunkConnections[0].elasticity *= 0.99f;
                 soundLoop.Volume = 0f;
                 playerSquint = false;
             }
