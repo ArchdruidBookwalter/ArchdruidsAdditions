@@ -36,6 +36,11 @@ public sealed class Plugin : BaseUnityPlugin
         On.PlacedObject.GenerateEmptyData += Hooks.DevtoolsHooks.PlacedObject_GenerateEmptyData;
         #endregion
 
+        #region Insect Hooks
+        On.MiniFly.Update += Hooks.InsectHooks.On_MiniFly_Update;
+        On.RedSwarmer.Update += Hooks.InsectHooks.On_RedSwarmer_Update;
+        #endregion
+
         #region Item Symbol Hooks
         On.ItemSymbol.SpriteNameForItem += Hooks.ItemSymbolHooks.ItemSymbol_SpriteNameForItem;
         On.ItemSymbol.ColorForItem += Hooks.ItemSymbolHooks.ItemSymbol_ColorForItem;
@@ -59,6 +64,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.Player.SlugcatGrab += Hooks.PlayerHooks.Player_SlugcatGrab;
         On.Player.IsObjectThrowable += Hooks.PlayerHooks.Player_IsObjectThrowable;
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
+        On.Player.Update += Hooks.PlayerHooks.Player_Update;
         On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
         #endregion
 

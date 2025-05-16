@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using IL.Smoke;
 using RWCustom;
 using UnityEngine;
 
@@ -25,6 +26,10 @@ public static class PlayerHooks
         {
             if ((obj as Objects.Potato).buried)
             {
+                if (self.grasps[0] != null && self.grasps[1] != null)
+                {
+                    return Player.ObjectGrabability.CantGrab;
+                }
                 return Player.ObjectGrabability.Drag;
             }
             return Player.ObjectGrabability.OneHand;
@@ -77,7 +82,8 @@ public static class PlayerHooks
     {
         if (obj is Objects.Potato potato && potato.buried)
         {
-            self.Grab(obj, graspUsed, 1, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
+            self.LoseAllGrasps();
+            self.Grab(obj, graspUsed, 1, Creature.Grasp.Shareability.CanNotShare, 0.5f, true, false);
         }
         else
         {
@@ -92,6 +98,96 @@ public static class PlayerHooks
             return;
         }
         orig(self, grasp, eu);
+    }
+    internal static void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
+    {
+        orig(self, eu);
+        if (self.room.game.devToolsActive && self.input[0].y > 0)
+        {
+            Room room = self.room;
+            RoomCamera camera = room.game.cameras[0];
+
+            int numOfSprites = 0;
+
+            var spriteLeasers = camera.spriteLeasers;
+            for (int i = 0; i < spriteLeasers.Count(); i++)
+            {
+                var sLeaser = spriteLeasers[i];
+
+                if (sLeaser.drawableObject is GraphicsModule || sLeaser.drawableObject is Objects.Potato || sLeaser.drawableObject is CosmeticInsect)
+                {
+                    for (int j = 0; j < sLeaser.sprites.Count(); j++)
+                    {
+                        var sprite = sLeaser.sprites[j];
+
+                        if (sprite.isVisible && numOfSprites < 50 && Custom.Dist(sprite.GetPosition() + camera.pos, self.mainBodyChunk.pos) < 500f)
+                        {
+                            Color color = GetColor(j);
+
+                            Rect rect = sprite.GetTextureRectRelativeToContainer();
+                            room.AddObject(new Objects.ColoredRectangle(room, rect.center + camera.pos, rect.width, rect.height, sprite.rotation, color, 1));
+                            numOfSprites++;
+                        }
+                    }
+                }
+            }
+            
+            for (int i = 0; i < 3; i++)
+            {
+                foreach (PhysicalObject obj in room.physicalObjects[i])
+                {
+                    foreach (BodyChunk chunk in obj.bodyChunks)
+                    {
+                        room.AddObject(new Objects.ColoredRectangle(room, chunk.pos, 3f, 3f, 45f, new(1f, 0f, 0f), 1));
+                    }
+                }
+            }
+        }
+    }
+
+    public static Color GetColor(int index)
+    {
+        if (index == 0)
+        {
+            return new Color(1f, 0f, 0f);
+        }
+        else if (index == 1)
+        {
+            return new Color(1f, 0.5f, 0f);
+        }
+        else if (index == 2)
+        {
+            return new Color(1f, 1f, 0f);
+        }
+        else if (index == 3)
+        {
+            return new Color(0.5f, 1f, 0f);
+        }
+        else if (index == 4)
+        {
+            return new Color(0f, 1f, 0f);
+        }
+        else if (index == 5)
+        {
+            return new Color(0f, 1f, 0.5f);
+        }
+        else if (index == 6)
+        {
+            return new Color(0f, 1f, 1f);
+        }
+        else if (index == 7)
+        {
+            return new Color(0f, 0.5f, 1f);
+        }
+        else if (index == 8)
+        {
+            return new Color(0f, 0f, 1f);
+        }
+        else
+        {
+            int newIndex = index - 9;
+            return GetColor(newIndex);
+        }
     }
     #endregion
 

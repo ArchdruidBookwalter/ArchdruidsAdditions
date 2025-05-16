@@ -22,8 +22,10 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public int bites = 3;
     public Vector2 homePos;
 
-    public float stemLength = 30f;
+    public float stemLength = UnityEngine.Random.Range(10f, 15f);
     public float elasticity = 0.8f;
+    public bool randomFlip1 = UnityEngine.Random.Range(-1f, 1f) < 0 ? true : false;
+    public bool randomFlip2 = UnityEngine.Random.Range(-1f, 1f) < 0 ? true : false;
 
     public bool playerSquint;
     public ChunkDynamicSoundLoop soundLoop;
@@ -40,7 +42,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     {
         bodyChunks = new BodyChunk[2];
         bodyChunks[0] = new BodyChunk(this, 0, default, 6f, 0.2f);
-        bodyChunks[1] = new BodyChunk(this, 0, default, 6f, 0.1f);
+        bodyChunks[1] = new BodyChunk(this, 0, default, 3f, 0.1f);
         bodyChunkConnections = new BodyChunkConnection[1];
         bodyChunkConnections[0] = new BodyChunkConnection(bodyChunks[0], bodyChunks[1], stemLength, BodyChunkConnection.Type.Normal, elasticity, -1f);
 
@@ -75,18 +77,29 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         if (defaultColor)
         {
             float randomNum = UnityEngine.Random.Range(0f, 100f);
-            if (randomNum > 95)
+            float hue;
+            float val;
+
+            if (randomNum > 90f)
             {
-                color = UnityEngine.Random.ColorHSV(0.9f, 0.95f, 0.5f, 0.8f, 0.2f, 0.3f);
+                hue = 90f;
+                val = 80f;
             }
-            else if (randomNum > 90)
+            else if (randomNum > 50f)
             {
-                color = UnityEngine.Random.ColorHSV(0.1f, 0.15f, 0.5f, 1f, 0.6f, 0.8f);
+                hue = 10f;
+                val = 80f;
             }
             else
             {
-                color = UnityEngine.Random.ColorHSV(0.05f, 0.1f, 0.5f, 0.8f, 0.6f, 0.8f);
+                hue = 5f;
+                val = 80f;
             }
+
+            color = UnityEngine.Random.ColorHSV(
+                (hue - 2) / 100, (hue + 2) / 100, 
+                0.8f, 0.8f, 
+                (val - 2) / 100, (val + 2) / 100);
         }
         rootColor = color;
 
@@ -106,12 +119,16 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public int soundIndex = 0;
     public float soundSpeed = 0f;
 
+    public int pollinated;
+    public int depollinateTimer;
+
     public override void Update(bool eu)
     {
         base.Update(eu);
         soundLoop.Update();
         lastRotation = rotation;
 
+        /*
         if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Player player && room.game.devToolsActive)
         {
             int input = player.input[0].y;
@@ -135,7 +152,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
                             soundIndex = SoundID.values.entries.Count - 1;
                         }
                     }
-                    UnityEngine.Debug.Log("Index: " + soundIndex.ToString());
+                    Debug.Log("Index: " + soundIndex.ToString());
                     string name = SoundID.values.entries[soundIndex];
                     SoundID sound = new SoundID(name);
                     if (!name.Contains("LOOP"))
@@ -147,7 +164,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
                     {
                         room.AddObject(new ExplosionSpikes(room, player.mainBodyChunk.pos, 50, 10f, 5f, 10f, 10f, new(0f, 1f, 0f)));
                     }
-                    UnityEngine.Debug.Log(sound.ToString());
+                    Debug.Log(sound.ToString());
                     soundTimer = 20f;
                     if (soundSpeed < 10f)
                     {
@@ -168,7 +185,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
                 soundTimer = 0;
                 soundSpeed = 0;
             }
-        }
+        }*/
 
         if (firstChunk.ContactPoint.y < 0)
         {
@@ -229,6 +246,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             }
             else
             {
+                bodyChunks[1].HardSetPosition(bodyChunks[1].pos);
                 if (grabbedBy[0].grabbedChunk == bodyChunks[0])
                 {
                     AllGraspsLetGoOfThisObject(true);
@@ -238,18 +256,43 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         else if (!buried && grabbedBy.Count > 0)
         {
             ChangeCollision(false, false);
-            bodyChunks[1].vel = Vector2.zero;
-            Vector2 pointAtGrabber = Custom.DirVec(bodyChunks[0].pos, grabbedBy[0].grabber.mainBodyChunk.pos);
-            if (grabbedBy[0].grabber is Player)
+            if (grabbedBy[0].grabber is Player player2)
             {
-                if (grabbedBy[0].graspUsed == 1)
+                if (grabbedBy[0].graspUsed == 0)
                 {
-                    bodyChunks[1].HardSetPosition(bodyChunks[0].pos + stemLength * Custom.rotateVectorDeg(pointAtGrabber, 90f));
+                    if (player2.mainBodyChunk.vel.x < -1)
+                    {
+                        for (int i = 0; i < room.game.cameras.Length; i++)
+                        {
+                            room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Background"));
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < room.game.cameras.Length; i++)
+                        {
+                            room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Items"));
+                        }
+                    }
                 }
                 else
                 {
-                    bodyChunks[1].HardSetPosition(bodyChunks[0].pos + stemLength * Custom.rotateVectorDeg(pointAtGrabber, -90f));
+                    if (player2.mainBodyChunk.vel.x > 1)
+                    {
+                        for (int i = 0; i < room.game.cameras.Length; i++)
+                        {
+                            room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Background"));
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < room.game.cameras.Length; i++)
+                        {
+                            room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Items"));
+                        }
+                    }
                 }
+                bodyChunks[1].vel.y += 10f;
             }
             gravity = 0.9f;
             bodyChunkConnections[0].elasticity = elasticity;
@@ -258,11 +301,26 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
         else
         {
+            for (int i = 0; i < room.game.cameras.Length; i++)
+            {
+                room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Items"));
+            }
             ChangeCollision(true, true);
             gravity = 0.9f;
             bodyChunkConnections[0].elasticity = elasticity;
             soundLoop.Volume = 0;
             playerSquint = false;
+        }
+
+        if (pollinated >= 500)
+        {
+            depollinateTimer++;
+        }
+
+        if (depollinateTimer >= 1000)
+        {
+            depollinateTimer = 0;
+            pollinated = 0;
         }
 
         rotation = Custom.DirVec(bodyChunks[0].pos, bodyChunks[1].pos);
@@ -384,11 +442,12 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
     public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
     {
-        sLeaser.sprites = new FSprite[3];
+        sLeaser.sprites = new FSprite[4];
 
         sLeaser.sprites[0] = new FSprite("Potato1", true);
         sLeaser.sprites[1] = new FSprite("PotatoStem1", true);
         sLeaser.sprites[2] = new FSprite("PotatoStem2", true);
+        sLeaser.sprites[3] = new FSprite("DangleFruit0A", true);
 
         AddToContainer(sLeaser, rCam, null);
     }
@@ -397,7 +456,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     {
         Vector2 rotVec = Vector3.Slerp(lastRotation, rotation, timeStacker);
         Vector2 rootPosVec = Vector2.Lerp(bodyChunks[0].lastPos, bodyChunks[0].pos, timeStacker) + rotVec * -5f;
-        Vector2 leavesPosVec = Vector2.Lerp(bodyChunks[1].lastPos, bodyChunks[1].pos, timeStacker);
+        Vector2 leavesPosVec = Vector2.Lerp(bodyChunks[1].lastPos, bodyChunks[1].pos, timeStacker) + rotVec * 5f;
 
         sLeaser.sprites[0].x = rootPosVec.x - camPos.x;
         sLeaser.sprites[0].y = rootPosVec.y - camPos.y;
@@ -408,11 +467,27 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         sLeaser.sprites[1].rotation = Custom.VecToDeg(rotVec) + 90;
 
         Vector2 rootTopPosVec = rootPosVec + rotVec * 10f;
+        Vector2 leavesBottomPosVec = leavesPosVec - rotVec * 2f;
+        Vector2 flowerPos = leavesPosVec + rotVec * 5f;
 
-        sLeaser.sprites[2].x = Vector2.Lerp(rootTopPosVec, leavesPosVec, 0.5f).x - camPos.x;
-        sLeaser.sprites[2].y = Vector2.Lerp(rootTopPosVec, leavesPosVec, 0.5f).y - camPos.y;
-        sLeaser.sprites[2].width = Custom.Dist(rootTopPosVec, leavesPosVec);
+        sLeaser.sprites[2].x = Vector2.Lerp(rootTopPosVec, leavesBottomPosVec, 0.5f).x - camPos.x;
+        sLeaser.sprites[2].y = Vector2.Lerp(rootTopPosVec, leavesBottomPosVec, 0.5f).y - camPos.y;
+        sLeaser.sprites[2].width = Custom.Dist(rootTopPosVec, leavesBottomPosVec);
         sLeaser.sprites[2].rotation = Custom.VecToDeg(rotVec) + 90;
+
+        sLeaser.sprites[3].x = flowerPos.x - camPos.x;
+        sLeaser.sprites[3].y = flowerPos.y - camPos.y;
+        sLeaser.sprites[3].rotation = Custom.VecToDeg(rotVec);
+        sLeaser.sprites[3].scale = 0.5f;
+
+        if (randomFlip1)
+        {
+            sLeaser.sprites[1].scaleY = -1;
+        }
+        if (randomFlip2)
+        {
+            sLeaser.sprites[2].scaleY = -1;
+        }
 
         if (buried)
         {
@@ -433,13 +508,18 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             sLeaser.sprites[0].color = blinkColor;
             sLeaser.sprites[1].color = blinkColor;
             sLeaser.sprites[2].color = blinkColor;
+            sLeaser.sprites[3].color = blinkColor;
         }
         else
         {
             sLeaser.sprites[0].color = rootColor;
             sLeaser.sprites[1].color = blackColor;
             sLeaser.sprites[2].color = blackColor;
+            sLeaser.sprites[3].color = new(0.8f, 0.8f, 0.8f);
         }
+
+        sLeaser.sprites[2].MoveBehindOtherNode(sLeaser.sprites[0]);
+        sLeaser.sprites[3].MoveBehindOtherNode(sLeaser.sprites[2]);
 
         if (slatedForDeletetion || room != rCam.room)
         {
