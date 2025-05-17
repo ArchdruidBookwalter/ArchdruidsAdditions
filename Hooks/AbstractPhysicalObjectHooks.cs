@@ -29,7 +29,7 @@ public static class AbstractPhysicalObjectHooks
             if (self.type == Enums.AbstractObjectType.Potato)
             {
                 self.realizedObject = new Objects.Potato(self, false, new(0f, 1f), new(1f, 0f, 0f), true);
-                (self.realizedObject as Objects.Potato).rotation = Custom.RNV();
+                (self.realizedObject as Objects.Potato).bodyChunks[1].vel += Custom.RNV();
             }
         }
     }

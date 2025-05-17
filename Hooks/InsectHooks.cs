@@ -4,76 +4,61 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ArchdruidsAdditions.Objects;
-using UnityEngine;
 using RWCustom;
+using UnityEngine;
 
 namespace ArchdruidsAdditions.Hooks;
 
-internal static class InsectHooks
+public static class InsectHooks
 {
-    internal static void On_MiniFly_Update(On.MiniFly.orig_Update orig, MiniFly self, bool eu)
+    internal static void MiniFly_Update(On.MiniFly.orig_Update orig, MiniFly self, bool eu)
     {
-        if (self.buzzAroundCorpse != null || self.wantToBurrow)
+        orig(self, eu);
+        if (self.buzzAroundCorpse == null && self.wantToBurrow == false)
         {
-            orig(self, eu);
-        }
-        else
-        {
-            Potato potato = null;
-
-            for (int i = 0; i < 3;  i++)
+            Potato nearestPotato = GetNearestPotato(self.pos, self.room);
+            if (nearestPotato != null)
             {
-                foreach (PhysicalObject obj in self.room.physicalObjects[i])
+                self.vel += Custom.DirVec(self.pos, nearestPotato.bodyChunks[1].pos + nearestPotato.rotation * 20f + Custom.RNV() * 5f);
+                if (Custom.DistLess(self.pos, nearestPotato.bodyChunks[1].pos, 50f))
                 {
-                    if (obj is Potato potato1 && potato1.pollinated < 500 && Custom.DistLess(potato1.bodyChunks[1].pos, self.pos, 400f))
-                    {
-                        Debug.Log("Fly Update Hook!");
-                        if (potato == null || Custom.Dist(potato.bodyChunks[1].pos, self.pos) > Custom.Dist(potato1.bodyChunks[1].pos, self.pos))
-                        {
-                            potato = potato1;
-                        }
-                    }
+                    nearestPotato.pollinated++;
                 }
             }
-
-            if (potato != null)
-            {
-                self.vel += Custom.DirVec(self.pos, potato.bodyChunks[1].pos + potato.rotation * 10f + Custom.RNV() * 5f);
-                if (Custom.DistLess(potato.bodyChunks[1].pos, self.pos, 20f))
-                {
-                    potato.pollinated++;
-                }
-            }
-            orig(self, eu);
         }
     }
-    internal static void On_RedSwarmer_Update(On.RedSwarmer.orig_Update orig, RedSwarmer self, bool eu)
+    internal static void RedSwarmer_Update(On.RedSwarmer.orig_Update orig, RedSwarmer self, bool eu)
     {
-        Potato potato = null;
-
+        orig(self, eu);
+        if (self.wantToBurrow == false)
+        {
+            Potato nearestPotato = GetNearestPotato(self.pos, self.room);
+            if (nearestPotato != null)
+            {
+                self.hoverPos = nearestPotato.bodyChunks[1].pos + nearestPotato.rotation * 20f;
+                if (Custom.DistLess(self.pos, nearestPotato.bodyChunks[1].pos, 50f))
+                {
+                    nearestPotato.pollinated++;
+                }
+            }
+        }
+    }
+    internal static Potato GetNearestPotato(Vector2 selfPosition, Room room)
+    {
+        Potato nearestPotato = null;
         for (int i = 0; i < 3; i++)
         {
-            foreach (PhysicalObject obj in self.room.physicalObjects[i])
+            foreach (PhysicalObject obj in room.physicalObjects[i])
             {
-                if (obj is Potato potato1 && potato1.pollinated < 500 && Custom.DistLess(potato1.bodyChunks[1].pos, self.pos, 400f))
+                if (obj is Potato potato && potato.pollinated < 2000 && Custom.DistLess(potato.bodyChunks[1].pos, selfPosition, 400f))
                 {
-                    Debug.Log("Red Swarmer Update Hook!");
-                    if (potato == null || Custom.Dist(potato.bodyChunks[1].pos, self.pos) > Custom.Dist(potato1.bodyChunks[1].pos, self.pos))
+                    if (nearestPotato == null || Custom.Dist(nearestPotato.bodyChunks[1].pos, selfPosition) > Custom.Dist(potato.bodyChunks[1].pos, selfPosition))
                     {
-                        potato = potato1;
+                        nearestPotato = potato;
                     }
                 }
             }
         }
-
-        if (potato != null)
-        {
-            self.hoverPos = potato.bodyChunks[1].pos + potato.rotation * 10f;
-            if (Custom.DistLess(potato.bodyChunks[1].pos, self.pos, 20f))
-            {
-                potato.pollinated++;
-            }
-        }
-        orig(self, eu);
+        return nearestPotato;
     }
 }

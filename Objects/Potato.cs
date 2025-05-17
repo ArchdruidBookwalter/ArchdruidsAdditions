@@ -10,6 +10,7 @@ using System.Security.Policy;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Reflection;
+using ArchdruidsAdditions.Methods;
 
 namespace ArchdruidsAdditions.Objects;
 
@@ -83,7 +84,12 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             if (randomNum > 90f)
             {
                 hue = 90f;
-                val = 80f;
+                val = 50f;
+            }
+            else if (randomNum > 80f)
+            {
+                hue = 30f;
+                val = 20f;
             }
             else if (randomNum > 50f)
             {
@@ -98,7 +104,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
             color = UnityEngine.Random.ColorHSV(
                 (hue - 2) / 100, (hue + 2) / 100, 
-                0.8f, 0.8f, 
+                0.5f, 0.5f, 
                 (val - 2) / 100, (val + 2) / 100);
         }
         rootColor = color;
@@ -312,10 +318,11 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             playerSquint = false;
         }
 
-        if (pollinated >= 500)
+        if (pollinated >= 2000)
         {
             depollinateTimer++;
         }
+        Debug.Log(pollinated + ", " + depollinateTimer);
 
         if (depollinateTimer >= 1000)
         {

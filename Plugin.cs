@@ -37,8 +37,8 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         #region Insect Hooks
-        On.MiniFly.Update += Hooks.InsectHooks.On_MiniFly_Update;
-        On.RedSwarmer.Update += Hooks.InsectHooks.On_RedSwarmer_Update;
+        On.MiniFly.Update += Hooks.InsectHooks.MiniFly_Update;
+        On.RedSwarmer.Update += Hooks.InsectHooks.RedSwarmer_Update;
         #endregion
 
         #region Item Symbol Hooks
