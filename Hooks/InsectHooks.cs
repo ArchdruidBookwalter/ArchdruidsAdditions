@@ -20,10 +20,6 @@ public static class InsectHooks
             if (nearestPotato != null)
             {
                 self.vel += Custom.DirVec(self.pos, nearestPotato.bodyChunks[1].pos + nearestPotato.rotation * 20f + Custom.RNV() * 5f);
-                if (Custom.DistLess(self.pos, nearestPotato.bodyChunks[1].pos, 50f))
-                {
-                    nearestPotato.pollinated++;
-                }
             }
         }
     }
@@ -36,10 +32,6 @@ public static class InsectHooks
             if (nearestPotato != null)
             {
                 self.hoverPos = nearestPotato.bodyChunks[1].pos + nearestPotato.rotation * 20f;
-                if (Custom.DistLess(self.pos, nearestPotato.bodyChunks[1].pos, 50f))
-                {
-                    nearestPotato.pollinated++;
-                }
             }
         }
     }
@@ -50,7 +42,7 @@ public static class InsectHooks
         {
             foreach (PhysicalObject obj in room.physicalObjects[i])
             {
-                if (obj is Potato potato && potato.pollinated < 2000 && Custom.DistLess(potato.bodyChunks[1].pos, selfPosition, 400f))
+                if (obj is Potato potato && Custom.DistLess(potato.bodyChunks[1].pos, selfPosition, 400f))
                 {
                     if (nearestPotato == null || Custom.Dist(nearestPotato.bodyChunks[1].pos, selfPosition) > Custom.Dist(potato.bodyChunks[1].pos, selfPosition))
                     {

@@ -28,7 +28,14 @@ public static class AbstractPhysicalObjectHooks
             }
             if (self.type == Enums.AbstractObjectType.Potato)
             {
-                self.realizedObject = new Objects.Potato(self, false, new(0f, 1f), new(1f, 0f, 0f), true);
+                float hue = UnityEngine.Random.Range(0f, 1f);
+                float sat = UnityEngine.Random.Range(0f, 1f);
+                float val = UnityEngine.Random.Range(0.05f, 1f);
+                Debug.Log("H: " + hue);
+                Debug.Log("S: " + sat);
+                Debug.Log("V: " + val);
+                Debug.Log("");
+                self.realizedObject = new Objects.Potato(self, false, new(0f, 1f), Color.HSVToRGB(hue, sat, val), true);
                 (self.realizedObject as Objects.Potato).bodyChunks[1].vel += Custom.RNV();
             }
         }

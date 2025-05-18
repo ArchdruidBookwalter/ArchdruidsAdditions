@@ -11,6 +11,8 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Reflection;
 using ArchdruidsAdditions.Methods;
+using System.Runtime.CompilerServices;
+using System.Net;
 
 namespace ArchdruidsAdditions.Objects;
 
@@ -39,7 +41,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
     }
 
-    public Potato(AbstractPhysicalObject abstractPhysicalObject, bool buried, Vector2 rotation, Color color, bool defaultColor) : base(abstractPhysicalObject)
+    public Potato(AbstractPhysicalObject abstractPhysicalObject, bool buried, Vector2 rotation, Color color, bool naturalColors) : base(abstractPhysicalObject)
     {
         bodyChunks = new BodyChunk[2];
         bodyChunks[0] = new BodyChunk(this, 0, default, 6f, 0.2f);
@@ -75,37 +77,48 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         this.buried = buried;
         startRotation = rotation.normalized;
 
-        if (defaultColor)
+        if (naturalColors)
         {
             float randomNum = UnityEngine.Random.Range(0f, 100f);
             float hue;
+            float sat;
             float val;
 
-            if (randomNum > 90f)
+            if (randomNum > 95f)
             {
                 hue = 90f;
+                sat = 50f;
                 val = 50f;
             }
-            else if (randomNum > 80f)
+            else if (randomNum > 90f)
             {
                 hue = 30f;
+                sat = 50f;
                 val = 20f;
+            }
+            else if (randomNum > 85f)
+            {
+                hue = 10f;
+                sat = 20f;
+                val = 80f;
             }
             else if (randomNum > 50f)
             {
                 hue = 10f;
+                sat = 50f;
                 val = 80f;
             }
             else
             {
                 hue = 5f;
+                sat = 50f;
                 val = 80f;
             }
 
             color = UnityEngine.Random.ColorHSV(
-                (hue - 2) / 100, (hue + 2) / 100, 
-                0.5f, 0.5f, 
-                (val - 2) / 100, (val + 2) / 100);
+                (hue - 5) / 100, (hue + 5) / 100,
+                (sat - 5) / 100, (sat + 5) / 100,
+                (val - 5) / 100, (val + 5) / 100);
         }
         rootColor = color;
 
@@ -124,9 +137,6 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public float soundTimer = 0f;
     public int soundIndex = 0;
     public float soundSpeed = 0f;
-
-    public int pollinated;
-    public int depollinateTimer;
 
     public override void Update(bool eu)
     {
@@ -262,44 +272,8 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         else if (!buried && grabbedBy.Count > 0)
         {
             ChangeCollision(false, false);
-            if (grabbedBy[0].grabber is Player player2)
-            {
-                if (grabbedBy[0].graspUsed == 0)
-                {
-                    if (player2.mainBodyChunk.vel.x < -1)
-                    {
-                        for (int i = 0; i < room.game.cameras.Length; i++)
-                        {
-                            room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Background"));
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 0; i < room.game.cameras.Length; i++)
-                        {
-                            room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Items"));
-                        }
-                    }
-                }
-                else
-                {
-                    if (player2.mainBodyChunk.vel.x > 1)
-                    {
-                        for (int i = 0; i < room.game.cameras.Length; i++)
-                        {
-                            room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Background"));
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 0; i < room.game.cameras.Length; i++)
-                        {
-                            room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Items"));
-                        }
-                    }
-                }
-                bodyChunks[1].vel.y += 10f;
-            }
+            ObjectMethods.ChangeItemSpriteLayer(this, grabbedBy[0].grabber, grabbedBy[0].graspUsed);
+            bodyChunks[1].HardSetPosition(bodyChunks[0].pos + Custom.DirVec(grabbedBy[0].grabber.bodyChunks[1].pos, grabbedBy[0].grabber.mainBodyChunk.pos) * stemLength);
             gravity = 0.9f;
             bodyChunkConnections[0].elasticity = elasticity;
             soundLoop.Volume = 0f;
@@ -316,18 +290,6 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             bodyChunkConnections[0].elasticity = elasticity;
             soundLoop.Volume = 0;
             playerSquint = false;
-        }
-
-        if (pollinated >= 2000)
-        {
-            depollinateTimer++;
-        }
-        Debug.Log(pollinated + ", " + depollinateTimer);
-
-        if (depollinateTimer >= 1000)
-        {
-            depollinateTimer = 0;
-            pollinated = 0;
         }
 
         rotation = Custom.DirVec(bodyChunks[0].pos, bodyChunks[1].pos);
@@ -547,6 +509,13 @@ public class PotatoData : PlacedObject.ConsumableObjectData
     public Vector2 rotation;
     new public int minRegen;
     new public int maxRegen;
+    public float minHue;
+    public float maxHue;
+    public float minSat;
+    public float maxSat;
+    public float minVal;
+    public float maxVal;
+    public bool naturalColors;
 
     public PotatoData(PlacedObject owner) : base(owner)
     {
@@ -554,11 +523,18 @@ public class PotatoData : PlacedObject.ConsumableObjectData
         rotation = new Vector2(0f, 100f);
         minRegen = 2;
         maxRegen = 3;
+        minHue = 1f;
+        maxHue = 1f;
+        minSat = 1f;
+        maxSat = 1f;
+        minVal = 1f;
+        maxVal = 1f;
+        naturalColors = true;
     }
 
     new protected string BaseSaveString()
     {
-        return string.Format(CultureInfo.InvariantCulture, "{0}~{1}~{2}~{3}~{4}~{5}", new object[]
+        return string.Format(CultureInfo.InvariantCulture, "{0}~{1}~{2}~{3}~{4}~{5}~{6}~{7}~{8}~{9}~{10}~{11}~{12}", new object[]
         {
             panelPos.x,
             panelPos.y,
@@ -566,6 +542,13 @@ public class PotatoData : PlacedObject.ConsumableObjectData
             maxRegen,
             rotation.x,
             rotation.y,
+            minHue,
+            maxHue,
+            minSat,
+            maxSat,
+            minVal,
+            maxVal,
+            naturalColors ? "1" : "0",
         });
     }
 
@@ -578,7 +561,14 @@ public class PotatoData : PlacedObject.ConsumableObjectData
         maxRegen = int.Parse(array[3], NumberStyles.Any, CultureInfo.InvariantCulture);
         rotation.x = float.Parse(array[4], NumberStyles.Any, CultureInfo.InvariantCulture);
         rotation.y = float.Parse(array[5], NumberStyles.Any, CultureInfo.InvariantCulture);
-        unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 6);
+        minHue = float.Parse(array[6], NumberStyles.Any, CultureInfo.InvariantCulture);
+        maxHue = float.Parse(array[7], NumberStyles.Any, CultureInfo.InvariantCulture);
+        minSat = float.Parse(array[8], NumberStyles.Any, CultureInfo.InvariantCulture);
+        maxSat = float.Parse(array[9], NumberStyles.Any, CultureInfo.InvariantCulture);
+        minVal = float.Parse(array[10], NumberStyles.Any, CultureInfo.InvariantCulture);
+        maxVal = float.Parse(array[11], NumberStyles.Any, CultureInfo.InvariantCulture);
+        naturalColors = int.Parse(array[12], NumberStyles.Any, CultureInfo.InvariantCulture) > 0;
+        unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 13);
     }
 
     public override string ToString()
@@ -593,7 +583,201 @@ public class PotatoRepresentation : ConsumableRepresentation
 {
     public PotatoData data;
     public Handle rotationHandle;
-    //public ConsumableControlPanel controlPanel;
+    new public PotatoControlPanel controlPanel;
+
+    public class PotatoControlPanel : ConsumableControlPanel, IDevUISignals
+    {
+        public PotatoData data;
+        public ColorView colorView;
+        public Button natColorButton;
+        public PotatoControlPanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string name) :
+            base(owner, IDstring, parentNode, pos, name)
+        {
+            size = new Vector2(250f, 205f);
+            data = (parentNode as PotatoRepresentation).data;
+            subNodes.Add(colorView = new(owner, "Color", this, new Vector2(5f, 45f)));
+            subNodes.Add(natColorButton = new(owner, "Natural_Colors_Button", this, new Vector2(5f, 185f), 240f, data.naturalColors ? "Natural Colors: TRUE" : "Natural Colors: FALSE"));
+        }
+        public class ColorView : PositionedDevUINode
+        {
+            public PotatoData data;
+            public ColorView(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos) : base(owner, IDstring, parentNode, pos)
+            {
+                data = (parentNode as PotatoControlPanel).data;
+                subNodes.Add(new ColorSlider(owner, "Min_Hue_Slider", this, new Vector2(0f, 120f), "Min Hue: ", data.minHue, data.maxHue));
+                subNodes.Add(new ColorSlider(owner, "Max_Hue_Slider", this, new Vector2(0f, 100f), "Max Hue: ", data.maxHue, data.minHue));
+                subNodes.Add(new ColorSlider(owner, "Min_Sat_Slider", this, new Vector2(0f, 80f), "Min Saturation: ", data.minSat, data.maxSat));
+                subNodes.Add(new ColorSlider(owner, "Max_Sat_Slider", this, new Vector2(0f, 60f), "Max Saturation: ", data.maxSat, data.minSat));
+                subNodes.Add(new ColorSlider(owner, "Min_Val_Slider", this, new Vector2(0f, 40f), "Min Value: ", data.minVal, data.maxVal));
+                subNodes.Add(new ColorSlider(owner, "Max_Val_Slider", this, new Vector2(0f, 20f), "Max Value: ", data.maxVal, data.minVal));
+                fSprites.Add(new FSprite("pixel", true));
+                fSprites[fSprites.Count - 1].scaleY = 16f;
+                fSprites[fSprites.Count - 1].scaleX = 120f;
+                fSprites[fSprites.Count - 1].anchorX = 0f;
+                fSprites[fSprites.Count - 1].anchorY = 0f;
+                fSprites[fSprites.Count - 1].color = new(1f, 1f, 1f);
+                if (owner != null)
+                {
+                    Futile.stage.AddChild(fSprites[fSprites.Count - 1]);
+                }
+                fSprites.Add(new FSprite("pixel", true));
+                fSprites[fSprites.Count - 1].scaleY = 16f;
+                fSprites[fSprites.Count - 1].scaleX = 120f;
+                fSprites[fSprites.Count - 1].anchorX = 0f;
+                fSprites[fSprites.Count - 1].anchorY = 0f;
+                fSprites[fSprites.Count - 1].color = new(1f, 1f, 1f);
+                if (owner != null)
+                {
+                    Futile.stage.AddChild(fSprites[fSprites.Count - 1]);
+                }
+            }
+            public override void Refresh()
+            {
+                base.Refresh();
+
+                foreach (DevUINode subnode in subNodes)
+                {
+                    if (subnode.IDstring == "Min_Hue_Slider")
+                    {
+                        data.minHue = (subnode as ColorSlider).dataVariable;
+                        (subnode as ColorSlider).otherVariable = data.maxHue;
+                    }
+                    else if (subnode.IDstring == "Max_Hue_Slider")
+                    {
+                        data.maxHue = (subnode as ColorSlider).dataVariable;
+                        (subnode as ColorSlider).otherVariable = data.minHue;
+                    }
+                    else if (subnode.IDstring == "Min_Sat_Slider")
+                    {
+                        data.minSat = (subnode as ColorSlider).dataVariable;
+                        (subnode as ColorSlider).otherVariable = data.maxSat;
+                    }
+                    else if (subnode.IDstring == "Max_Sat_Slider")
+                    {
+                        data.maxSat = (subnode as ColorSlider).dataVariable;
+                        (subnode as ColorSlider).otherVariable = data.minSat;
+                    }
+                    else if (subnode.IDstring == "Min_Val_Slider")
+                    {
+                        data.minVal = (subnode as ColorSlider).dataVariable;
+                        (subnode as ColorSlider).otherVariable = data.maxVal;
+                    }
+                    else if (subnode.IDstring == "Max_Val_Slider")
+                    {
+                        data.maxVal = (subnode as ColorSlider).dataVariable;
+                        (subnode as ColorSlider).otherVariable = data.minVal;
+                    }
+                }
+
+                MoveSprite(fSprites.Count - 1, pos + (parentNode as Panel).nonCollapsedAbsPos);
+                MoveSprite(fSprites.Count - 2, pos + (parentNode as Panel).nonCollapsedAbsPos + new Vector2(120f, 0f));
+                if ((parentNode as Panel).collapsed)
+                {
+                    fSprites[fSprites.Count - 1].alpha = 0f;
+                    fSprites[fSprites.Count - 2].alpha = 0f;
+                }
+                else
+                {
+                    fSprites[fSprites.Count - 1].color = UnityEngine.Random.ColorHSV(data.minHue, data.minHue, data.minSat, data.minSat, data.minVal, data.minVal);
+                    fSprites[fSprites.Count - 1].alpha = 1f;
+                    fSprites[fSprites.Count - 2].color = UnityEngine.Random.ColorHSV(data.maxHue, data.maxHue, data.maxSat, data.maxSat, data.maxVal, data.maxVal);
+                    fSprites[fSprites.Count - 2].alpha = 1f;
+                }
+            }
+        }
+        public class ColorSlider : Slider
+        {
+            public string title;
+            public float dataVariable = 0f;
+            public float otherVariable = 0f;
+            public bool isMax = false;
+            public ColorSlider(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string title, float dataVariable, float otherVariable) : 
+                base(owner, IDstring, parentNode, pos, title, false, 110f)
+            {
+                this.title = title;
+                this.dataVariable = dataVariable;
+                this.otherVariable = otherVariable;
+                isMax = IDstring.Contains("Max");
+                UnityEngine.Debug.Log(isMax);
+            }
+            public override void NubDragged(float nubPos)
+            {
+                if (isMax)
+                {
+                    if (nubPos >= otherVariable)
+                    { dataVariable = nubPos; }
+                    else
+                    { dataVariable = otherVariable; }
+                }
+                else
+                {
+                    if (nubPos <= otherVariable)
+                    { dataVariable = nubPos; }
+                    else
+                    { dataVariable = otherVariable; }
+                }
+                Refresh();
+            }
+            public override void Refresh()
+            {
+                base.Refresh();
+                NumberText = (Math.Round(dataVariable, 2) * 100).ToString();
+
+                if (isMax)
+                {
+                    if (dataVariable < otherVariable)
+                    { dataVariable = otherVariable; }
+                }
+                else
+                {
+                    if (dataVariable > otherVariable)
+                    { dataVariable = otherVariable; }
+                }
+
+                foreach (DevUINode subNode in subNodes)
+                {
+                    if (subNodes.IndexOf(subNode) == 1)
+                    {
+                        if (IDstring == "Min_Hue_Slider" || IDstring == "Max_Hue_Slider")
+                        { subNode.fSprites[0].color = UnityEngine.Random.ColorHSV(dataVariable, dataVariable, 1f, 1f, 1f, 1f); }
+                        else if (IDstring == "Min_Sat_Slider" || IDstring == "Max_Sat_Slider")
+                        { subNode.fSprites[0].color = UnityEngine.Random.ColorHSV(1f, 1f, dataVariable, dataVariable, 1f, 1f); }
+                        else if (IDstring == "Min_Val_Slider" || IDstring == "Max_Val_Slider")
+                        { subNode.fSprites[0].color = UnityEngine.Random.ColorHSV(1f, 1f, 1f, 1f, dataVariable, dataVariable); }
+                        subNode.fSprites[0].alpha = 1f;
+                    }
+                }
+                RefreshNubPos(dataVariable);
+            }
+        }
+        public void Signal(DevUISignalType type, DevUINode sender, string message)
+        {
+            if (sender.IDstring == "Natural_Colors_Button")
+            {
+                if (data.naturalColors == true)
+                { data.naturalColors = false; }
+                else
+                { data.naturalColors = true; }
+            }
+        }
+        public override void Refresh()
+        {
+            base.Refresh();
+            natColorButton.pos = new Vector2(5f, size.y - 20f);
+            if (data.naturalColors == true)
+            {
+                natColorButton.Text = "Natural Colors: TRUE";
+                size = new Vector2(250f, 65f);
+                colorView.pos = new Vector2(-1000f, -1000f);
+            }
+            else
+            {
+                natColorButton.Text = "Natural Colors: FALSE";
+                size = new Vector2(250f, 205f);
+                colorView.pos = new Vector2(5f, 45f);
+            }
+        }
+    }
 
     public PotatoRepresentation(DevUI owner, string IDstring, DevUINode parentNode, PlacedObject pobj, string name) :
         base(owner, IDstring, parentNode, pobj, name)
@@ -626,15 +810,6 @@ public class PotatoRepresentation : ConsumableRepresentation
         fSprites[2].scaleY = controlPanel.pos.magnitude;
         fSprites[2].rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
         (pObj.data as PotatoData).panelPos = controlPanel.pos;
-
-        /*
-        UnityEngine.Debug.Log("");
-        for (int i = 0; i < subNodes.Count; i++)
-        {
-            UnityEngine.Debug.Log(i + ": " + subNodes[i]);
-        }
-        UnityEngine.Debug.Log("");
-        */
     }
 }
 

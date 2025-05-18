@@ -10,26 +10,45 @@ namespace ArchdruidsAdditions.Methods
 {
     public class ObjectMethods
     {
-        public static void AttractInsects(PhysicalObject attObj, Vector2 hoverPos, bool attractFlies, bool attractSwarmers, bool attractBeetles, float attractDist)
+        public static void ChangeItemSpriteLayer(PlayerCarryableItem obj, Creature grabber, int graspUsed)
         {
-            foreach (IDrawable obj in attObj.room.drawableObjects)
+            Room room = obj.room;
+            if (obj is IDrawable drawableObj)
             {
-                if (obj is CosmeticInsect)
+                if (grabber is Player player)
                 {
-                    if (attractFlies && obj is MiniFly fly && Custom.DistLess(fly.pos, hoverPos, attractDist) && fly.buzzAroundCorpse == null && fly.wantToBurrow == false)
+                    if (graspUsed == 0)
                     {
-                        fly.vel += Custom.DirVec(fly.pos, hoverPos + Custom.RNV() * 5f);
-                        if (Custom.DistLess(hoverPos, fly.pos, 20f))
+                        if (player.mainBodyChunk.vel.x < -1)
                         {
-                            (attObj as Objects.Potato).pollinated++;
+                            for (int i = 0; i < room.game.cameras.Length; i++)
+                            {
+                                room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Background"));
+                            }
+                        }
+                        else
+                        {
+                            for (int i = 0; i < room.game.cameras.Length; i++)
+                            {
+                                room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Items"));
+                            }
                         }
                     }
-                    if (attractSwarmers && obj is RedSwarmer swarmer && Custom.DistLess(swarmer.pos, hoverPos, attractDist) && swarmer.wantToBurrow == false)
+                    else
                     {
-                        swarmer.hoverPos = hoverPos;
-                        if (Custom.DistLess(hoverPos, swarmer.pos, 20f))
+                        if (player.mainBodyChunk.vel.x > 1)
                         {
-                            (attObj as Objects.Potato).pollinated++;
+                            for (int i = 0; i < room.game.cameras.Length; i++)
+                            {
+                                room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Background"));
+                            }
+                        }
+                        else
+                        {
+                            for (int i = 0; i < room.game.cameras.Length; i++)
+                            {
+                                room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Items"));
+                            }
                         }
                     }
                 }

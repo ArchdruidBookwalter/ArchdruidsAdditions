@@ -20,12 +20,6 @@ public static class RoomHooks
         var placedObjects = self.roomSettings.placedObjects;
         var session = self.game.session;
 
-        /*
-        if (firstTimeRealized)
-        {
-            UnityEngine.Debug.Log("FIRST TIME REALIZED!");
-        }*/
-
         foreach (var pobj in placedObjects)
         {
             if (pobj.active && pobj.type == Enums.PlacedObjectType.ScarletFlower)
@@ -45,8 +39,6 @@ public static class RoomHooks
                     abstractConsumable.realizedObject = new Objects.ScarletFlowerBulb(abstractConsumable, self.world, true, data.rotation, new(1f, 0f, 0f));
 
                     self.abstractRoom.AddEntity(abstractConsumable);
-
-                    //UnityEngine.Debug.Log("ABSTRACT CONSUMABLE \"Scarlet Flower\" ADDED TO ROOM.");
                 }
             }
             if (pobj.active && pobj.type == Enums.PlacedObjectType.Potato)
@@ -60,7 +52,28 @@ public static class RoomHooks
                         self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data as PlacedObject.ConsumableObjectData)
                     { isConsumed = false };
 
-                    abstractConsumable.realizedObject = new Objects.Potato(abstractConsumable, true, data.rotation, new(1f, 0f, 0f), true);
+                    float hue;
+                    float sat;
+                    float val;
+
+                    if (data.maxHue == 1)
+                    { hue = UnityEngine.Random.Range(0f, 1f); }
+                    else
+                    { hue = data.maxHue; }
+
+                    if (data.maxSat == 1)
+                    { sat = UnityEngine.Random.Range(0f, 1f); }
+                    else
+                    { sat = data.maxSat; }
+
+                    if (data.maxVal == 1)
+                    { val = UnityEngine.Random.Range(0.05f, 1f); }
+                    else
+                    { val = data.maxVal; }
+
+                    Color newColor = Color.HSVToRGB(hue, sat, val);
+
+                    abstractConsumable.realizedObject = new Objects.Potato(abstractConsumable, true, data.rotation, newColor, false);
 
                     self.abstractRoom.AddEntity(abstractConsumable);
                 }
