@@ -102,43 +102,46 @@ public static class PlayerHooks
     internal static void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
     {
         orig(self, eu);
-        if (self.room.game.devToolsActive && self.input[0].y > 0)
+        if (self.room.game.devToolsActive)
         {
-            Room room = self.room;
-            RoomCamera camera = room.game.cameras[0];
-
-            int numOfSprites = 0;
-
-            var spriteLeasers = camera.spriteLeasers;
-            for (int i = 0; i < spriteLeasers.Count(); i++)
+            if (self.input[0].y > 0)
             {
-                var sLeaser = spriteLeasers[i];
+                Room room = self.room;
+                RoomCamera camera = room.game.cameras[0];
 
-                if (sLeaser.drawableObject is GraphicsModule || sLeaser.drawableObject is Objects.Potato || sLeaser.drawableObject is CosmeticInsect)
+                int numOfSprites = 0;
+
+                var spriteLeasers = camera.spriteLeasers;
+                for (int i = 0; i < spriteLeasers.Count(); i++)
                 {
-                    for (int j = 0; j < sLeaser.sprites.Count(); j++)
+                    var sLeaser = spriteLeasers[i];
+
+                    if (sLeaser.drawableObject is GraphicsModule || sLeaser.drawableObject is Objects.Potato || sLeaser.drawableObject is CosmeticInsect)
                     {
-                        var sprite = sLeaser.sprites[j];
-
-                        if (sprite.isVisible && numOfSprites < 50 && Custom.Dist(sprite.GetPosition() + camera.pos, self.mainBodyChunk.pos) < 500f)
+                        for (int j = 0; j < sLeaser.sprites.Count(); j++)
                         {
-                            Color color = GetColor(j);
+                            var sprite = sLeaser.sprites[j];
 
-                            Rect rect = sprite.GetTextureRectRelativeToContainer();
-                            room.AddObject(new Objects.ColoredRectangle(room, rect.center + camera.pos, rect.width, rect.height, sprite.rotation, color, 1));
-                            numOfSprites++;
+                            if (sprite.isVisible && numOfSprites < 50 && Custom.Dist(sprite.GetPosition() + camera.pos, self.mainBodyChunk.pos) < 500f)
+                            {
+                                Color color = GetColor(j);
+
+                                Rect rect = sprite.GetTextureRectRelativeToContainer();
+                                room.AddObject(new Objects.ColoredShapes.Rectangle(room, rect.center + camera.pos, rect.width, rect.height, sprite.rotation, color, 1));
+                                numOfSprites++;
+                            }
                         }
                     }
                 }
-            }
-            
-            for (int i = 0; i < 3; i++)
-            {
-                foreach (PhysicalObject obj in room.physicalObjects[i])
+
+                for (int i = 0; i < 3; i++)
                 {
-                    foreach (BodyChunk chunk in obj.bodyChunks)
+                    foreach (PhysicalObject obj in room.physicalObjects[i])
                     {
-                        room.AddObject(new Objects.ColoredRectangle(room, chunk.pos, 3f, 3f, 45f, new(1f, 0f, 0f), 1));
+                        foreach (BodyChunk chunk in obj.bodyChunks)
+                        {
+                            room.AddObject(new Objects.ColoredShapes.Rectangle(room, chunk.pos, 3f, 3f, 45f, new(1f, 0f, 0f), 1));
+                        }
                     }
                 }
             }

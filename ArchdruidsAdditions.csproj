@@ -75,6 +75,9 @@
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\..\References\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>C:\Users\dogar\OneDrive\Desktop\ProgramStuff\References\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>

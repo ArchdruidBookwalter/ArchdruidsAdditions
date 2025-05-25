@@ -33,7 +33,13 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Devtools Hooks
         On.DevInterface.ObjectsPage.CreateObjRep += Hooks.DevtoolsHooks.ObjectsPage_CreateObjRep;
+        On.DevInterface.Panel.CopyToClipboard += Hooks.DevtoolsHooks.Panel_CopyToClipboard;
+        On.DevInterface.Panel.PasteFromClipboard += Hooks.DevtoolsHooks.Panel_PasteFromClipboard;
         On.PlacedObject.GenerateEmptyData += Hooks.DevtoolsHooks.PlacedObject_GenerateEmptyData;
+        #endregion
+
+        #region Game Hooks
+        //On.RainWorldGame.RawUpdate += Hooks.GameHooks.RainWorldGame_RawUpdate;
         #endregion
 
         #region Insect Hooks
@@ -49,6 +55,7 @@ public sealed class Plugin : BaseUnityPlugin
         #region Iterator Hooks
         On.SLOracleBehaviorHasMark.MoonConversation.AddEvents += Hooks.IteratorHooks.On_MoonConversation_AddEvents;
         On.SLOracleBehaviorHasMark.TypeOfMiscItem += Hooks.IteratorHooks.On_SLOracleBehaviorHasMark_TypeOfMiscItem;
+        On.SLOracleBehavior.Update += Hooks.IteratorHooks.On_SLOracleBehavior_Update;
         #endregion
 
         #region Main Hooks
@@ -64,7 +71,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.Player.SlugcatGrab += Hooks.PlayerHooks.Player_SlugcatGrab;
         On.Player.IsObjectThrowable += Hooks.PlayerHooks.Player_IsObjectThrowable;
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
-        On.Player.Update += Hooks.PlayerHooks.Player_Update;
+        //On.Player.Update += Hooks.PlayerHooks.Player_Update;
         On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
         #endregion
 

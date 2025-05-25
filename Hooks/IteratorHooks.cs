@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ArchdruidsAdditions.Objects;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -34,19 +35,20 @@ public static class IteratorHooks
             {
                 self.events.Add(new Conversation.TextEvent(self, 80, self.Translate(
 
-                    "Is... Is this the blade of Five Sacred Sigils upon a Mountain!?" +
-                    "<LINE>In times long past, this was one of the most holy and revered relics ever held by my creators! How ever did you manage to find it!?"
+                    "Oh, what a curious find, <PLAYERNAME>... This weapon was once the personal item of one of my long-departed creators." +
+                    "<LINE>Its purpose was for self-defence, as its curved design and superior durability enables it to absorb and deflect blows from superior opponents."
 
                     ), 0));
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
-                    "They once said that it could only be wielded by one who had achieved the highest level of enlightenment." +
-                    "<LINE>I do not know how you would even be able to touch it, much less carry it all the way here, unless..."
+                    "You see, my creators believed that violence was the most base and unforgivable of all vices. Conflict was rare but not unheard of," +
+                    "<LINE>and so weapons like these were made to protect important persons from harm without comitting such harm in return."
 
                     ), 0));
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
-                    "...Perhaps there is more to you than what meets the eye, <PLAYERNAME>."
+                    "This one was even equipped with a primitive AI module, to prevent it from being used for evil I assume." +
+                    "<LINE>It must trust you, if you were able to touch it and bring it all the way here. Perhaps it considers you its new wielder, even."
 
                     ), 0));
             }
@@ -75,5 +77,14 @@ public static class IteratorHooks
             return Enums.MiscItemType.Potato;
         }
         return orig(self, obj);
+    }
+    internal static void On_SLOracleBehavior_Update(On.SLOracleBehavior.orig_Update orig, SLOracleBehavior self, bool eu)
+    {
+        orig(self, eu);
+        if (self.holdingObject != null && self.holdingObject is ParrySword sword)
+        {
+            sword.rotation = new(1f, 0f);
+            sword.spinning = false;
+        }
     }
 }

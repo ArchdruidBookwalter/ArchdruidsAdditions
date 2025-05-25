@@ -19,22 +19,16 @@ public static class AbstractPhysicalObjectHooks
             if (self.type == Enums.AbstractObjectType.ScarletFlowerBulb)
             {
                 self.realizedObject = new Objects.ScarletFlowerBulb(self, self.world, false, Custom.RNV(), new(1f, 0f, 0f));
-                //UnityEngine.Debug.Log("SPAWNED \"Scarlet Flower Bulb\" OBJECT IN DEFAULT STATE");
             }
             if (self.type == Enums.AbstractObjectType.ParrySword)
             {
                 self.realizedObject = new Objects.ParrySword(self, self.world, new(1f, 0.79f, 0.3f));
-                //UnityEngine.Debug.Log("SPAWNED \"Parry Sword\" OBJECT IN DEFAULT STATE");
             }
             if (self.type == Enums.AbstractObjectType.Potato)
             {
                 float hue = UnityEngine.Random.Range(0f, 1f);
                 float sat = UnityEngine.Random.Range(0f, 1f);
                 float val = UnityEngine.Random.Range(0.05f, 1f);
-                Debug.Log("H: " + hue);
-                Debug.Log("S: " + sat);
-                Debug.Log("V: " + val);
-                Debug.Log("");
                 self.realizedObject = new Objects.Potato(self, false, new(0f, 1f), Color.HSVToRGB(hue, sat, val), true);
                 (self.realizedObject as Objects.Potato).bodyChunks[1].vel += Custom.RNV();
             }

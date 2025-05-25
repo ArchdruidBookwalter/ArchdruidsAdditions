@@ -52,28 +52,18 @@ public static class RoomHooks
                         self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data as PlacedObject.ConsumableObjectData)
                     { isConsumed = false };
 
-                    float hue;
-                    float sat;
-                    float val;
+                    float hue = UnityEngine.Random.Range(data.minHue, data.maxHue);
+                    float sat = UnityEngine.Random.Range(data.minSat, data.maxSat);
+                    float val = UnityEngine.Random.Range(data.minVal, data.maxVal);
 
-                    if (data.maxHue == 1)
-                    { hue = UnityEngine.Random.Range(0f, 1f); }
-                    else
-                    { hue = data.maxHue; }
-
-                    if (data.maxSat == 1)
-                    { sat = UnityEngine.Random.Range(0f, 1f); }
-                    else
-                    { sat = data.maxSat; }
-
-                    if (data.maxVal == 1)
-                    { val = UnityEngine.Random.Range(0.05f, 1f); }
-                    else
-                    { val = data.maxVal; }
+                    if (val < 0.05f)
+                    {
+                        val = 0.05f;
+                    }
 
                     Color newColor = Color.HSVToRGB(hue, sat, val);
 
-                    abstractConsumable.realizedObject = new Objects.Potato(abstractConsumable, true, data.rotation, newColor, false);
+                    abstractConsumable.realizedObject = new Objects.Potato(abstractConsumable, true, data.rotation, newColor, data.naturalColors);
 
                     self.abstractRoom.AddEntity(abstractConsumable);
                 }

@@ -8,6 +8,7 @@ using UnityEngine;
 using RWCustom;
 using MonoMod.Cil;
 using Mono.Cecil.Cil;
+using ArchdruidsAdditions.Objects;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -59,6 +60,58 @@ public static class DevtoolsHooks
         else
         {
             orig(self);
+        }
+    }
+    internal static void Panel_CopyToClipboard(On.DevInterface.Panel.orig_CopyToClipboard orig, Panel self)
+    {
+        orig(self);
+    }
+    internal static void Panel_PasteFromClipboard(On.DevInterface.Panel.orig_PasteFromClipboard orig, Panel self)
+    {
+        orig(self);
+        if (self is PotatoRepresentation.PotatoControlPanel panel)
+        {
+            try
+            {
+                PotatoRepresentation rep = panel.parentNode as PotatoRepresentation;
+                PotatoData data = rep.pObj.data as PotatoData;
+                data.FromString(GUIUtility.systemCopyBuffer);
+                Debug.Log(GUIUtility.systemCopyBuffer);
+                Debug.Log(data.minRegen);
+                Debug.Log(data.maxRegen);
+                foreach (DevUINode node in panel.subNodes)
+                {
+                    if (node is ConsumableRepresentation.ConsumableControlPanel.ConsumableSlider slider)
+                    {
+                        ((slider.parentNode.parentNode as ConsumableRepresentation).pObj.data as PlacedObject.ConsumableObjectData).minRegen = data.minRegen;
+                        ((slider.parentNode.parentNode as ConsumableRepresentation).pObj.data as PlacedObject.ConsumableObjectData).maxRegen = data.maxRegen;
+                        slider.Refresh();
+                    }
+                }
+            }
+            catch
+            {
+                try
+                {
+                    PlacedObject.ConsumableObjectData data = new((panel.parentNode as ConsumableRepresentation).pObj);
+                    data.FromString(GUIUtility.systemCopyBuffer);
+                    Debug.Log(GUIUtility.systemCopyBuffer);
+                    Debug.Log(data.minRegen);
+                    Debug.Log(data.maxRegen);
+                    foreach (DevUINode node in panel.subNodes)
+                    {
+                        if (node is ConsumableRepresentation.ConsumableControlPanel.ConsumableSlider slider)
+                        {
+                            ((slider.parentNode.parentNode as ConsumableRepresentation).pObj.data as PlacedObject.ConsumableObjectData).minRegen = data.minRegen;
+                            ((slider.parentNode.parentNode as ConsumableRepresentation).pObj.data as PlacedObject.ConsumableObjectData).maxRegen = data.maxRegen;
+                            slider.Refresh();
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
         }
     }
 }

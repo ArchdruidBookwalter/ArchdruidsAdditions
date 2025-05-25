@@ -30,13 +30,22 @@ public class ParrySword : Weapon, IDrawable
     public LightSource lightSource1;
     public LightSource lightSource2;
 
-    public bool useBool, charged, spinning;
-    public float useTime, rejectTime, cooldown, charge, spinSpeed;
-    public int usedNum, parryNum;
+    public bool 
+        useBool,
+        charged, 
+        spinning;
+    public float
+        rejectTime, 
+        cooldown, 
+        charge, 
+        spinSpeed,
+        lightPulse = 0f;
+    public int 
+        usedNum, 
+        useTime = 1, maxUseTime = 10,
+        parryNum;
 
     new public ChunkDynamicSoundLoop soundLoop;
-
-    public ExhaustSmoke smoke;
 
     public ParrySword(AbstractPhysicalObject abstractPhysicalObject, World world, Color color) : base(abstractPhysicalObject, world)
     {
@@ -82,15 +91,13 @@ public class ParrySword : Weapon, IDrawable
         base.PlaceInRoom(placeRoom);
         firstChunk.HardSetPosition(placeRoom.MiddleOfTile(abstractPhysicalObject.pos));
     }
-
+    Vector2 holdDir;
     public override void Update(bool eu)
     {
         base.Update(eu);
         soundLoop.Update();
 
         #region Behavior
-
-        //room.AddObject(new ExplosionSpikes(room, bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
 
         lastRotation = rotation;
         firstChunk.collideWithTerrain = grabbedBy.Count == 0;
@@ -99,6 +106,8 @@ public class ParrySword : Weapon, IDrawable
 
         if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Player)
         {
+            spinning = false;
+            spinSpeed = 0f;
             playerHeldBy = grabbedBy[0].grabber as Player;
             Player.InputPackage input = playerHeldBy.input[0];
 
@@ -313,6 +322,7 @@ public class ParrySword : Weapon, IDrawable
 
             if (useBool == false)
             {
+                useTime = 1;
                 if (grasp == -1) { faceDirection = "left"; }
                 if (grasp == 1) { faceDirection = "right"; }
                 if (playerHeldBy.bodyMode == Player.BodyModeIndex.Crawl
@@ -335,30 +345,66 @@ public class ParrySword : Weapon, IDrawable
                 {
                     rotation = Custom.rotateVectorDeg(playerUpVec, 30f * grasp);
                 }
+                holdDir = Custom.DirVec(playerHeldBy.mainBodyChunk.pos, firstChunk.pos);
             }
 
-            if (useBool == true && rejectTime == 0f)
+            if (useBool == true)
             {
-                if (smoke is null || smoke.room != room)
-                {
-                    smoke = new(room, this, swordColor, swordColor);
-                    room.AddObject(smoke);
-                }
-                smoke.AddParticle(firstChunk.pos + rotation * 30f, new(0f, 0f), 8f);
-                
-                //smoke.EmitParticle(firstChunk.pos + rotation * 30f, new(0f, 0f));
-
+                useTime++;
                 hand.reachingForObject = true;
-                hand.huntSpeed = 40f;
-                if ((usedNum != 1 && useTime < 5) || (usedNum == 1 && useTime >= 5))
+                hand.huntSpeed = 400f / maxUseTime;
+
+                float maxRotation = 60f;
+                if (holdDir != null && holdDir.x * aimDirection.x > 0)
                 {
-                    hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -60f) * 80f;
-                    faceDirection = "left";
+                    maxRotation = 100f;
                 }
-                else if ((usedNum != 1 && useTime >= 5) || (usedNum == 1 && useTime < 5))
+
+                if (usedNum == 0)
                 {
-                    hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, 60f) * 80f;
-                    faceDirection = "right";
+                    if (useTime < maxUseTime * 0.4f)
+                    {
+                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -maxRotation) * 80f;
+                        faceDirection = "right";
+                    }
+                    else if (useTime < maxUseTime * 0.6f)
+                    {
+                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -30f) * 80f;
+                        faceDirection = "right";
+                    }
+                    else if (useTime < maxUseTime * 0.8f)
+                    {
+                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, 30f) * 80f;
+                        faceDirection = "right";
+                    }
+                    else if (useTime >= maxUseTime * 0.8f)
+                    {
+                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, maxRotation) * 80f;
+                        faceDirection = "right";
+                    }
+                }
+                else
+                {
+                    if (useTime < maxUseTime * 0.4f)
+                    {
+                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, maxRotation) * 80f;
+                        faceDirection = "left";
+                    }
+                    else if (useTime < maxUseTime * 0.6f)
+                    {
+                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, 30f) * 80f;
+                        faceDirection = "left";
+                    }
+                    else if (useTime < maxUseTime * 0.8f)
+                    {
+                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -30f) * 80f;
+                        faceDirection = "left";
+                    }
+                    else if (useTime >= maxUseTime * 0.8f)
+                    {
+                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -maxRotation) * 80f;
+                        faceDirection = "left";
+                    }
                 }
                 if (useTime > 3)
                 {
@@ -368,12 +414,17 @@ public class ParrySword : Weapon, IDrawable
                 {
                     room.PlaySound(SoundID.Slugcat_Throw_Spear, firstChunk.pos, 0.5f, 1.5f);
                 }
+                if (useTime > maxUseTime)
+                {
+                    useBool = false;
+                }
             }
             
             #endregion
         }
         else
         {
+            playerHeldBy = null;
             if (charge > 0)
             {
                 charge--;
@@ -399,6 +450,14 @@ public class ParrySword : Weapon, IDrawable
             else
             {
                 rotation = Custom.rotateVectorDeg(rotation, spinSpeed);
+                if (spinSpeed < 0)
+                {
+                    faceDirection = "left";
+                }
+                else
+                {
+                    faceDirection = "right";
+                }
             }
         }
 
@@ -409,19 +468,6 @@ public class ParrySword : Weapon, IDrawable
         if (parryNum >= 3)
         {
             ActivateLongCooldown();
-        }
-
-        if (useBool == true)
-        {
-            useTime++;
-            if (useTime > 10)
-            {
-                useBool = false;
-            }
-        }
-        else
-        {
-            useTime = 1;
         }
 
         #endregion
@@ -445,6 +491,7 @@ public class ParrySword : Weapon, IDrawable
             alpha = 1f * (charge / (1000 / playerMaxKarma));
         }
 
+        
         if (lightSource1 == null)
         {
             lightSource1 = new LightSource(firstChunk.pos, true, swordColor, this);
@@ -461,27 +508,7 @@ public class ParrySword : Weapon, IDrawable
                 lightSource1 = null;
             }
         }
-
-        if (lightSource2 == null)
-        {
-            lightSource2 = new LightSource(firstChunk.pos, true, swordColor, this);
-            lightSource2.affectedByPaletteDarkness = 0.5f;
-            lightSource2.flat = true;
-            room.AddObject(lightSource2);
-        }
-        else
-        {
-            lightSource2.HardSetPos(firstChunk.pos + rotation * 30);
-            lightSource2.setRad = new float?(40f);
-            lightSource2.setAlpha = new float?(0.3f * alpha);
-            if (lightSource2.slatedForDeletetion || lightSource2.room != room)
-            {
-                lightSource2 = null;
-            }
-        }
-
         #endregion
-
     }
 
     public override void TerrainImpact(int chunk, IntVector2 direction, float speed, bool firstContact)
@@ -490,9 +517,9 @@ public class ParrySword : Weapon, IDrawable
         {
             spinning = true;
             if (spinSpeed > 0)
-            { spinSpeed = -speed * 0.5f; }
+            { spinSpeed = -speed * 0.9f; }
             else
-            { spinSpeed = speed * 0.5f; }
+            { spinSpeed = speed * 0.9f; }
 
             if (speed > 20)
             {
@@ -506,6 +533,11 @@ public class ParrySword : Weapon, IDrawable
             {
                 room.PlaySound(SoundID.Spear_Stick_In_Ground, firstChunk.pos, 1f, 1.2f);
             }
+
+            if ( spinSpeed > 80f)
+            { spinSpeed = 80f; }
+            else if (spinSpeed < -80f)
+            { spinSpeed = -80f; }
         }
         else
         {
@@ -522,13 +554,25 @@ public class ParrySword : Weapon, IDrawable
 
     public void Use()
     {
-        if (cooldown == 0 && charged)
+        if (cooldown == 0 && useTime == 1 && charged)
         {
-            (playerHeldBy.graphicsModule as PlayerGraphics).head.vel += aimDirection * 5f;
-            room.AddObject(new ParryHitbox(this, grabbedBy[0].grabber.mainBodyChunk.pos, aimDirection, 1f, 1f));
+            TailSegment[] playerTail = (playerHeldBy.graphicsModule as PlayerGraphics).tail;
+            TailSegment tailEnd = playerTail[playerTail.Length - 1];
+            if (Custom.DistLess(tailEnd.pos, playerHeldBy.bodyChunks[1].pos + aimDirection * 10f, 30f))
+            {
+                tailEnd.vel.x -= aimDirection.x * 30f;
+            }
+            room.AddObject(new ParryHitbox(this, playerHeldBy.mainBodyChunk.pos, aimDirection, 1f, 1f));
             useBool = true;
             cooldown = 10;
-
+            playerHeldBy.bodyChunks[0].vel += aimDirection * 2f;
+            playerHeldBy.bodyChunks[1].vel -= aimDirection * 2f;
+            /*
+            if (usedNum == 0)
+            { room.AddObject(new ColoredRectangle(room, playerHeldBy.mainBodyChunk.pos, 20f, 20f, 45f, new(1f, 0f, 0f), 10)); }
+            else
+            { room.AddObject(new ColoredRectangle(room, playerHeldBy.mainBodyChunk.pos, 20f, 20f, 45f, new(0f, 0f, 1f), 10)); }
+            */
             usedNum++;
             if (usedNum > 1)
             {
@@ -567,75 +611,175 @@ public class ParrySword : Weapon, IDrawable
         foreach (FSprite fsprite in sLeaser.sprites)
         {
             fsprite.RemoveFromContainer();
-            newContainer.AddChild(fsprite);
+            if (sLeaser.sprites.IndexOf(fsprite) != 2)
+            {
+                newContainer.AddChild(fsprite);
+            }
         }
+        rCam.ReturnFContainer("Water").AddChild(sLeaser.sprites[2]);
     }
 
     public override void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
     {
-        sLeaser.sprites = new FSprite[2];
+        sLeaser.sprites = new FSprite[5];
 
         sLeaser.sprites[0] = new FSprite("ParrySwordBlade", true);
         sLeaser.sprites[1] = new FSprite("ParrySwordHandle", true);
+        sLeaser.sprites[2] = new FSprite("Futile_White", true);
+        sLeaser.sprites[2].shader = rCam.game.rainWorld.Shaders["FlatLightBehindTerrain"];
+        sLeaser.sprites[3] = TriangleMesh.MakeLongMesh(3, true, true);
+        TriangleMesh.Triangle[] array = [new TriangleMesh.Triangle(0, 1, 2)];
+        sLeaser.sprites[4] = TriangleMesh.MakeLongMesh(1, false, true);
 
         AddToContainer(sLeaser, rCam, null);
     }
-
+    bool firstLoad = true;
+    Vector2[] lastTipPositions = new Vector2[5];
     public override void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
-        Vector2 posVec = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker);
-        Vector2 rotVec = Vector3.Slerp(lastRotation, rotation, timeStacker);
-        Vector2 horVec = new(-rotVec.y, rotVec.x);
-
-        Vector2 newPosVec = posVec - camPos;
-
-        float xCoordinate;
-        float yCoordinate;
-        float scale;
-
-        if (faceDirection == "left")
-        {
-            xCoordinate = -1.5f;
-            yCoordinate = 27f;
-            scale = -1f;
-        }
-        else
-        {
-            xCoordinate = 1.5f;
-            yCoordinate = 27f;
-            scale = 1f;
-        }
-
-        Vector2 spriteVec1 = newPosVec + rotVec * yCoordinate + horVec * xCoordinate;
-        sLeaser.sprites[0].x = spriteVec1.x;
-        sLeaser.sprites[0].y = spriteVec1.y;
-        sLeaser.sprites[0].rotation = Custom.VecToDeg(rotVec);
-        sLeaser.sprites[0].scaleX = scale;
-
-        sLeaser.sprites[1].x = newPosVec.x;
-        sLeaser.sprites[1].y = newPosVec.y;
-        sLeaser.sprites[1].rotation = sLeaser.sprites[0].rotation;
-        sLeaser.sprites[1].scaleX = scale;
-
-        if (blink > 0 && UnityEngine.Random.value < 0.5f)
-        {
-            sLeaser.sprites[0].color = blinkColor;
-            sLeaser.sprites[1].color = blinkColor;
-        }
-        else if (charged)
-        {
-            sLeaser.sprites[0].color = swordColor;
-            sLeaser.sprites[1].color = blackColor;
-        }
-        else
-        {
-            sLeaser.sprites[0].color = new(0.9f, 0.9f, 0.9f);
-            sLeaser.sprites[1].color = blackColor;
-        }
-
+        Debug.Log(timeStacker);
         if (slatedForDeletetion || room != rCam.room)
         {
             sLeaser.CleanSpritesAndRemove();
+        }
+        else
+        {
+            #region Normal Sprites
+            float scale;
+            if (faceDirection == "left")
+            {
+                scale = -1f;
+            }
+            else
+            {
+                scale = 1f;
+            }
+
+            Vector2 rotVec = Vector3.Slerp(lastRotation, rotation, timeStacker);
+            Vector2 handlePos = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker);
+            Vector2 bladePos = handlePos + rotVec * 27f + Custom.rotateVectorDeg(rotVec, 90f) * -1.5f * scale;
+            Vector2 tipPos = handlePos + rotVec * 50f + Custom.rotateVectorDeg(rotVec, 90f) * -4f * scale;
+
+            sLeaser.sprites[0].x = bladePos.x - camPos.x;
+            sLeaser.sprites[0].y = bladePos.y - camPos.y;
+            sLeaser.sprites[0].rotation = Custom.VecToDeg(rotVec);
+            sLeaser.sprites[0].scaleX = scale;
+
+            sLeaser.sprites[1].x = handlePos.x - camPos.x;
+            sLeaser.sprites[1].y = handlePos.y - camPos.y;
+            sLeaser.sprites[1].rotation = Custom.VecToDeg(rotVec);
+            sLeaser.sprites[1].scaleX = scale;
+
+            sLeaser.sprites[2].x = bladePos.x - camPos.x;
+            sLeaser.sprites[2].y = bladePos.y - camPos.y;
+            sLeaser.sprites[2].color = swordColor;
+
+            lightPulse += UnityEngine.Random.Range(-0.1f, 0.1f);
+            if (lightPulse < -1)
+            { lightPulse = -1; }
+            else if (lightPulse > 1)
+            { lightPulse = 1; }
+
+            float alpha;
+            if (charged)
+            { alpha = 0.4f; }
+            else
+            {
+                alpha = 0.4f * (charge / (1000 / playerMaxKarma));
+                lightPulse = 0;
+            }
+
+            sLeaser.sprites[2].scale = 5f + lightPulse;
+            sLeaser.sprites[2].alpha = alpha + lightPulse / 10f;
+
+            float darkness = rCam.room.Darkness(bladePos) * (1f - rCam.room.LightSourceExposure(bladePos));
+
+            if (blink > 0 && UnityEngine.Random.value < 0.5f)
+            {
+                sLeaser.sprites[0].color = blinkColor;
+                sLeaser.sprites[1].color = blinkColor;
+            }
+            else if (charged)
+            {
+                sLeaser.sprites[0].color = swordColor;
+                sLeaser.sprites[1].color = blackColor;
+            }
+            else
+            {
+                sLeaser.sprites[0].color = Color.Lerp(new(0.9f, 0.9f, 0.9f), blackColor, darkness);
+                sLeaser.sprites[1].color = blackColor;
+            }
+            #endregion
+
+            if (firstLoad)
+            {
+                for (int i = 0; i < lastTipPositions.Length; i++)
+                { lastTipPositions[i] = tipPos; }
+                firstLoad = false;
+            }
+            else
+            {
+                for (int i = lastTipPositions.Length - 1; i > 1; i--)
+                { lastTipPositions[i] = lastTipPositions[i - 1]; }
+                lastTipPositions[1] = tipPos;
+                lastTipPositions[0] = tipPos + Custom.rotateVectorDeg(Custom.DirVec(handlePos, tipPos) * 50f, 120f * scale);
+            }
+
+            List<Vector3> nodes = [];
+            foreach (Vector2 pos in lastTipPositions)
+            {
+                Vector3 newPos = new(pos.x, pos.y, 0f);
+                nodes.Add(newPos);
+            }
+
+            GoSplineCatmullRomSolver splineSolver = new(nodes);
+
+            Vector2[] positions = new Vector2[6];
+            for (int i = 0; i < positions.Length; i++)
+            {
+                Vector3 newPos = splineSolver.getPoint(1f * (i / (float)positions.Length));
+                Debug.Log("I: " + i + " Length: " + positions.Length + " Result: " + i / (float)positions.Length);
+                positions[i] = new Vector2(newPos.x, newPos.y);
+            }
+
+            TriangleMesh mesh = sLeaser.sprites[3] as TriangleMesh;
+            TriangleMesh mesh2 = sLeaser.sprites[4] as TriangleMesh;
+
+            mesh.color = sLeaser.sprites[0].color;
+            mesh.MoveVertice(0, handlePos + rotVec * 10f - camPos);
+            mesh.MoveVertice(1, tipPos - camPos);
+            mesh.MoveVertice(2, positions[0] - camPos);
+            mesh.MoveVertice(3, Vector2.Lerp(handlePos, positions[0], 0.2f) - camPos);
+            mesh.MoveVertice(4, positions[1] - camPos);
+            mesh.MoveVertice(5, Vector2.Lerp(handlePos, positions[1], 0.4f) - camPos);
+            mesh.MoveVertice(6, positions[2] - camPos);
+            mesh.MoveVertice(7, Vector2.Lerp(handlePos, positions[2], 0.6f) - camPos);
+            mesh.MoveVertice(8, positions[3] - camPos);
+            mesh.MoveVertice(9, Vector2.Lerp(handlePos, positions[3], 0.8f) - camPos);
+            mesh.MoveVertice(10, positions[4] - camPos);
+
+            mesh2.color = sLeaser.sprites[0].color;
+            mesh2.MoveVertice(0, bladePos - camPos);
+            mesh2.MoveVertice(1, handlePos + rotVec * 10f - camPos);
+            mesh2.MoveVertice(2, tipPos - camPos);
+            mesh2.MoveVertice(3, bladePos + Custom.rotateVectorDeg(rotVec, 90 * -scale) * 3f - camPos);
+
+            if ((playerHeldBy != null && playerHeldBy.animation == Player.AnimationIndex.Flip) || spinSpeed > 10f || spinSpeed < -10f || (usedNum == 0 && useTime > 6) || (usedNum > 0 && useTime > 6))
+            {
+                mesh.isVisible = true;
+                mesh2.isVisible = true;
+
+                if (room.game.devToolsActive)
+                {
+                    foreach (Vector2 position in positions)
+                    { room.AddObject(new ColoredShapes.Rectangle(room, position, 1.5f, 1.5f, 45f, new(1f, 0f, 0f), 1)); }
+                    foreach (Vector2 position in lastTipPositions)
+                    { room.AddObject(new ColoredShapes.Rectangle(room, position, 1.5f, 1.5f, 45f, new(0f, 1f, 0f), 1)); }
+                    room.AddObject(new ColoredShapes.Rectangle(room, lastTipPositions[0], 2f, 2f, 45f, new(1f, 1f, 0f), 1));
+                }
+            }
+            else
+            { mesh.isVisible = false; mesh2.isVisible = false; }
         }
     }
 
@@ -668,8 +812,6 @@ public class ParrySword : Weapon, IDrawable
             alreadyParried = false;
             player = sword.playerHeldBy;
             playerName = player.SlugCatClass;
-            //UnityEngine.Debug.Log("");
-            //UnityEngine.Debug.Log("Created Hitbox!");
 
             Vector2 playerPos = sword.playerHeldBy.mainBodyChunk.pos;
         }
@@ -738,14 +880,6 @@ public class ParrySword : Weapon, IDrawable
                 position.x + collisionRange + rotation.x * 8,
                 position.y + collisionRange + rotation.y * 8);
 
-            /*
-            room.AddObject(new ExplosionSpikes(room, position, 60, 1, 5f, 7f, 5f, new(0f, 0f, 1f)));
-            room.AddObject(new ExplosionSpikes(room, collisionRect.GetCorner(FloatRect.CornerLabel.A), 60, 1, 5f, 7f, 5f, new(1f, 0f, 0f)));
-            room.AddObject(new ExplosionSpikes(room, collisionRect.GetCorner(FloatRect.CornerLabel.B), 60, 1, 5f, 7f, 5f, new(0f, 1f, 0f)));
-            room.AddObject(new ExplosionSpikes(room, collisionRect.GetCorner(FloatRect.CornerLabel.C), 60, 1, 5f, 7f, 5f, new(0f, 0f, 1f)));
-            room.AddObject(new ExplosionSpikes(room, collisionRect.GetCorner(FloatRect.CornerLabel.D), 60, 1, 5f, 7f, 5f, new(1f, 1f, 0f)));
-            */
-
             if (!entityDetected)
             {
                 for (int i = 0; i < 3; i++)
@@ -759,7 +893,6 @@ public class ParrySword : Weapon, IDrawable
                         {
                             if (maggot.mode == DartMaggot.Mode.Shot && collisionRect.Vector2Inside(maggot.firstChunk.pos))
                             {
-                                //UnityEngine.Debug.Log("Parried object, Dart Maggot");
                                 maggot.mode = DartMaggot.Mode.Free;
                                 maggot.firstChunk.vel = rotation * 30;
                                 entityDetected = true;
@@ -770,7 +903,6 @@ public class ParrySword : Weapon, IDrawable
                         {
                             if (spider.jumping && collisionRect.Vector2Inside(spider.mainBodyChunk.pos))
                             {
-                                //UnityEngine.Debug.Log("Parried object, Big Spider");
                                 spider.Stun(100);
                                 spider.mainBodyChunk.vel = rotation * 30;
                                 entityDetected = true;
@@ -786,7 +918,6 @@ public class ParrySword : Weapon, IDrawable
                                 if (Custom.VectorRectDistance(fangPos + aimDir * 2, collisionRect) < 50f ||
                                     Custom.VectorRectDistance(fangPos, collisionRect) < 50f)
                                 {
-                                    //UnityEngine.Debug.Log("Parried object, Noodlefly");
                                     noodlefly.impaleChunk = null;
                                     noodlefly.swishCounter = 0;
                                     noodlefly.swishDir = null;
@@ -802,7 +933,6 @@ public class ParrySword : Weapon, IDrawable
                         {
                             if (squidcada.Charging && collisionRect.Vector2Inside(squidcada.bodyChunks[0].pos))
                             {
-                                //UnityEngine.Debug.Log("Parried object, Squidcada");
                                 squidcada.Stun(100);
                                 squidcada.bodyChunks[0].vel = rotation * 30;
                                 entityDetected = true;
@@ -816,7 +946,6 @@ public class ParrySword : Weapon, IDrawable
                                 !lizard.Stunned &&
                                 collisionRect.Vector2Inside((lizard.graphicsModule as LizardGraphics).head.pos))
                             {
-                                //UnityEngine.Debug.Log("Parried object, Lizard");
                                 lizard.Stun(100);
                                 lizard.bodyChunks[0].vel = rotation * 30;
                                 entityDetected = true;
@@ -827,7 +956,6 @@ public class ParrySword : Weapon, IDrawable
                         {
                             if (vulture.ChargingSnap && collisionRect.Vector2Inside(vulture.Head().pos))
                             {
-                                //UnityEngine.Debug.Log("Parried object, Vulture");
                                 vulture.Stun(100);
                                 vulture.Head().vel = rotation * 30;
                                 entityDetected = true;
@@ -843,7 +971,6 @@ public class ParrySword : Weapon, IDrawable
                                     Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
                                     if (vulture.kingTusks.tusks[k].mode == KingTusks.Tusk.Mode.ShootingOut && collisionRect.Vector2Inside(tuskPoint))
                                     {
-                                        //UnityEngine.Debug.Log("Parried object, King Vulture Harpoon");
                                         vulture.kingTusks.tusks[k].SwitchMode(KingTusks.Tusk.Mode.Dangling);
                                         entityDetected = true;
                                     }
@@ -851,11 +978,10 @@ public class ParrySword : Weapon, IDrawable
                             }
                         }
 
-                        if (obj is Weapon && obj is not ParrySword && obj.firstChunk.vel.magnitude > 5)
+                        if (obj is Weapon && obj is not ParrySword && obj.firstChunk.vel.magnitude > 10 && obj.grabbedBy.Count == 0)
                         {
                             if (collisionRect.Vector2Inside(obj.firstChunk.pos))
                             {
-                                //UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
                                 var objVel = obj.firstChunk.vel / 10;
                                 (obj as Weapon).Thrown(sword.playerHeldBy, sword.playerHeldBy.mainBodyChunk.pos,
                                     sword.playerHeldBy.mainBodyChunk.pos - objVel, new(-(int)objVel.x, -(int)objVel.y), 1f, eu);
@@ -875,9 +1001,7 @@ public class ParrySword : Weapon, IDrawable
 
             if (lifetime <= 0 || entityDetected)
             {
-                this.Destroy();
-                //UnityEngine.Debug.Log("Hitbox Was Destroyed!");
-                //UnityEngine.Debug.Log("");
+                Destroy();
             }
             lifetime--;
         }
@@ -886,6 +1010,8 @@ public class ParrySword : Weapon, IDrawable
         {
             float randomNum = UnityEngine.Random.Range(-0.1f, 0.1f);
             sword.playerHeldBy.mainBodyChunk.vel += -rotation * 6;
+            if (sword.playerHeldBy.animation == Player.AnimationIndex.Flip)
+            { sword.playerHeldBy.mainBodyChunk.vel += new Vector2(0f, 60f); }
             sword.parryNum++;
             room.AddObject(new Explosion.ExplosionLight(position, 100f, 1f, 5, sword.swordColor));
             room.AddObject(new ExplosionSpikes(room, position, 14, 2f, 5f, 7f, 100f, sword.swordColor));

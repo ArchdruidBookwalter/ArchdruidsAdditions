@@ -22,6 +22,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public Vector2 rotation, lastRotation, startRotation;
     public Color rootColor;
     public Color blackColor = new(0f, 0f, 0f);
+    public Color flowerColor;
     public int bites = 3;
     public Vector2 homePos;
 
@@ -77,50 +78,48 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         this.buried = buried;
         startRotation = rotation.normalized;
 
+        #region Flower Color
+        Color rootColor;
+        float randomNum = UnityEngine.Random.Range(0f, 100f);
+        float hue;
+        float sat;
+        float val;
+
+        if (randomNum > 90f)
+        {
+            hue = 90f;
+            sat = 30f;
+            val = 20f;
+        }
+        else if (randomNum > 80f)
+        {
+            hue = 30f;
+            sat = 30f;
+            val = 40f;
+        }
+        else
+        {
+            hue = 5f;
+            sat = 30f;
+            val = 50f;
+        }
+
+        rootColor = UnityEngine.Random.ColorHSV(
+            (hue - 5) / 100, (hue + 5) / 100,
+            (sat - 5) / 100, (sat + 5) / 100,
+            (val - 5) / 100, (val + 5) / 100);
+
+        this.rootColor = rootColor;
+        #endregion
+
         if (naturalColors)
         {
-            float randomNum = UnityEngine.Random.Range(0f, 100f);
-            float hue;
-            float sat;
-            float val;
-
-            if (randomNum > 95f)
-            {
-                hue = 90f;
-                sat = 50f;
-                val = 50f;
-            }
-            else if (randomNum > 90f)
-            {
-                hue = 30f;
-                sat = 50f;
-                val = 20f;
-            }
-            else if (randomNum > 85f)
-            {
-                hue = 10f;
-                sat = 20f;
-                val = 80f;
-            }
-            else if (randomNum > 50f)
-            {
-                hue = 10f;
-                sat = 50f;
-                val = 80f;
-            }
-            else
-            {
-                hue = 5f;
-                sat = 50f;
-                val = 80f;
-            }
-
-            color = UnityEngine.Random.ColorHSV(
-                (hue - 5) / 100, (hue + 5) / 100,
-                (sat - 5) / 100, (sat + 5) / 100,
-                (val - 5) / 100, (val + 5) / 100);
+            flowerColor = UnityEngine.Random.ColorHSV(0f, 1f, 0.1f, 0.3f, 1f, 1f);
         }
-        rootColor = color;
+        else
+        {
+            flowerColor = color;
+        }
 
         soundLoop = new(bodyChunks[1])
         {
@@ -313,7 +312,6 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public override void Grabbed(Creature.Grasp grasp)
     {
         base.Grabbed(grasp);
-        Debug.Log("Picked Up Potato");
     }
 
     public void ChangeCollision(bool chunk1collide, bool chunk2collide)
@@ -424,30 +422,33 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
         Vector2 rotVec = Vector3.Slerp(lastRotation, rotation, timeStacker);
-        Vector2 rootPosVec = Vector2.Lerp(bodyChunks[0].lastPos, bodyChunks[0].pos, timeStacker) + rotVec * -5f;
-        Vector2 leavesPosVec = Vector2.Lerp(bodyChunks[1].lastPos, bodyChunks[1].pos, timeStacker) + rotVec * 5f;
+        Vector2 rootPos = Vector2.Lerp(bodyChunks[0].lastPos, bodyChunks[0].pos, timeStacker) + rotVec * -5f;
+        Vector2 leavesPos = Vector2.Lerp(bodyChunks[1].lastPos, bodyChunks[1].pos, timeStacker) + rotVec * 5f;
 
-        sLeaser.sprites[0].x = rootPosVec.x - camPos.x;
-        sLeaser.sprites[0].y = rootPosVec.y - camPos.y;
+        sLeaser.sprites[0].x = rootPos.x - camPos.x;
+        sLeaser.sprites[0].y = rootPos.y - camPos.y;
         sLeaser.sprites[0].rotation = Custom.VecToDeg(rotVec) - 30;
 
-        sLeaser.sprites[1].x = leavesPosVec.x - camPos.x;
-        sLeaser.sprites[1].y = leavesPosVec.y - camPos.y;
+        sLeaser.sprites[1].x = leavesPos.x - camPos.x;
+        sLeaser.sprites[1].y = leavesPos.y - camPos.y;
         sLeaser.sprites[1].rotation = Custom.VecToDeg(rotVec) + 90;
 
-        Vector2 rootTopPosVec = rootPosVec + rotVec * 10f;
-        Vector2 leavesBottomPosVec = leavesPosVec - rotVec * 2f;
-        Vector2 flowerPos = leavesPosVec + rotVec * 5f;
+        Vector2 rootTopPos = rootPos + rotVec * 10f;
+        Vector2 leavesBottomPos = leavesPos - rotVec * 2f;
+        Vector2 flowerPos = leavesPos + rotVec * 5f;
 
-        sLeaser.sprites[2].x = Vector2.Lerp(rootTopPosVec, leavesBottomPosVec, 0.5f).x - camPos.x;
-        sLeaser.sprites[2].y = Vector2.Lerp(rootTopPosVec, leavesBottomPosVec, 0.5f).y - camPos.y;
-        sLeaser.sprites[2].width = Custom.Dist(rootTopPosVec, leavesBottomPosVec);
+        sLeaser.sprites[2].x = Vector2.Lerp(rootTopPos, leavesBottomPos, 0.5f).x - camPos.x;
+        sLeaser.sprites[2].y = Vector2.Lerp(rootTopPos, leavesBottomPos, 0.5f).y - camPos.y;
+        sLeaser.sprites[2].width = Custom.Dist(rootTopPos, leavesBottomPos);
         sLeaser.sprites[2].rotation = Custom.VecToDeg(rotVec) + 90;
 
         sLeaser.sprites[3].x = flowerPos.x - camPos.x;
         sLeaser.sprites[3].y = flowerPos.y - camPos.y;
         sLeaser.sprites[3].rotation = Custom.VecToDeg(rotVec);
         sLeaser.sprites[3].scale = 0.5f;
+
+        float rootDarkness = rCam.room.Darkness(rootPos) * (1f - rCam.room.LightSourceExposure(rootPos));
+        float flowerDarkness = rCam.room.Darkness(flowerPos) * (1f - rCam.room.LightSourceExposure(flowerPos));
 
         if (randomFlip1)
         {
@@ -481,10 +482,10 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
         else
         {
-            sLeaser.sprites[0].color = rootColor;
+            sLeaser.sprites[0].color = Color.Lerp(rootColor, blackColor, rootDarkness);
             sLeaser.sprites[1].color = blackColor;
             sLeaser.sprites[2].color = blackColor;
-            sLeaser.sprites[3].color = new(0.8f, 0.8f, 0.8f);
+            sLeaser.sprites[3].color = Color.Lerp(flowerColor, blackColor, flowerDarkness);
         }
 
         sLeaser.sprites[2].MoveBehindOtherNode(sLeaser.sprites[0]);
@@ -588,28 +589,37 @@ public class PotatoRepresentation : ConsumableRepresentation
     public class PotatoControlPanel : ConsumableControlPanel, IDevUISignals
     {
         public PotatoData data;
-        public ColorView colorView;
+        public ColorEditor colorEditor;
         public Button natColorButton;
         public PotatoControlPanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string name) :
             base(owner, IDstring, parentNode, pos, name)
         {
-            size = new Vector2(250f, 205f);
             data = (parentNode as PotatoRepresentation).data;
-            subNodes.Add(colorView = new(owner, "Color", this, new Vector2(5f, 45f)));
+            size = new Vector2(250f, 205f);
+
+            /*
+            int subNodesLength = subNodes.Count;
+            for (int i = 0; i < subNodesLength; i++)
+            {
+                subNodes[0].ClearSprites();
+                subNodes.RemoveAt(0);
+            }*/
+
+            subNodes.Add(colorEditor = new(owner, "Color", this, new Vector2(5f, 45f)));
             subNodes.Add(natColorButton = new(owner, "Natural_Colors_Button", this, new Vector2(5f, 185f), 240f, data.naturalColors ? "Natural Colors: TRUE" : "Natural Colors: FALSE"));
         }
-        public class ColorView : PositionedDevUINode
+        public class ColorEditor : PositionedDevUINode
         {
             public PotatoData data;
-            public ColorView(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos) : base(owner, IDstring, parentNode, pos)
+            public ColorEditor(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos) : base(owner, IDstring, parentNode, pos)
             {
                 data = (parentNode as PotatoControlPanel).data;
-                subNodes.Add(new ColorSlider(owner, "Min_Hue_Slider", this, new Vector2(0f, 120f), "Min Hue: ", data.minHue, data.maxHue));
-                subNodes.Add(new ColorSlider(owner, "Max_Hue_Slider", this, new Vector2(0f, 100f), "Max Hue: ", data.maxHue, data.minHue));
-                subNodes.Add(new ColorSlider(owner, "Min_Sat_Slider", this, new Vector2(0f, 80f), "Min Saturation: ", data.minSat, data.maxSat));
-                subNodes.Add(new ColorSlider(owner, "Max_Sat_Slider", this, new Vector2(0f, 60f), "Max Saturation: ", data.maxSat, data.minSat));
-                subNodes.Add(new ColorSlider(owner, "Min_Val_Slider", this, new Vector2(0f, 40f), "Min Value: ", data.minVal, data.maxVal));
-                subNodes.Add(new ColorSlider(owner, "Max_Val_Slider", this, new Vector2(0f, 20f), "Max Value: ", data.maxVal, data.minVal));
+                subNodes.Add(new ColorSlider(owner, "Min_Hue_Slider", this, new Vector2(0f, 120f), "Min Hue: "));
+                subNodes.Add(new ColorSlider(owner, "Max_Hue_Slider", this, new Vector2(0f, 100f), "Max Hue: "));
+                subNodes.Add(new ColorSlider(owner, "Min_Sat_Slider", this, new Vector2(0f, 80f), "Min Saturation: "));
+                subNodes.Add(new ColorSlider(owner, "Max_Sat_Slider", this, new Vector2(0f, 60f), "Max Saturation: "));
+                subNodes.Add(new ColorSlider(owner, "Min_Val_Slider", this, new Vector2(0f, 40f), "Min Value: "));
+                subNodes.Add(new ColorSlider(owner, "Max_Val_Slider", this, new Vector2(0f, 20f), "Max Value: "));
                 fSprites.Add(new FSprite("pixel", true));
                 fSprites[fSprites.Count - 1].scaleY = 16f;
                 fSprites[fSprites.Count - 1].scaleX = 120f;
@@ -634,41 +644,7 @@ public class PotatoRepresentation : ConsumableRepresentation
             public override void Refresh()
             {
                 base.Refresh();
-
-                foreach (DevUINode subnode in subNodes)
-                {
-                    if (subnode.IDstring == "Min_Hue_Slider")
-                    {
-                        data.minHue = (subnode as ColorSlider).dataVariable;
-                        (subnode as ColorSlider).otherVariable = data.maxHue;
-                    }
-                    else if (subnode.IDstring == "Max_Hue_Slider")
-                    {
-                        data.maxHue = (subnode as ColorSlider).dataVariable;
-                        (subnode as ColorSlider).otherVariable = data.minHue;
-                    }
-                    else if (subnode.IDstring == "Min_Sat_Slider")
-                    {
-                        data.minSat = (subnode as ColorSlider).dataVariable;
-                        (subnode as ColorSlider).otherVariable = data.maxSat;
-                    }
-                    else if (subnode.IDstring == "Max_Sat_Slider")
-                    {
-                        data.maxSat = (subnode as ColorSlider).dataVariable;
-                        (subnode as ColorSlider).otherVariable = data.minSat;
-                    }
-                    else if (subnode.IDstring == "Min_Val_Slider")
-                    {
-                        data.minVal = (subnode as ColorSlider).dataVariable;
-                        (subnode as ColorSlider).otherVariable = data.maxVal;
-                    }
-                    else if (subnode.IDstring == "Max_Val_Slider")
-                    {
-                        data.maxVal = (subnode as ColorSlider).dataVariable;
-                        (subnode as ColorSlider).otherVariable = data.minVal;
-                    }
-                }
-
+               
                 MoveSprite(fSprites.Count - 1, pos + (parentNode as Panel).nonCollapsedAbsPos);
                 MoveSprite(fSprites.Count - 2, pos + (parentNode as Panel).nonCollapsedAbsPos + new Vector2(120f, 0f));
                 if ((parentNode as Panel).collapsed)
@@ -687,68 +663,153 @@ public class PotatoRepresentation : ConsumableRepresentation
         }
         public class ColorSlider : Slider
         {
-            public string title;
-            public float dataVariable = 0f;
-            public float otherVariable = 0f;
-            public bool isMax = false;
-            public ColorSlider(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string title, float dataVariable, float otherVariable) : 
+            public PotatoData data;
+            public float dataVariable;
+            public float otherVariable;
+            public bool isMax;
+            public ColorSlider(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string title) : 
                 base(owner, IDstring, parentNode, pos, title, false, 110f)
             {
-                this.title = title;
-                this.dataVariable = dataVariable;
-                this.otherVariable = otherVariable;
-                isMax = IDstring.Contains("Max");
-                UnityEngine.Debug.Log(isMax);
+                data = (parentNode as ColorEditor).data;
+                switch (IDstring)
+                {
+                    case "Min_Hue_Slider":
+                        dataVariable = data.minHue;
+                        otherVariable = data.maxHue;
+                        isMax = false;
+                        break;
+                    case "Max_Hue_Slider":
+                        dataVariable = data.maxHue;
+                        otherVariable = data.minHue;
+                        isMax = true;
+                        break;
+                    case "Min_Sat_Slider":
+                        dataVariable = data.minSat;
+                        otherVariable = data.maxSat;
+                        isMax = false;
+                        break;
+                    case "Max_Sat_Slider":
+                        dataVariable = data.maxSat;
+                        otherVariable = data.minSat;
+                        isMax = true;
+                        break;
+                    case "Min_Val_Slider":
+                        dataVariable = data.minVal;
+                        otherVariable = data.maxVal;
+                        isMax = false;
+                        break;
+                    case "Max_Val_Slider":
+                        dataVariable = data.maxVal;
+                        otherVariable = data.minVal;
+                        isMax = true;
+                        break;
+                }
             }
             public override void NubDragged(float nubPos)
             {
+                switch (IDstring)
+                {
+                    case "Min_Hue_Slider":
+                        otherVariable = data.maxHue;
+                        break;
+                    case "Max_Hue_Slider":
+                        otherVariable = data.minHue;
+                        break;
+                    case "Min_Sat_Slider":
+                        otherVariable = data.maxSat;
+                        break;
+                    case "Max_Sat_Slider":
+                        otherVariable = data.minSat;
+                        break;
+                    case "Min_Val_Slider":
+                        otherVariable = data.maxVal;
+                        break;
+                    case "Max_Val_Slider":
+                        otherVariable = data.minVal;
+                        break;
+                }
                 if (isMax)
                 {
-                    if (nubPos >= otherVariable)
-                    { dataVariable = nubPos; }
-                    else
+                    if (nubPos < otherVariable)
                     { dataVariable = otherVariable; }
+                    else
+                    { dataVariable = nubPos; }
                 }
                 else
                 {
-                    if (nubPos <= otherVariable)
-                    { dataVariable = nubPos; }
-                    else
+                    if (nubPos > otherVariable)
                     { dataVariable = otherVariable; }
+                    else
+                    { dataVariable = nubPos; }
+                }
+                switch (IDstring)
+                {
+                    case "Min_Hue_Slider":
+                        data.minHue = dataVariable;
+                        break;
+                    case "Max_Hue_Slider":
+                        data.maxHue = dataVariable;
+                        break;
+                    case "Min_Sat_Slider":
+                        data.minSat = dataVariable;
+                        break;
+                    case "Max_Sat_Slider":
+                        data.maxSat = dataVariable;
+                        break;
+                    case "Min_Val_Slider":
+                        data.minVal = dataVariable;
+                        break;
+                    case "Max_Val_Slider":
+                        data.maxVal = dataVariable;
+                        break;
                 }
                 Refresh();
             }
             public override void Refresh()
             {
                 base.Refresh();
+                switch (IDstring)
+                {
+                    case "Min_Hue_Slider":
+                        dataVariable = data.minHue;
+                        break;
+                    case "Max_Hue_Slider":
+                        dataVariable = data.maxHue;
+                        break;
+                    case "Min_Sat_Slider":
+                        dataVariable = data.minSat;
+                        break;
+                    case "Max_Sat_Slider":
+                        dataVariable = data.maxSat;
+                        break;
+                    case "Min_Val_Slider":
+                        dataVariable = data.minVal;
+                        break;
+                    case "Max_Val_Slider":
+                        dataVariable = data.maxVal;
+                        break;
+                }
                 NumberText = (Math.Round(dataVariable, 2) * 100).ToString();
-
-                if (isMax)
-                {
-                    if (dataVariable < otherVariable)
-                    { dataVariable = otherVariable; }
-                }
-                else
-                {
-                    if (dataVariable > otherVariable)
-                    { dataVariable = otherVariable; }
-                }
-
-                foreach (DevUINode subNode in subNodes)
-                {
-                    if (subNodes.IndexOf(subNode) == 1)
-                    {
-                        if (IDstring == "Min_Hue_Slider" || IDstring == "Max_Hue_Slider")
-                        { subNode.fSprites[0].color = UnityEngine.Random.ColorHSV(dataVariable, dataVariable, 1f, 1f, 1f, 1f); }
-                        else if (IDstring == "Min_Sat_Slider" || IDstring == "Max_Sat_Slider")
-                        { subNode.fSprites[0].color = UnityEngine.Random.ColorHSV(1f, 1f, dataVariable, dataVariable, 1f, 1f); }
-                        else if (IDstring == "Min_Val_Slider" || IDstring == "Max_Val_Slider")
-                        { subNode.fSprites[0].color = UnityEngine.Random.ColorHSV(1f, 1f, 1f, 1f, dataVariable, dataVariable); }
-                        subNode.fSprites[0].alpha = 1f;
-                    }
-                }
                 RefreshNubPos(dataVariable);
             }
+        }
+        public override void Refresh()
+        {
+            data = (parentNode as PotatoRepresentation).data;
+            natColorButton.pos = new Vector2(5f, size.y - 20f);
+            if (data.naturalColors == true)
+            {
+                natColorButton.Text = "Natural Colors: TRUE";
+                size = new Vector2(250f, 65f);
+                colorEditor.pos = new Vector2(-1000f, -1000f);
+            }
+            else
+            {
+                natColorButton.Text = "Natural Colors: FALSE";
+                size = new Vector2(250f, 205f);
+                colorEditor.pos = new Vector2(5f, 45f);
+            }
+            base.Refresh();
         }
         public void Signal(DevUISignalType type, DevUINode sender, string message)
         {
@@ -760,23 +821,6 @@ public class PotatoRepresentation : ConsumableRepresentation
                 { data.naturalColors = true; }
             }
         }
-        public override void Refresh()
-        {
-            base.Refresh();
-            natColorButton.pos = new Vector2(5f, size.y - 20f);
-            if (data.naturalColors == true)
-            {
-                natColorButton.Text = "Natural Colors: TRUE";
-                size = new Vector2(250f, 65f);
-                colorView.pos = new Vector2(-1000f, -1000f);
-            }
-            else
-            {
-                natColorButton.Text = "Natural Colors: FALSE";
-                size = new Vector2(250f, 205f);
-                colorView.pos = new Vector2(5f, 45f);
-            }
-        }
     }
 
     public PotatoRepresentation(DevUI owner, string IDstring, DevUINode parentNode, PlacedObject pobj, string name) :
@@ -785,6 +829,9 @@ public class PotatoRepresentation : ConsumableRepresentation
         data = pobj.data as PotatoData;
         rotationHandle = new(owner, "Rotation_Handle", this, data.rotation);
         controlPanel = new(owner, "Potato_Panel", this, data.panelPos, "Consumable: Potato");
+
+        (pObj.data as PlacedObject.ConsumableObjectData).minRegen = data.minRegen;
+        (pObj.data as PlacedObject.ConsumableObjectData).maxRegen = data.maxRegen;
 
         subNodes[0].ClearSprites();
         subNodes.RemoveAt(0);
@@ -799,8 +846,6 @@ public class PotatoRepresentation : ConsumableRepresentation
 
     public override void Refresh()
     {
-        base.Refresh();
-
         MoveSprite(1, absPos);
         fSprites[1].scaleY = rotationHandle.pos.magnitude;
         fSprites[1].rotation = Custom.AimFromOneVectorToAnother(absPos, rotationHandle.absPos);
@@ -810,6 +855,11 @@ public class PotatoRepresentation : ConsumableRepresentation
         fSprites[2].scaleY = controlPanel.pos.magnitude;
         fSprites[2].rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
         (pObj.data as PotatoData).panelPos = controlPanel.pos;
+
+        data.minRegen = (pObj.data as PlacedObject.ConsumableObjectData).minRegen;
+        data.maxRegen = (pObj.data as PlacedObject.ConsumableObjectData).maxRegen;
+
+        base.Refresh();
     }
 }
 
