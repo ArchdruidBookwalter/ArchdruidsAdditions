@@ -637,7 +637,7 @@ public class ParrySword : Weapon, IDrawable
     Vector2[] lastTipPositions = new Vector2[5];
     public override void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
-        Debug.Log(timeStacker);
+        //Debug.Log(timeStacker);
         if (slatedForDeletetion || room != rCam.room)
         {
             sLeaser.CleanSpritesAndRemove();
@@ -738,7 +738,7 @@ public class ParrySword : Weapon, IDrawable
             for (int i = 0; i < positions.Length; i++)
             {
                 Vector3 newPos = splineSolver.getPoint(1f * (i / (float)positions.Length));
-                Debug.Log("I: " + i + " Length: " + positions.Length + " Result: " + i / (float)positions.Length);
+                //Debug.Log("I: " + i + " Length: " + positions.Length + " Result: " + i / (float)positions.Length);
                 positions[i] = new Vector2(newPos.x, newPos.y);
             }
 

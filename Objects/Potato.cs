@@ -271,7 +271,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         else if (!buried && grabbedBy.Count > 0)
         {
             ChangeCollision(false, false);
-            ObjectMethods.ChangeItemSpriteLayer(this, grabbedBy[0].grabber, grabbedBy[0].graspUsed);
+            Methods.Methods.ChangeItemSpriteLayer(this, grabbedBy[0].grabber, grabbedBy[0].graspUsed);
             bodyChunks[1].HardSetPosition(bodyChunks[0].pos + Custom.DirVec(grabbedBy[0].grabber.bodyChunks[1].pos, grabbedBy[0].grabber.mainBodyChunk.pos) * stemLength);
             gravity = 0.9f;
             bodyChunkConnections[0].elasticity = elasticity;

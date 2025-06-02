@@ -16,6 +16,10 @@ public static class AbstractPhysicalObjectHooks
         orig.Invoke(self);
         if (self.realizedObject is null)
         {
+            if (self.type == Enums.AbstractObjectType.Bow)
+            {
+                self.realizedObject = new Objects.Bow(self, self.world);
+            }
             if (self.type == Enums.AbstractObjectType.ScarletFlowerBulb)
             {
                 self.realizedObject = new Objects.ScarletFlowerBulb(self, self.world, false, Custom.RNV(), new(1f, 0f, 0f));

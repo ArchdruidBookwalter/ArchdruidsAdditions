@@ -48,7 +48,7 @@ public class ColoredShapes
 
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
         {
-            newContainer ??= rCam.ReturnFContainer("Items");
+            newContainer ??= rCam.ReturnFContainer("HUD");
 
             foreach (FSprite fsprite in sLeaser.sprites)
             {

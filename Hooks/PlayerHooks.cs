@@ -38,11 +38,19 @@ public static class PlayerHooks
         {
             return Player.ObjectGrabability.BigOneHand;
         }
+        if (obj is Objects.Bow)
+        {
+            return Player.ObjectGrabability.OneHand;
+        }
         return orig(self, obj);
     }
     internal static bool Player_IsObjectThrowable(On.Player.orig_IsObjectThrowable orig,  Player self, PhysicalObject obj)
     {
         if (obj is Objects.ParrySword)
+        {
+            return true;
+        }
+        if (obj is Objects.Bow)
         {
             return true;
         }
@@ -97,20 +105,38 @@ public static class PlayerHooks
             sword.Use();
             return;
         }
+        else if (self.grasps[grasp].grabbed is Objects.Bow bow)
+        {
+            int otherGrasp = grasp == 0 ? 1 : 0;
+            if (self.grasps[otherGrasp] is not null && self.grasps[otherGrasp].grabbed is Spear spear)
+            {
+                bow.LoadSpearIntoBow(spear);
+            }
+            return;
+        }
+        else if (self.grasps[grasp].grabbed is Spear spear2)
+        {
+            int otherGrasp = grasp == 0 ? 1 : 0;
+            if (self.grasps[otherGrasp] is not null && self.grasps[otherGrasp].grabbed is Objects.Bow bow2)
+            {
+                bow2.LoadSpearIntoBow(spear2);
+                return;
+            }
+        }
         orig(self, grasp, eu);
     }
     internal static void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
     {
         orig(self, eu);
-        if (self.room.game.devToolsActive)
+
+        if (self.room != null && self.room.game.devToolsActive)
         {
             if (self.input[0].y > 0)
             {
                 Room room = self.room;
                 RoomCamera camera = room.game.cameras[0];
 
-                int numOfSprites = 0;
-
+                /*
                 var spriteLeasers = camera.spriteLeasers;
                 for (int i = 0; i < spriteLeasers.Count(); i++)
                 {
@@ -132,7 +158,7 @@ public static class PlayerHooks
                             }
                         }
                     }
-                }
+                }*/
 
                 for (int i = 0; i < 3; i++)
                 {
@@ -140,7 +166,24 @@ public static class PlayerHooks
                     {
                         foreach (BodyChunk chunk in obj.bodyChunks)
                         {
-                            room.AddObject(new Objects.ColoredShapes.Rectangle(room, chunk.pos, 3f, 3f, 45f, new(1f, 0f, 0f), 1));
+                            float radius = chunk.rad * 2;
+
+                            if (radius < 2f)
+                            { radius = 2f; }
+
+                            float hue = (float)obj.bodyChunks.IndexOf(chunk) / obj.bodyChunks.Length;
+                            Debug.Log(hue);
+                            Color color = UnityEngine.Random.ColorHSV(hue, hue, 1f, 1f, 1f, 1f);
+                            room.AddObject(new Objects.ColoredShapes.Rectangle(room, chunk.pos, radius, radius, 0f, color, 1));
+                        }
+                        foreach (PhysicalObject.BodyChunkConnection chain in obj.bodyChunkConnections)
+                        {
+                            room.AddObject(new Objects.ColoredShapes.Rectangle(room, Vector2.Lerp(chain.chunk1.pos, chain.chunk2.pos, 0.5f), 0.1f, chain.distance, Custom.VecToDeg(Custom.DirVec(chain.chunk1.pos, chain.chunk2.pos)), new(0f, 0f, 1f), 1));
+                        }
+                        if (obj is Spear)
+                        {
+                            Vector2 vector = obj.room.MiddleOfTile(obj.firstChunk.pos);
+                            room.AddObject(new Objects.ColoredShapes.Rectangle(room, vector, 5f, 5f, 45f, new(0f, 1f, 0f), 1));
                         }
                     }
                 }
@@ -198,6 +241,9 @@ public static class PlayerHooks
     internal static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
         orig(self, sLeaser, rCam, timeStacker, camPos);
+
+        //self.owner.room.AddObject(new Objects.ColoredShapes.Rectangle(self.owner.room, new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + rCam.pos, 1f, 1f, 45f, new Color(1f, 1f, 0f), 1));
+
         foreach (Creature.Grasp grasp in self.player.grasps)
         {
             if (grasp is not null && grasp.grabbed is Objects.Potato potato && potato.playerSquint)
