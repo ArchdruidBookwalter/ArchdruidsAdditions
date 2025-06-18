@@ -172,7 +172,6 @@ public static class PlayerHooks
                             { radius = 2f; }
 
                             float hue = (float)obj.bodyChunks.IndexOf(chunk) / obj.bodyChunks.Length;
-                            Debug.Log(hue);
                             Color color = UnityEngine.Random.ColorHSV(hue, hue, 1f, 1f, 1f, 1f);
                             room.AddObject(new Objects.ColoredShapes.Rectangle(room, chunk.pos, radius, radius, 0f, color, 1));
                         }

@@ -69,6 +69,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\PUBLIC-Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="System.ComponentModel.Composition">
+      <HintPath>..\..\..\..\..\..\..\Windows\Microsoft.NET\Framework\v4.0.30319\System.ComponentModel.Composition.dll</HintPath>
+    </Reference>
     <Reference Include="System.Windows.Forms">
       <HintPath>..\..\..\..\..\..\..\Windows\Microsoft.NET\Framework\v4.0.30319\System.Windows.Forms.dll</HintPath>
     </Reference>

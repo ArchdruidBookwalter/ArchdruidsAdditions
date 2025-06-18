@@ -221,7 +221,7 @@ public static class Cursors
                 Vector2 shadowPos = new(Futile.mousePosition.x + 3.01f, Futile.mousePosition.y - 8.01f);
                 shadowSprite.SetPosition(shadowPos);
 
-                float maxVisibility = 10f;
+                float maxVisibility = 5f;
                 if ((BeastmasterHooks.beastMasterMenuOpen || MainHooks.mouseDragActive)
                     && standStillCounter <= 50
                     && player.room != null && !player.room.game.GamePaused /*&& player.room.game.devUI == null*/)

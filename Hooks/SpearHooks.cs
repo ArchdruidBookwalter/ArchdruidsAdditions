@@ -3,50 +3,67 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Reflection;
 using ArchdruidsAdditions.Objects;
 using UnityEngine;
 using RWCustom;
+using HarmonyLib;
 
 namespace ArchdruidsAdditions.Hooks;
 
 public static class SpearHooks
 {
-    /*internal static void Spear_Thrown(On.Spear.orig_Thrown orig, Spear self, Creature thrownBy, Vector2 thrownPos, Vector2? firstFrameTraceFromPos, IntVector2 thrownDir, float frc, bool eu)
-    {
-        Debug.Log("Spear Was Thrown!");
-        foreach (UpdatableAndDeletable obj in self.room.updateList)
-        {
-            if (obj is Trackers.ThrowTracker tracker && tracker.weapon == self)
-            {
-            }
-        }
-        orig(self, thrownBy, thrownPos, firstFrameTraceFromPos, thrownDir, frc, eu);
-    }
-    internal static bool Spear_HitSomething(On.Spear.orig_HitSomething orig, Spear self, SharedPhysics.CollisionResult result, bool eu)
-    {
-        if (result.obj != null)
-        {
-            self.room.AddObject(new ColoredShapes.Rectangle(self.room, self.firstChunk.pos, 10f, 10f, 45f, new(1f, 0f, 0f), 100));
-            Debug.Log(result.obj.ToString());
-        }
-        return orig(self, result, eu);
-    }*/
     internal static void Spear_DrawSprites(On.Spear.orig_DrawSprites orig, Spear self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
-        if (self != null && !self.slatedForDeletetion)
+        if (self is not null && self.room is not null && !self.slatedForDeletetion)
         {
             for (int i = 0; i < 3; i++)
             {
                 foreach (PhysicalObject obj in self.room.physicalObjects[i])
                 {
-                    if (obj is Bow bow && bow.loadedSpear is not null && bow.loadedSpear == self)
+                    if (obj is not null && obj is Bow bow && bow.loadedSpear is not null && bow.loadedSpear == self)
                     {
-                        self.rotation = bow.rotation;
-                        self.firstChunk.pos = bow.stringPos + bow.rotation * 25f;
+                        Vector2 stringPos = bow.firstChunk.pos - bow.rotation * (bow.bowWidth / 2) - bow.rotation * bow.aimCharge;
+                        Vector2 lastStringPos = bow.firstChunk.lastPos - bow.lastRotation * (bow.bowWidth / 2) - bow.lastRotation * bow.aimCharge;
+                        Vector2 spearPos = stringPos + bow.rotation * 22f;
+                        Vector2 lastSpearPos = lastStringPos + bow.lastRotation * 22f;
+                        try
+                        {
+                            self.rotation = bow.rotation;
+                            self.lastRotation = bow.lastRotation;
+                            self.firstChunk.pos = spearPos;
+                            self.firstChunk.lastPos = lastSpearPos;
+                        }
+                        catch (Exception e) { Debug.LogError("Loaded Spear DrawSprites experienced an Error!"); Debug.LogException(e); }
                     }
                 }
             }
         }
         orig(self, sLeaser, rCam, timeStacker, camPos);
+    }
+    internal static void Spear_Update(On.Spear.orig_Update orig, Spear self, bool eu)
+    {
+        if (self.addPoles && self.stuckInWall is null)
+        {
+            self.stuckInWall = self.room.MiddleOfTile(self.firstChunk.pos);
+            Debug.Log("WARNING: StuckInWall was NULL!");
+        }
+
+        foreach (UpdatableAndDeletable updel in self.room.updateList)
+        {
+            if (updel is Trackers.ThrowTracker tracker && tracker.weapon == self)
+            {
+
+            }
+        }
+
+        orig(self, eu);
+
+        foreach (UpdatableAndDeletable updel in self.room.updateList)
+        {
+            if (updel is Trackers.ThrowTracker tracker && tracker.weapon == self)
+            {
+            }
+        }
     }
 }

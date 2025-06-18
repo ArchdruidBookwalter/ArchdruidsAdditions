@@ -10,7 +10,6 @@ using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using System.Reflection.Emit;
 using System.Security.Permissions;
-using BeastMaster;
 using MonoMod.RuntimeDetour;
 using System.Reflection;
 
@@ -21,6 +20,7 @@ using System.Reflection;
 namespace ArchdruidsAdditions;
 
 [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
+[BepInDependency("fyre.BeastMaster", BepInDependency.DependencyFlags.SoftDependency)]
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string PLUGIN_GUID = "archdruidbookwalter.archdruidsadditions";
@@ -113,6 +113,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Spear Hooks
         On.Spear.DrawSprites += Hooks.SpearHooks.Spear_DrawSprites;
+        On.Spear.Update += Hooks.SpearHooks.Spear_Update;
         //On.Spear.HitSomething += Hooks.SpearHooks.Spear_HitSomething;
         //On.Spear.Thrown += Hooks.SpearHooks.Spear_Thrown;
         #endregion

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using ArchdruidsAdditions.Objects;
@@ -13,6 +14,7 @@ public static class BeastmasterHooks
     public static bool oneShot = true;
     public static bool beastMasterMenuOpen;
     public static FContainer beastMasterContainer;
+    
     internal static void BeastMaster_DrawSprites(Action<BeastMaster.BeastMaster, Vector2> orig,
         BeastMaster.BeastMaster self, Vector2 centerPoint)
     {

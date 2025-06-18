@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using ArchdruidsAdditions.Hooks;
+using MonoMod.RuntimeDetour;
 using RWCustom;
 using Steamworks;
 using Unity.Mathematics;
@@ -67,9 +70,6 @@ namespace ArchdruidsAdditions.Methods
             Room room = spear.room;
 
             float spearRot = Math.Abs(spear.rotation.GetAngle());
-            Debug.Log("");
-            Debug.Log(spearRot);
-            Debug.Log("");
 
             if ((spearRot < 170f && spearRot > 100f) || (spearRot < 80f && spearRot > 10f))
             { return false; }
@@ -100,6 +100,46 @@ namespace ArchdruidsAdditions.Methods
             { return false; }
 
             return true;
+        }
+
+        public static class BeastmasterDependency
+        {
+            private static bool? _modPresent;
+            public static bool modPresent
+            {
+                get
+                {
+                    if (_modPresent == null)
+                    { _modPresent = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("fyre.BeastMaster"); }
+                    return (bool)_modPresent;
+                }
+            }
+            [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+            public static void CreateHook(String methodName)
+            {
+                if (methodName == "DrawSprites")
+                {
+                    try
+                    {
+                        //new Hook(typeof(BeastMaster.BeastMaster).GetMethod("DrawSprites"), BeastmasterHooks.BeastMaster_DrawSprites);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogException(ex);
+                    }
+                }
+                else if (methodName == "RainWorldOnUpdate")
+                {
+                    try
+                    {
+                        //new Hook(typeof(BeastMaster.BeastMaster).GetMethod("RainWorldOnUpdate"), BeastmasterHooks.BeastMaster_OnRainWorldUpdate);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogException(ex);
+                    }
+                }
+            }
         }
 
         public static bool forceDefaultMouseVisible = false;

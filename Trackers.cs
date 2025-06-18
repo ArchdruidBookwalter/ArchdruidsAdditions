@@ -36,61 +36,27 @@ public class Trackers
         public override void Update(bool eu)
         {
             base.Update(eu);
-
-            lifetime--;
-            if (lifetime == 0) { Destroy(); }
             
-            if (weapon is Spear loadedSpear)
+            if (weapon is Spear spear)
             {
-                loadedSpear.setRotation = shootDir;
-                loadedSpear.rotation = shootDir;
-                loadedSpear.lastRotation = shootDir;
+                spear.rotation = shootDir;
+                if (shootDir.x >= 0.5f || shootDir.x <= -0.5f)
+                { spear.throwDir = new IntVector2(Math.Sign(shootDir.x), 0); }
+                else
+                { spear.throwDir = new IntVector2(0, Math.Sign(shootDir.y)); }
 
-                IntVector2 contactPoint = loadedSpear.firstChunk.ContactPoint;
-                if (contactPoint.x != 0 || contactPoint.y != 0)
+                if (spear.firstChunk.ContactPoint.x != 0 || spear.firstChunk.ContactPoint.y != 0)
                 {
-                    if (loadedSpear is ExplosiveSpear)
-                    { (loadedSpear as ExplosiveSpear).Ignite(); }
-                    if (Methods.Methods.CanSpearStick(loadedSpear))
+                    Debug.Log("Spear Hit Something?");
+                    if (Custom.Angle(spear.throwDir.ToVector2(), spear.rotation) > 10f)
                     {
-                        IntVector2 newRotationInt = new((int)Mathf.Round(shootDir.x), (int)Mathf.Round(shootDir.y));
-                        Vector2 newRotationFloat = newRotationInt.ToVector2();
-
-                        loadedSpear.throwDir = newRotationInt;
-                        loadedSpear.firstFrameTraceFromPos = loadedSpear.firstChunk.pos + newRotationFloat * 20f;
-                        loadedSpear.setRotation = newRotationFloat;
-                        loadedSpear.rotation = newRotationFloat;
-                        loadedSpear.lastRotation = newRotationFloat;
-
-                        loadedSpear.stuckInWall = new Vector2?(loadedSpear.room.MiddleOfTile(loadedSpear.firstChunk.pos));
-                        loadedSpear.vibrate = 10;
-                        loadedSpear.ChangeMode(Weapon.Mode.StuckInWall);
-                        loadedSpear.room.PlaySound(SoundID.Spear_Stick_In_Wall, loadedSpear.firstChunk.pos);
-                        loadedSpear.firstChunk.collideWithTerrain = false;
-
-                        if (Math.Abs(shootDir.x) > Math.Abs(shootDir.y))
-                        { loadedSpear.abstractSpear.stuckInWallCycles = 3; }
-                        else
-                        { loadedSpear.abstractSpear.stuckInWallCycles = -3; }
+                        Debug.Log("Spear Bounced!");
+                        spear.HitWall();
                     }
-                    else
-                    { loadedSpear.HitWall(); }
                     Destroy();
                 }
                 else
-                {
-                    if (lifetime > 45)
-                    { loadedSpear.firstChunk.vel = shootDir * force; }
-                    else
-                    { shootDir = loadedSpear.firstChunk.vel.normalized; }
-                }
-                
-                if (loadedSpear.mode == Weapon.Mode.Free || 
-                    loadedSpear.mode == Weapon.Mode.OnBack ||
-                    loadedSpear.mode == Weapon.Mode.StuckInCreature)
-                { Destroy(); }
-
-                //room.AddObject(new ColoredShapes.Rectangle(room, loadedSpear.firstChunk.pos, 0.1f, 20f, Custom.VecToDeg(shootDir), new(1f, 0f, 0f), 1));
+                { spear.firstChunk.vel = shootDir * 60f; }
             }
         }
     }
@@ -115,13 +81,11 @@ public class Trackers
         {
             base.Update(eu);
             if (lifeTime > maxLifeTime)
-            { //Destroy(); 
-            }
+            { }
             else { lifeTime++; }
 
             if (limb.reachedSnapPosition || limb.mode != Limb.Mode.HuntAbsolutePosition)
-            { Destroy(); 
-            }
+            { Destroy(); }
         }
     }
 }

@@ -4,8 +4,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.ComponentModel.Composition;
 using MonoMod.RuntimeDetour;
 using UnityEngine;
+using System.ComponentModel.Composition.Hosting;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -129,24 +131,36 @@ public static class MainHooks
                 Enums.SandboxUnlockID.UnregisterValues();
                 break;
             }
+            if (mod.id == "fyre.BeastMaster")
+            {
+                
+            }
         }
     }
     internal static void RainWorld_PostModsInIt(On.RainWorld.orig_PostModsInit orig, RainWorld self)
     {
         orig(self);
+
+        Debug.Log("");
         foreach (var mod in ModManager.ActiveMods)
         {
+            //Debug.Log(mod.id);
             if (mod.id == "fyre.BeastMaster")
             {
-                Debug.Log("Found BeastMaster!");
-                new Hook(typeof(BeastMaster.BeastMaster).GetMethod("DrawSprites", ALL_FLAGS), BeastmasterHooks.BeastMaster_DrawSprites);
-                new Hook(typeof(BeastMaster.BeastMaster).GetMethod("RainWorldOnUpdate", ALL_FLAGS), BeastmasterHooks.BeastMaster_OnRainWorldUpdate);
-                Debug.Log("BeastMaster Hook Successfully Created!");
+                if (Methods.Methods.BeastmasterDependency.modPresent)
+                {
+                    Methods.Methods.BeastmasterDependency.CreateHook("DrawSprites");
+                    Methods.Methods.BeastmasterDependency.CreateHook("RainWorldOnUpdate");
+                    beastMasterActive = true;
+                }
             }
             if (mod.id == "maxi-mol.mousedrag")
             {
                 mouseDragActive = true;
             }
         }
+        Debug.Log("");
+        Debug.Log("BeastMaster detected: " + Methods.Methods.BeastmasterDependency.modPresent);
+        Debug.Log("");
     }
 }

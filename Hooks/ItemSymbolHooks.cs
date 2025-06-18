@@ -24,6 +24,10 @@ public static class ItemSymbolHooks
         {
             text = "Icon_Potato";
         }
+        else if (itemType == Enums.AbstractObjectType.Bow)
+        {
+            text = "Icon_Bow";
+        }
         else
         {
             text = orig.Invoke(itemType, intData);
@@ -45,6 +49,10 @@ public static class ItemSymbolHooks
         else if (itemType == Enums.AbstractObjectType.Potato)
         {
             color = new Color(1f, 0.8f, 0.6f);
+        }
+        else if (itemType == Enums.AbstractObjectType.Bow)
+        {
+            color = new Color(0.5f, 0.5f, 0.5f);
         }
         else
         {
