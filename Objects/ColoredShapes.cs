@@ -45,7 +45,6 @@ public class ColoredShapes
             }
         }
 
-
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
         {
             newContainer ??= rCam.ReturnFContainer("HUD");
@@ -83,6 +82,9 @@ public class ColoredShapes
             {
                 sprite.color = color;
                 sprite.rotation = rotation;
+                if (room != null && room.game.devToolsActive)
+                { sprite.alpha = 1; }
+                else { sprite.alpha = 0; }
             }
 
             if (slatedForDeletetion || room != rCam.room)
@@ -157,6 +159,10 @@ public class ColoredShapes
             mesh.MoveVertice(2, vertex3);
             mesh.color = color;
 
+            if (room != null && room.game.devToolsActive)
+            { mesh.alpha = 1; }
+            else { mesh.alpha = 0; }
+
             if (slatedForDeletetion || room != rCam.room)
             {
                 sLeaser.CleanSpritesAndRemove();
@@ -170,13 +176,66 @@ public class ColoredShapes
             TriangleMesh.Triangle[] array = [new TriangleMesh.Triangle(0, 1, 2)];
             sLeaser.sprites[0] = new TriangleMesh("Futile_White", array, false, false);
             sLeaser.sprites[0].shader = rCam.room.game.rainWorld.Shaders["LightSource"];
-            /*
-            foreach (var shader in rCam.room.game.rainWorld.Shaders)
-            {
-                Debug.Log(shader.Key);
-            }*/
 
             AddToContainer(sLeaser, rCam, null);
+        }
+    }
+    public class Text : UpdatableAndDeletable, IDrawable
+    {
+        public Vector2 pos;
+        public string text;
+        public Color color;
+        public int maxLife;
+
+        public FLabel label;
+        public int lifeTime = 0;
+
+        public Text(Room room, Vector2 pos, String text, Color color, int maxLife)
+        {
+            this.room = room;
+            this.pos = pos;
+            this.maxLife = maxLife;
+
+            label = new FLabel(Custom.GetFont(), "TEST");
+            label.alignment = FLabelAlignment.Center;
+            label.text = text;
+            label.color = color;
+        }
+        public override void Update(bool eu)
+        {
+            base.Update(eu);
+            lifeTime++;
+            if (lifeTime > maxLife)
+            {
+                Destroy();
+            }
+        }
+
+        public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
+        {
+            AddToContainer(sLeaser, rCam, null);
+        }
+        public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        {
+            label.SetPosition(pos - camPos);
+
+            if (room != null && room.game.devToolsActive)
+            { label.alpha = 1; }
+            else { label.alpha = 0; }
+
+            if (slatedForDeletetion || room != rCam.room)
+            {
+                sLeaser.CleanSpritesAndRemove();
+                label.RemoveFromContainer();
+            }
+        }
+        public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
+        {
+        }
+        public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
+        {
+            newContainer ??= rCam.ReturnFContainer("HUD");
+            newContainer.AddChild(label);
         }
     }
 }

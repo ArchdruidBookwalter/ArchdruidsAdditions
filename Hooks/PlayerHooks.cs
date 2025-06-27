@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using ArchdruidsAdditions.Objects;
 using IL.Smoke;
 using RWCustom;
 using UnityEngine;
@@ -188,6 +190,40 @@ public static class PlayerHooks
                 }
             }
         }
+    }
+    internal static Vector2 Player_GetHeldItemDirection(On.Player.orig_GetHeldItemDirection orig, Player self, int hand)
+    {
+        if (self.grasps[hand].grabbed is Bow bow && bow.getRotation)
+        {
+            Vector2 bodyVec = Custom.DirVec(self.bodyChunks[0].pos, self.bodyChunks[1].pos);
+            Vector2 objVec = Custom.DirVec(self.bodyChunks[0].pos, bow.firstChunk.pos);
+            //Methods.Methods.CreateLineBetweenTwoPoints(self.bodyChunks[0].pos, self.bodyChunks[1].pos, self.room, new(1f, 0f, 0f));
+            //Methods.Methods.CreateLineBetweenTwoPoints(self.bodyChunks[0].pos, bow.firstChunk.pos, self.room, new(1f, 0f, 0f));
+
+            float spearDir = (self.graphicsModule as PlayerGraphics).spearDir;
+            //self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos + new Vector2(0f, 50f), spearDir.ToString(), new(1f, 1f, 1f), 0));
+            bool airborne = false;
+            if (self.bodyChunks[0].ContactPoint.ToVector2().magnitude == 0 && self.bodyChunks[1].ContactPoint.ToVector2().magnitude == 0)
+            { airborne = true; }
+            //self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos + new Vector2(0f, 70f), airborne.ToString(), new(1f, 1f, 1f), 0));
+
+            Vector2 newRot;
+            if (self.animation == Player.AnimationIndex.HangFromBeam || self.animation == Player.AnimationIndex.ClimbOnBeam)
+            {
+                newRot = Custom.PerpendicularVector(orig(self, hand));
+                newRot.x = newRot.x * (hand == 0 ? 1 : -1);
+            }
+            else if (self.bodyMode == Player.BodyModeIndex.Crawl || self.bodyMode == Player.BodyModeIndex.CorridorClimb)
+            {
+                newRot = Custom.PerpendicularVector(bodyVec);
+            }
+            else
+            {
+                newRot = Vector2.Lerp(objVec, bodyVec, Math.Abs(spearDir));
+            }
+            return Vector2.Lerp(newRot.normalized, bow.rotation, 0.3f);
+        }
+        return orig(self, hand);
     }
 
     public static Color GetColor(int index)

@@ -82,10 +82,11 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         #region Player
+        On.Player.GetHeldItemDirection += Hooks.PlayerHooks.Player_GetHeldItemDirection;
         On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
+        On.Player.IsObjectThrowable += Hooks.PlayerHooks.Player_IsObjectThrowable;
         On.Player.PickupCandidate += Hooks.PlayerHooks.Player_PickupCandidate;
         On.Player.SlugcatGrab += Hooks.PlayerHooks.Player_SlugcatGrab;
-        On.Player.IsObjectThrowable += Hooks.PlayerHooks.Player_IsObjectThrowable;
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
         On.Player.Update += Hooks.PlayerHooks.Player_Update;
         On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
@@ -114,13 +115,14 @@ public sealed class Plugin : BaseUnityPlugin
         #region Spear Hooks
         On.Spear.DrawSprites += Hooks.SpearHooks.Spear_DrawSprites;
         On.Spear.Update += Hooks.SpearHooks.Spear_Update;
-        //On.Spear.HitSomething += Hooks.SpearHooks.Spear_HitSomething;
+        On.Spear.HitSomething += Hooks.SpearHooks.Spear_HitSomething;
         //On.Spear.Thrown += Hooks.SpearHooks.Spear_Thrown;
         #endregion
 
         #region Weapon Hooks
         On.Weapon.Thrown += Hooks.WeaponHooks.Weapon_Thrown;
         On.Weapon.HitWall += Hooks.WeaponHooks.Weapon_HitWall;
+        On.Weapon.Update += Hooks.WeaponHooks.Weapon_Update;
         #endregion
     }
 }

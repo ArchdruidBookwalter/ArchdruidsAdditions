@@ -13,6 +13,7 @@ public static class LimbHooks
     internal static void SlugcatHand_Update(On.SlugcatHand.orig_Update orig, SlugcatHand self)
     {
         orig(self);
+        /*
         if (self.mode == Limb.Mode.HuntAbsolutePosition || self.mode == Limb.Mode.HuntRelativePosition)
         {
             foreach (UpdatableAndDeletable obj in self.owner.owner.room.updateList)
@@ -26,6 +27,6 @@ public static class LimbHooks
                     break;
                 }
             }
-        }
+        }*/
     }
 }

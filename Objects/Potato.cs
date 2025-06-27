@@ -26,6 +26,8 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public int bites = 3;
     public Vector2 homePos;
 
+    public string lastVel = "Items";
+
     public float stemLength = UnityEngine.Random.Range(10f, 15f);
     public float elasticity = 0.8f;
     public bool randomFlip1 = UnityEngine.Random.Range(-1f, 1f) < 0 ? true : false;
@@ -271,7 +273,9 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         else if (!buried && grabbedBy.Count > 0)
         {
             ChangeCollision(false, false);
+
             Methods.Methods.ChangeItemSpriteLayer(this, grabbedBy[0].grabber, grabbedBy[0].graspUsed);
+
             bodyChunks[1].HardSetPosition(bodyChunks[0].pos + Custom.DirVec(grabbedBy[0].grabber.bodyChunks[1].pos, grabbedBy[0].grabber.mainBodyChunk.pos) * stemLength);
             gravity = 0.9f;
             bodyChunkConnections[0].elasticity = elasticity;

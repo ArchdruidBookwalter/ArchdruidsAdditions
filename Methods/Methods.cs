@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using ArchdruidsAdditions.Hooks;
+using ArchdruidsAdditions.Objects;
 using MonoMod.RuntimeDetour;
 using RWCustom;
 using Steamworks;
@@ -20,44 +21,47 @@ namespace ArchdruidsAdditions.Methods
             Room room = obj.room;
             if (obj is IDrawable drawableObj)
             {
-                if (grabber is Player player)
+                if (obj is Bow bow && bow.aiming)
+                {
+                    for (int i = 0; i < room.game.cameras.Length; i++)
+                    { room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Items")); }
+                }
+                else if (grabber is Player player)
                 {
                     if (graspUsed == 0)
                     {
-                        if (player.mainBodyChunk.vel.x < -1)
+                        if ((player.graphicsModule as PlayerGraphics).spearDir < 0)
                         {
                             for (int i = 0; i < room.game.cameras.Length; i++)
-                            {
-                                room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Background"));
-                            }
+                            { room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Background")); }
                         }
                         else
                         {
                             for (int i = 0; i < room.game.cameras.Length; i++)
-                            {
-                                room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Items"));
-                            }
+                            { room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Items")); }
                         }
                     }
                     else
                     {
-                        if (player.mainBodyChunk.vel.x > 1)
+                        if ((player.graphicsModule as PlayerGraphics).spearDir > 0)
                         {
                             for (int i = 0; i < room.game.cameras.Length; i++)
-                            {
-                                room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Background"));
-                            }
+                            { room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Background")); }
                         }
                         else
                         {
                             for (int i = 0; i < room.game.cameras.Length; i++)
-                            {
-                                room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Items"));
-                            }
+                            { room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Items")); }
                         }
                     }
                 }
             }
+        }
+        public static bool IsPlayerCrawling(Player player)
+        {
+            if (player.bodyMode == Player.BodyModeIndex.Crawl || player.bodyMode == Player.BodyModeIndex.CorridorClimb)
+            { return true; }
+            return false;
         }
         public static float PT(float side1, float side2)
         {
@@ -100,6 +104,24 @@ namespace ArchdruidsAdditions.Methods
             { return false; }
 
             return true;
+        }
+        public static UpdatableAndDeletable GetTracker(UpdatableAndDeletable trackedUpdel, Room room)
+        {
+            foreach (UpdatableAndDeletable updel in room.updateList)
+            {
+                if (trackedUpdel is Weapon weapon && updel is Trackers.ThrowTracker tracker && tracker.weapon == weapon)
+                {
+                    return tracker;
+                }
+            }
+            return null;
+        }
+        public static void CreateLineBetweenTwoPoints(Vector2 point1, Vector2 point2, Room room, Color color)
+        {
+            Vector2 middlePos = Vector2.Lerp(point1, point2, 0.5f);
+            float dist = Custom.Dist(point1, point2);
+            float rotation = Custom.VecToDeg(Custom.DirVec(point1, point2));
+            room.AddObject(new Objects.ColoredShapes.Rectangle(room, middlePos, 0.2f, dist, rotation, color, 0));
         }
 
         public static class BeastmasterDependency
