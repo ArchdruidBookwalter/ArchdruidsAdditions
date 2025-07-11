@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using ArchdruidsAdditions.Objects;
 using IL.Smoke;
 using RWCustom;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -109,11 +110,17 @@ public static class PlayerHooks
         }
         else if (self.grasps[grasp].grabbed is Objects.Bow bow)
         {
+            PlayerGraphics graphics = self.graphicsModule as PlayerGraphics;
             int otherGrasp = grasp == 0 ? 1 : 0;
-            if (self.grasps[otherGrasp] is not null && self.grasps[otherGrasp].grabbed is Spear spear)
+
+            if (self.grasps[otherGrasp] is not null &&
+                self.grasps[otherGrasp].grabbed is Spear spear &&
+                self.animation != Player.AnimationIndex.ClimbOnBeam &&
+                self.animation != Player.AnimationIndex.HangFromBeam)
             {
                 bow.LoadSpearIntoBow(spear);
             }
+
             return;
         }
         else if (self.grasps[grasp].grabbed is Spear spear2)
@@ -188,6 +195,9 @@ public static class PlayerHooks
                         }
                     }
                 }
+
+                Type[] types = [typeof(RoomCamera.SpriteLeaser), typeof(RoomCamera), typeof(float), typeof(float2)];
+                Debug.Log(typeof(ScavengerGraphics.ScavengerHand).GetMethod("DrawSprites", types));
             }
         }
     }
@@ -225,7 +235,6 @@ public static class PlayerHooks
         }
         return orig(self, hand);
     }
-
     public static Color GetColor(int index)
     {
         if (index == 0)

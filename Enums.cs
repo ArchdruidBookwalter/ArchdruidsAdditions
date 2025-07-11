@@ -147,3 +147,23 @@ public static class SandboxUnlockID
         }
     }
 }
+
+public static class ScavengerAnimationID
+{
+    public static Scavenger.ScavengerAnimation.ID AimBow = new("AimBow", true);
+    public static Scavenger.ScavengerAnimation.ID HoldBow = new("HoldBow", true);
+
+    public static void UnregisterValues()
+    {
+        if (AimBow != null)
+        {
+            AimBow.Unregister();
+            AimBow = null;
+        }
+        if (HoldBow != null)
+        {
+            HoldBow.Unregister();
+            HoldBow = null;
+        }
+    }
+}

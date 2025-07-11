@@ -71,7 +71,7 @@ public static class MainHooks
             oneShot = true;
         }
 
-        UnityEngine.Debug.Log("\"Archdruid's Additions\" HAS SUCCESSFULY HOOKED, \"OnModsInit\" METHOD. =============================================");
+        Debug.Log("\"Archdruid's Additions\" HAS SUCCESSFULY HOOKED, \"OnModsInit\" METHOD. =============================================");
     }
     internal static void RainWorld_UnloadResources(On.RainWorld.orig_UnloadResources orig, RainWorld self)
     {
@@ -129,11 +129,8 @@ public static class MainHooks
                 Enums.MultiplayerItemType.UnregisterValues();
                 Enums.PlacedObjectType.UnregisterValues();
                 Enums.SandboxUnlockID.UnregisterValues();
+                Enums.ScavengerAnimationID.UnregisterValues();
                 break;
-            }
-            if (mod.id == "fyre.BeastMaster")
-            {
-                
             }
         }
     }
@@ -141,26 +138,24 @@ public static class MainHooks
     {
         orig(self);
 
-        Debug.Log("");
         foreach (var mod in ModManager.ActiveMods)
         {
-            //Debug.Log(mod.id);
             if (mod.id == "fyre.BeastMaster")
             {
-                if (Methods.Methods.BeastmasterDependency.modPresent)
+                try { new Hook(typeof(BeastMaster.BeastMaster).GetMethod("RainWorldOnUpdate", ALL_FLAGS), BeastmasterHooks.BeastMaster_OnRainWorldUpdate); }
+                catch (Exception ex)
                 {
-                    Methods.Methods.BeastmasterDependency.CreateHook("DrawSprites");
-                    Methods.Methods.BeastmasterDependency.CreateHook("RainWorldOnUpdate");
-                    beastMasterActive = true;
+                    Debug.Log("");
+                    Debug.Log("Couldn't find Beastmaster Update Method?");
+                    Debug.Log("");
+                    Debug.LogException(ex);
                 }
+                beastMasterActive = true;
             }
             if (mod.id == "maxi-mol.mousedrag")
             {
                 mouseDragActive = true;
             }
         }
-        Debug.Log("");
-        Debug.Log("BeastMaster detected: " + Methods.Methods.BeastmasterDependency.modPresent);
-        Debug.Log("");
     }
 }

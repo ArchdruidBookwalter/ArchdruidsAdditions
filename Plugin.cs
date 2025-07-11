@@ -12,6 +12,7 @@ using System.Reflection.Emit;
 using System.Security.Permissions;
 using MonoMod.RuntimeDetour;
 using System.Reflection;
+using Unity.Mathematics;
 
 #pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -66,6 +67,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Limb Hooks
         On.SlugcatHand.Update += Hooks.LimbHooks.SlugcatHand_Update;
+        On.Limb.FindGrip += Hooks.LimbHooks.Limb_FindGrip;
         #endregion
 
         #region Main Hooks
@@ -88,7 +90,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.Player.PickupCandidate += Hooks.PlayerHooks.Player_PickupCandidate;
         On.Player.SlugcatGrab += Hooks.PlayerHooks.Player_SlugcatGrab;
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
-        On.Player.Update += Hooks.PlayerHooks.Player_Update;
+        //On.Player.Update += Hooks.PlayerHooks.Player_Update;
         On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
         #endregion
 
@@ -105,7 +107,27 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         #region Scavenger Hooks
-        On.ScavengerAI.CollectScore_PhysicalObject_bool += Hooks.ScavengerHooks.CollectScore;
+        new Hook(typeof(Scavenger).GetMethod("get_HeadLookPoint"), Hooks.ScavengerHooks.Scavenger_get_HeadLookPoint);
+        new Hook(typeof(Scavenger).GetMethod("get_EyesLookPoint"), Hooks.ScavengerHooks.Scavenger_get_EyesLookPoint);
+        On.Scavenger.Update += Hooks.ScavengerHooks.Scavenger_Update;
+        On.Scavenger.MidRangeUpdate += Hooks.ScavengerHooks.Scavenger_MidRangeUpdate;
+        On.Scavenger.Throw += Hooks.ScavengerHooks.Scavenger_Throw;
+        On.Scavenger.TryToMeleeCreature += Hooks.ScavengerHooks.Scavenger_TryToMeleeCreature;
+        On.Scavenger.TryThrow_BodyChunk_ViolenceType += Hooks.ScavengerHooks.Scavenger_TryThrow;
+        On.Scavenger.PickUpAndPlaceInInventory += Hooks.ScavengerHooks.Scavenger_PickUpAndPlaceInInventory;
+        On.Scavenger.ReleaseGrasp += Hooks.ScavengerHooks.Scavenger_ReleaseGrasp;
+        On.ScavengerGraphics.ContainerForHeldItem += Hooks.ScavengerHooks.ScavengerGraphics_ContainerForHeldItem;
+        On.ScavengerGraphics.DrawSprites += Hooks.ScavengerHooks.ScavengerGraphics_DrawSprites;
+        On.ScavengerGraphics.ScavengerHand.Update += Hooks.ScavengerHooks.ScavengerHand_Update;
+        On.ScavengerGraphics.ScavengerHand.StandardLocomotionProcedure += Hooks.ScavengerHooks.ScavengerHand_StandardLocomotionProcedure;
+        On.ScavengerAI.CheckThrow += Hooks.ScavengerHooks.ScavengerAI_CheckThrow;
+        On.ScavengerAI.CollectScore_PhysicalObject_bool += Hooks.ScavengerHooks.ScavengerAI_CollectScore;
+        On.ScavengerAI.WeaponScore += Hooks.ScavengerHooks.ScavengerAI_WeaponScore;
+        On.ScavengerAI.CheckForScavangeItems += Hooks.ScavengerHooks.ScavengerAI_CheckForScavengeItems;
+        On.ScavengerAI.PickUpItemScore += Hooks.ScavengerHooks.ScavengerAI_PickUpItemScore;
+        On.ScavengerAI.RetrieveWeapon += Hooks.ScavengerHooks.ScavengerAI_RetrieveWeapon;
+        On.ScavengerAI.AttackBehavior += Hooks.ScavengerHooks.ScavengerAI_AttackBehavior;
+        On.ScavengerTreasury.ctor += Hooks.ScavengerHooks.ScavengerTreasury_ctor;
         #endregion
 
         #region Slugpup Hooks
@@ -124,5 +146,10 @@ public sealed class Plugin : BaseUnityPlugin
         On.Weapon.HitWall += Hooks.WeaponHooks.Weapon_HitWall;
         On.Weapon.Update += Hooks.WeaponHooks.Weapon_Update;
         #endregion
+
+        On.Player.Update += Hooks.PlayerHooks.Player_Update;
+
+        Type[] types = [typeof(RoomCamera.SpriteLeaser), typeof(RoomCamera), typeof(float), typeof(float2)];
+        new Hook(typeof(ScavengerGraphics.ScavengerHand).GetMethod("DrawSprites", types), Hooks.ScavengerHooks.ScavengerHand_DrawSprites);
     }
 }

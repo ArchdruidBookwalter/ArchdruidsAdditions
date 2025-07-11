@@ -12,9 +12,5 @@ public static class RainWorldHooks
     internal static void RainWorld_Update(On.RainWorld.orig_Update orig, RainWorld self)
     {
         orig(self);
-        if (Objects.Cursors.container != null)
-        {
-            Objects.Cursors.container.MoveToFront();
-        }
     }
 }

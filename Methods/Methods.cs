@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -123,45 +124,35 @@ namespace ArchdruidsAdditions.Methods
             float rotation = Custom.VecToDeg(Custom.DirVec(point1, point2));
             room.AddObject(new Objects.ColoredShapes.Rectangle(room, middlePos, 0.2f, dist, rotation, color, 0));
         }
-
-        public static class BeastmasterDependency
+        public static PhysicalObject CheckScavengerInventory(Scavenger scav, Type searchType, bool includeAllSpearTypes)
         {
-            private static bool? _modPresent;
-            public static bool modPresent
+            //Debug.Log(searchType);
+            int foundItemCount;
+            for (int i = 0; i < scav.grasps.Count(); i++)
             {
-                get
+                if (scav.grasps[i] is not null)
                 {
-                    if (_modPresent == null)
-                    { _modPresent = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("fyre.BeastMaster"); }
-                    return (bool)_modPresent;
+                    //Debug.Log(i + ": " + scav.grasps[i].grabbed.GetType());
+                    if (scav.grasps[i].grabbed.GetType() == searchType)
+                    {
+                        //Debug.Log("Found Type!");
+                        return scav.grasps[i].grabbed;
+                    }
+                    if (includeAllSpearTypes && searchType == typeof(Spear))
+                    {
+                        if (scav.grasps[i].grabbed.GetType().BaseType == typeof(Spear))
+                        {
+                            //Debug.Log("Found Type!");
+                            return scav.grasps[i].grabbed;
+                        }
+                    }
+                }
+                else
+                { //Debug.Log(i + ": EMPTY");
                 }
             }
-            [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-            public static void CreateHook(String methodName)
-            {
-                if (methodName == "DrawSprites")
-                {
-                    try
-                    {
-                        //new Hook(typeof(BeastMaster.BeastMaster).GetMethod("DrawSprites"), BeastmasterHooks.BeastMaster_DrawSprites);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogException(ex);
-                    }
-                }
-                else if (methodName == "RainWorldOnUpdate")
-                {
-                    try
-                    {
-                        //new Hook(typeof(BeastMaster.BeastMaster).GetMethod("RainWorldOnUpdate"), BeastmasterHooks.BeastMaster_OnRainWorldUpdate);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogException(ex);
-                    }
-                }
-            }
+            //Debug.Log("");
+            return null;
         }
 
         public static bool forceDefaultMouseVisible = false;

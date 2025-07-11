@@ -15,96 +15,6 @@ namespace ArchdruidsAdditions.Objects;
 public static class Cursors
 {
     public static FContainer container;
-    
-    public class AimCursor : UpdatableAndDeletable, IDrawable
-    {
-        public Player player;
-        public Vector2 pos;
-        public Vector2 rotation = new(0f, 1f);
-        public TriangleMesh mesh1;
-        public TriangleMesh mesh2;
-        public Color color;
-        public AimCursor(Player player, Vector2 pos)
-        {
-            this.player = player;
-            this.pos = pos;
-
-            SlugcatStats.Name name = player.slugcatStats.name;
-            color = PlayerGraphics.SlugcatColor(name);
-        }
-        public override void Destroy()
-        {
-            Methods.Methods.forceGameMouseHidden = false;
-            base.Destroy();
-        }
-        public override void Update(bool eu)
-        {
-            rotation = Custom.rotateVectorDeg(rotation, 6f);
-            Methods.Methods.forceGameMouseHidden = true;
-        }
-
-        public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
-        {
-            newContainer ??= rCam.ReturnFContainer("HUD");
-
-            foreach (FSprite fsprite in sLeaser.sprites)
-            {
-                fsprite.RemoveFromContainer();
-                newContainer.AddChild(fsprite);
-            }
-        }
-
-        public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
-        {
-        }
-
-        public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
-        {
-            Vector2 mesh1Pos = pos + rotation * 5f;
-            mesh1 = sLeaser.sprites[0] as TriangleMesh;
-            mesh1.MoveVertice(0, mesh1Pos);
-            mesh1.MoveVertice(1, mesh1Pos + Custom.rotateVectorDeg(rotation, 45) * 5f);
-            mesh1.MoveVertice(2, mesh1Pos + Custom.rotateVectorDeg(rotation, -45) * 5f);
-            mesh1.color = color;
-
-            Vector2 rotation2 = Custom.rotateVectorDeg(rotation, 180);
-            Vector2 mesh2Pos = pos + rotation2 * 5f;
-            mesh2 = sLeaser.sprites[1] as TriangleMesh;
-            mesh2.MoveVertice(0, mesh2Pos);
-            mesh2.MoveVertice(1, mesh2Pos + Custom.rotateVectorDeg(rotation2, 45) * 5f);
-            mesh2.MoveVertice(2, mesh2Pos + Custom.rotateVectorDeg(rotation2, -45) * 5f);
-            mesh2.color = color;
-
-            if (room.game.paused)
-            {
-                mesh1.isVisible = false;
-                mesh2.isVisible = false;
-            }
-            else
-            {
-                mesh1.isVisible = true;
-                mesh2.isVisible = true;
-            }
-
-            if (slatedForDeletetion || room != rCam.room)
-            {
-                sLeaser.CleanSpritesAndRemove();
-            }
-        }
-
-        public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
-        {
-            sLeaser.sprites = new FSprite[2];
-
-            TriangleMesh.Triangle[] array1 = [new TriangleMesh.Triangle(0, 1, 2)];
-            sLeaser.sprites[0] = new TriangleMesh("Futile_White", array1, false, false);
-
-            TriangleMesh.Triangle[] array2 = [new TriangleMesh.Triangle(0, 1, 2)];
-            sLeaser.sprites[1] = new TriangleMesh("Futile_White", array2, false, false);
-
-            AddToContainer(sLeaser, rCam, null);
-        }
-    }
     public class PointCursor : HudPart
     {
         public Player player;
@@ -120,13 +30,15 @@ public static class Cursors
         public TriangleMesh triangle2Sprite;
         public float visibility = 0;
         public float standStillCounter = 0;
+        public float hue, sat, val;
 
         public PointCursor(HUD.HUD hud, PlayerSpecificMultiplayerHud multiHud) : base(hud)
         {
             if (multiHud != null)
             { player = multiHud.RealizedPlayer; }
             else { player = hud.owner as Player; }
-            arrowColor = PlayerGraphics.SlugcatColor(player.slugcatStats.name);
+
+            arrowColor = new(1f, 1f, 1f);
 
             this.hud = hud;
 
@@ -211,7 +123,9 @@ public static class Cursors
                 triangle1Sprite.alpha = visibility;
                 triangle2Sprite.alpha = visibility;
                 arrowSprite.alpha = 0;
-                shadowSprite.alpha = 0;
+
+                shadowSprite.SetPosition(cursorPos);
+                shadowSprite.alpha = 0.1f;
             }
             else
             {

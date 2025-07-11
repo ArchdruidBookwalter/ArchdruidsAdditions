@@ -47,7 +47,7 @@ public static class SpearHooks
             Trackers.ThrowTracker tracker = Methods.Methods.GetTracker(self, self.room) as Trackers.ThrowTracker;
             if (tracker != null)
             {
-                //self.room.AddObject(new ColoredShapes.Rectangle(self.room, Vector2.Lerp(self.firstChunk.lastPos, self.firstChunk.pos, timeStacker), 1f, 1f, 45f, new(1f, 0f, 0f), 200));
+                //self.room.AddObject(new ColoredShapes.Rectangle(self.room, Vector2.Lerp(self.firstChunk.lastPos, self.firstChunk.pos, timeStacker), 1f, 1f, 45f, new(0f, 0f, 1f), 200));
                 if (self.firstChunk.vel.magnitude > 1000f)
                 {
                     self.firstChunk.vel = self.firstChunk.vel.normalized * 50f;
@@ -64,8 +64,34 @@ public static class SpearHooks
             self.addPoles = false;
             self.HitWall();
             self.firstChunk.vel = -self.firstChunk.vel;
-            Debug.Log("WARNING: StuckInWall was NULL!");
+            //Debug.Log("WARNING: StuckInWall was NULL!");
         }
+
+        /*
+        switch (self.mode.value)
+        {
+            case "Carried":
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "Carried", new(0f, 1f, 0f), 0));
+                break;
+            case "Free":
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "Free", new(0f, 1f, 0f), 0));
+                break;
+            case "Frozen":
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "Frozen", new(0f, 0f, 1f), 0));
+                break;
+            case "OnBack":
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "OnBack", new(0f, 1f, 0f), 0));
+                break;
+            case "StuckInCreature":
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "StuckInCreature", new(1f, 1f, 0f), 0));
+                break;
+            case "StuckInWall":
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "StuckInWall", new(1f, 1f, 0f), 0));
+                break;
+            case "Thrown":
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "Thrown", new(1f, 0f, 0f), 0));
+                break;
+        }*/
 
         orig(self, eu);
     }
@@ -74,11 +100,11 @@ public static class SpearHooks
         if (result.obj != null)
         {
             //self.room.AddObject(new ColoredShapes.Rectangle(self.room, result.collisionPoint, 2f, 2f, 45f, new(1f, 1f, 0f), 200));
-            Debug.Log("");
-            Debug.Log("Spear Hit Something?");
-            Debug.Log("Object: " + result.chunk.owner.ToString());
+            //Debug.Log("");
+            //Debug.Log("Spear Hit Something?");
+            //Debug.Log("Object: " + result.chunk.owner.ToString());
             //Debug.Log("Velocity: " + self.firstChunk.vel.magnitude);
-            Debug.Log("");
+            //Debug.Log("");
         }
         return orig(self, result, eu);
     }

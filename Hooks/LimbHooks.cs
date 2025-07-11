@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ArchdruidsAdditions.Objects;
 using RWCustom;
 using UnityEngine;
 
@@ -13,20 +14,25 @@ public static class LimbHooks
     internal static void SlugcatHand_Update(On.SlugcatHand.orig_Update orig, SlugcatHand self)
     {
         orig(self);
-        /*
-        if (self.mode == Limb.Mode.HuntAbsolutePosition || self.mode == Limb.Mode.HuntRelativePosition)
+    }
+    internal static void Limb_FindGrip(On.Limb.orig_FindGrip orig, Limb self, Room room, Vector2 attachedPos, Vector2 searchFromPos,
+        float maxRadius, Vector2 goalPos, int forbiddenXDirs, int forbiddenYDirs, bool behindWalls)
+    {
+        orig(self, room, attachedPos, searchFromPos, maxRadius, goalPos, forbiddenXDirs, forbiddenYDirs, behindWalls);
+        if (self is ScavengerGraphics.ScavengerHand scavHand && scavHand.scavenger.animation != null && scavHand.scavenger.animation is ScavengerAimBowAnimation aimAnim)
         {
-            foreach (UpdatableAndDeletable obj in self.owner.owner.room.updateList)
+            if (aimAnim.bowHand == scavHand)
             {
-                if (obj is Trackers.LimbTracker tracker && tracker.limb == self)
+                if (scavHand.scavenger.room != null && scavHand.scavenger.AI.focusCreature != null && scavHand.scavenger.AI.focusCreature.representedCreature.realizedCreature != null)
                 {
-                    self.mode = Limb.Mode.HuntAbsolutePosition;
-                    self.absoluteHuntPos = tracker.huntPos;
-                    self.pos = self.absoluteHuntPos;
-                    self.vel = Vector2.zero;
-                    break;
+                    Vector2 aimDir = Custom.DirVec(scavHand.scavenger.mainBodyChunk.pos, scavHand.scavenger.AI.focusCreature.representedCreature.realizedCreature.mainBodyChunk.pos);
+                    scavHand.mode = Limb.Mode.HuntAbsolutePosition;
+                    scavHand.absoluteHuntPos = scavHand.scavenger.mainBodyChunk.pos + aimDir * 40f;
+                    scavHand.grabPos = null;
                 }
+                aimAnim.bow.ChangeOverlap(true);
+                aimAnim.bow.loadedSpear.ChangeOverlap(true);
             }
-        }*/
+        }
     }
 }
