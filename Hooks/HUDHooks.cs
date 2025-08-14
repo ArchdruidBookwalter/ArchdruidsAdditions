@@ -31,4 +31,21 @@ public static class HUDHooks
             self.AddPart(new Cursors.PointCursor(self, multiHud));
         }
     }
+    internal static void HUD_Update(On.HUD.HUD.orig_Update orig, HUD.HUD self)
+    {
+        orig(self);
+        if (self.owner.GetOwnerType() == HUD.HUD.OwnerType.Player)
+        {
+            bool hasPointer = false;
+            foreach (HudPart part in self.parts)
+            {
+                if (part is Cursors.PointCursor)
+                { hasPointer = true; }
+            }
+            if (!hasPointer)
+            {
+                self.AddPart(new Cursors.PointCursor(self, null));
+            }
+        }
+    }
 }

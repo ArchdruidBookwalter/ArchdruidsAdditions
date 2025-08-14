@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using ArchdruidsAdditions.Hooks;
 using ArchdruidsAdditions.Objects;
 using MonoMod.RuntimeDetour;
@@ -54,6 +56,20 @@ namespace ArchdruidsAdditions.Methods
                             for (int i = 0; i < room.game.cameras.Length; i++)
                             { room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Items")); }
                         }
+                    }
+                }
+                else if (grabber is Scavenger scav)
+                {
+                    int layer = (scav.graphicsModule as ScavengerGraphics).ContainerForHeldItem(obj, graspUsed);
+                    if (layer == 1 || layer == 2)
+                    {
+                        for (int i = 0; i < room.game.cameras.Length; i++)
+                        { room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Items")); }
+                    }
+                    else if (layer == 0)
+                    {
+                        for (int i = 0; i < room.game.cameras.Length; i++)
+                        { room.game.cameras[i].MoveObjectToContainer(drawableObj, room.game.cameras[i].ReturnFContainer("Background")); }
                     }
                 }
             }
@@ -117,42 +133,58 @@ namespace ArchdruidsAdditions.Methods
             }
             return null;
         }
-        public static void CreateLineBetweenTwoPoints(Vector2 point1, Vector2 point2, Room room, Color color)
+        public static void CreateLineBetweenTwoPoints(Vector2 point1, Vector2 point2, Room room, string color)
         {
             Vector2 middlePos = Vector2.Lerp(point1, point2, 0.5f);
             float dist = Custom.Dist(point1, point2);
             float rotation = Custom.VecToDeg(Custom.DirVec(point1, point2));
             room.AddObject(new Objects.ColoredShapes.Rectangle(room, middlePos, 0.2f, dist, rotation, color, 0));
         }
-        public static PhysicalObject CheckScavengerInventory(Scavenger scav, Type searchType, bool includeAllSpearTypes)
+
+        public static void CreateDebugText(BodyChunk chunk, string text)
+        { chunk.owner.room.AddObject(new ColoredShapes.Text(chunk.owner.room, chunk.pos, text, "White", 0));}
+        public static void CreateDebugText(BodyChunk chunk, string text, string color)
+        { chunk.owner.room.AddObject(new ColoredShapes.Text(chunk.owner.room, chunk.pos, text, color, 0)); }
+        public static void CreateDebugText(BodyChunk chunk, string text, string color, int line)
+        { chunk.owner.room.AddObject(new ColoredShapes.Text(chunk.owner.room, new Vector2(chunk.pos.x, chunk.pos.y + 10 * line), text, color, 0)); }
+        public static void CreateDebugText(BodyChunk chunk, string text, string color, int line, int maxLife)
+        { chunk.owner.room.AddObject(new ColoredShapes.Text(chunk.owner.room, new Vector2(chunk.pos.x, chunk.pos.y + 10 * line), text, color, maxLife)); }
+
+        public static void CreateDebugSquareAtChunk(BodyChunk chunk)
+        { chunk.owner.room.AddObject(new ColoredShapes.Rectangle(chunk.owner.room, chunk.pos, 10f, 10f, 45f, "Yellow", 0)); }
+        public static void CreateDebugSquareAtChunk(BodyChunk chunk, string color)
+        { chunk.owner.room.AddObject(new ColoredShapes.Rectangle(chunk.owner.room, chunk.pos, 10f, 10f, 45f, color, 0)); }
+        public static void CreateDebugSquareAtChunk(BodyChunk chunk, string color, float size)
+        { chunk.owner.room.AddObject(new ColoredShapes.Rectangle(chunk.owner.room, chunk.pos, size, size, 45f, color, 0)); }
+        public static void CreateDebugSquareAtChunk(BodyChunk chunk, string color, float size, int maxLife)
+        { chunk.owner.room.AddObject(new ColoredShapes.Rectangle(chunk.owner.room, chunk.pos, size, size, 45f, color, maxLife)); }
+
+        public static void CreateDebugSquareAtPos(Vector2 pos, Room room)
+        { room.AddObject(new ColoredShapes.Rectangle(room, pos, 10f, 10f, 45f, "Yellow", 0)); }
+        public static void CreateDebugSquareAtPos(Vector2 pos, Room room, string color)
+        { room.AddObject(new ColoredShapes.Rectangle(room, pos, 10f, 10f, 45f, color, 0)); }
+        public static void CreateDebugSquareAtPos(Vector2 pos, Room room, string color, float size)
+        { room.AddObject(new ColoredShapes.Rectangle(room, pos, size, size, 45f, color, 0)); }
+        public static void CreateDebugSquareAtPos(Vector2 pos, Room room, string color, float size, int maxLife)
+        { room.AddObject(new ColoredShapes.Rectangle(room, pos, size, size, 45f, color, maxLife)); }
+
+
+        public static T Check<T>(Expression<Func<T>> expression)
         {
-            //Debug.Log(searchType);
-            int foundItemCount;
-            for (int i = 0; i < scav.grasps.Count(); i++)
-            {
-                if (scav.grasps[i] is not null)
-                {
-                    //Debug.Log(i + ": " + scav.grasps[i].grabbed.GetType());
-                    if (scav.grasps[i].grabbed.GetType() == searchType)
-                    {
-                        //Debug.Log("Found Type!");
-                        return scav.grasps[i].grabbed;
-                    }
-                    if (includeAllSpearTypes && searchType == typeof(Spear))
-                    {
-                        if (scav.grasps[i].grabbed.GetType().BaseType == typeof(Spear))
-                        {
-                            //Debug.Log("Found Type!");
-                            return scav.grasps[i].grabbed;
-                        }
-                    }
-                }
-                else
-                { //Debug.Log(i + ": EMPTY");
-                }
-            }
-            //Debug.Log("");
-            return null;
+            object o = Expression.Lambda(expression).Compile().DynamicInvoke();
+
+            if (o is T)
+            { return (T)o; }
+
+            var memberExp = expression.Body as MemberExpression;
+            if (memberExp is null)
+            { throw new NullReferenceException("A non-member expression was null."); }
+            var message = string.Format
+                (
+                "Null value detected at {0}.{1}",
+                memberExp.Member.DeclaringType.Name,
+                memberExp.Member.Name);
+            throw new NullReferenceException (message);
         }
 
         public static bool forceDefaultMouseVisible = false;

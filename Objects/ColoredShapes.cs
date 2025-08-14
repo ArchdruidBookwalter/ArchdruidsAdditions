@@ -23,16 +23,165 @@ public class ColoredShapes
         public int life;
         public int maxLife;
 
-        public Rectangle(Room room, Vector2 center, float width, float height, float rotation, Color color, int maxLife)
+        public Rectangle(Room room, Vector2 center, float width, float height, float rotation, string color, int maxLife)
         {
             this.center = center;
             this.width = width;
             this.height = height;
             this.rotation = rotation;
-            this.color = color;
             this.room = room;
             this.maxLife = maxLife;
             this.life = 0;
+
+            if (color == "Red")
+            {
+                this.color = new(1f, 0f, 0f);
+            }
+            else if (color == "Green")
+            {
+                this.color = new(0f, 1f, 0f);
+            }
+            else if (color == "Blue")
+            {
+                this.color = new(0f, 0f, 1f);
+            }
+            else if (color == "Yellow")
+            {
+                this.color = new(1f, 1f, 0f);
+            }
+            else if (color == "Purple")
+            {
+                this.color = new(1f, 0f, 1f);
+            }
+            else if (color == "White")
+            {
+                this.color = new(1f, 1f, 1f);
+            }
+            else if (color == "Black")
+            {
+                this.color = new(0.1f, 0.1f, 0.1f);
+            }
+        }
+
+        public override void Update(bool eu)
+        {
+            base.Update(eu);
+            life++;
+            if (life > maxLife)
+            {
+                Destroy();
+            }
+        }
+
+        public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
+        {
+            newContainer ??= rCam.ReturnFContainer("HUD");
+
+            foreach (FSprite fsprite in sLeaser.sprites)
+            {
+                fsprite.RemoveFromContainer();
+                newContainer.AddChild(fsprite);
+            }
+        }
+
+        public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
+        {
+        }
+
+        public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        {
+            sLeaser.sprites[0].SetPosition(center - camPos + Custom.rotateVectorDeg(new Vector2(0f, height / 2), rotation));
+            sLeaser.sprites[0].scaleX = width;
+            sLeaser.sprites[0].scaleY = 1f;
+
+            sLeaser.sprites[1].SetPosition(center - camPos + Custom.rotateVectorDeg(new Vector2(0f, -height / 2), rotation));
+            sLeaser.sprites[1].scaleX = width;
+            sLeaser.sprites[1].scaleY = 1f;
+
+            sLeaser.sprites[2].SetPosition(center - camPos + Custom.rotateVectorDeg(new Vector2(width / 2, 0f), rotation));
+            sLeaser.sprites[2].scaleX = 1f;
+            sLeaser.sprites[2].scaleY = height;
+
+            sLeaser.sprites[3].SetPosition(center - camPos + Custom.rotateVectorDeg(new Vector2(-width / 2, 0f), rotation));
+            sLeaser.sprites[3].scaleX = 1f;
+            sLeaser.sprites[3].scaleY = height;
+
+            foreach (FSprite sprite in sLeaser.sprites)
+            {
+                sprite.color = color;
+                sprite.rotation = rotation;
+                if (room != null && room.game.devToolsActive)
+                { sprite.alpha = 1; }
+                else { sprite.alpha = 0; }
+            }
+
+            if (slatedForDeletetion || room != rCam.room)
+            {
+                sLeaser.CleanSpritesAndRemove();
+            }
+        }
+
+        public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
+        {
+            sLeaser.sprites = new FSprite[4];
+
+            for (int i = 0; i < 4; i++)
+            {
+                sLeaser.sprites[i] = new FSprite("pixel", true);
+            }
+
+            AddToContainer(sLeaser, rCam, null);
+        }
+    }
+    public class SmallRectangle : UpdatableAndDeletable, IDrawable
+    {
+        public Vector2 center;
+        public float width;
+        public float height;
+        public float rotation;
+        public Color color;
+        public int life;
+        public int maxLife;
+
+        public SmallRectangle(Room room, Vector2 center, string color, int maxLife)
+        {
+            this.center = center;
+            this.width = 5f;
+            this.height = 5f;
+            this.rotation = 45f;
+            this.color = new(1f, 1f, 0f);
+            this.room = room;
+            this.maxLife = maxLife;
+            this.life = 0;
+
+            if (color == "Red")
+            {
+                this.color = new(1f, 0f, 0f);
+            }
+            else if (color == "Green")
+            {
+                this.color = new(0f, 1f, 0f);
+            }
+            else if (color == "Blue")
+            {
+                this.color = new(0f, 0f, 1f);
+            }
+            else if (color == "Yellow")
+            {
+                this.color = new(1f, 1f, 0f);
+            }
+            else if (color == "Purple")
+            {
+                this.color = new(1f, 0f, 1f);
+            }
+            else if (color == "White")
+            {
+                this.color = new(1f, 1f, 1f);
+            }
+            else if (color == "Black")
+            {
+                this.color = new(0.1f, 0.1f, 0.1f);
+            }
         }
 
         public override void Update(bool eu)
@@ -126,8 +275,6 @@ public class ColoredShapes
             this.maxLife = maxLife;
             life = 0;
         }
-        int countInt = 0;
-        int shaderIndex = 0;
         public override void Update(bool eu)
         {
             base.Update(eu);
@@ -190,7 +337,7 @@ public class ColoredShapes
         public FLabel label;
         public int lifeTime = 0;
 
-        public Text(Room room, Vector2 pos, String text, Color color, int maxLife)
+        public Text(Room room, Vector2 pos, String text, string color, int maxLife)
         {
             this.room = room;
             this.pos = pos;
@@ -199,7 +346,35 @@ public class ColoredShapes
             label = new FLabel(Custom.GetFont(), "TEST");
             label.alignment = FLabelAlignment.Center;
             label.text = text;
-            label.color = color;
+
+            if (color == "Red")
+            {
+                label.color = new(1f, 0f, 0f);
+            }
+            else if (color == "Green")
+            {
+                label.color = new(0f, 1f, 0f);
+            }
+            else if (color == "Blue")
+            {
+                label.color = new(0f, 0f, 1f);
+            }
+            else if (color == "Yellow")
+            {
+                label.color = new(1f, 1f, 0f);
+            }
+            else if (color == "Purple")
+            {
+                label.color = new(1f, 0f, 1f);
+            }
+            else if (color == "White")
+            {
+                label.color = new(1f, 1f, 1f);
+            }
+            else if (color == "Black")
+            {
+                label.color = new(0.1f, 0.1f, 0.1f);
+            }
         }
         public override void Update(bool eu)
         {

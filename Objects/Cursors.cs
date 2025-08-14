@@ -18,7 +18,7 @@ public static class Cursors
     public class PointCursor : HudPart
     {
         public Player player;
-        public PlayerSpecificMultiplayerHud multihud;
+        public PlayerSpecificMultiplayerHud multiHud;
         public Color arrowColor = new(1f, 1f, 1f);
         public Color shadowColor = new(0f, 0f, 0f);
         public Vector2 pos = new(0, 0);
@@ -34,13 +34,14 @@ public static class Cursors
 
         public PointCursor(HUD.HUD hud, PlayerSpecificMultiplayerHud multiHud) : base(hud)
         {
+            this.hud = hud;
+            this.multiHud = multiHud;
+
             if (multiHud != null)
             { player = multiHud.RealizedPlayer; }
             else { player = hud.owner as Player; }
 
             arrowColor = new(1f, 1f, 1f);
-
-            this.hud = hud;
 
             container = new FContainer();
             Futile.stage.AddChild(container);
@@ -71,6 +72,11 @@ public static class Cursors
         public override void Update()
         {
             base.Update();
+
+            if (multiHud != null)
+            { player = multiHud.RealizedPlayer; }
+            else { player = hud.owner as Player; }
+
             rotation = Custom.rotateVectorDeg(rotation, 5f);
 
             container.MoveToFront();
@@ -85,6 +91,7 @@ public static class Cursors
             { standStillCounter = 0; }
             lastPos = pos;
         }
+        Player.InputPackage? package = null;
         public override void Draw(float timeStacker)
         {
             base.Draw(timeStacker);
@@ -102,7 +109,23 @@ public static class Cursors
 
             if (bow != null && bow.aiming)
             {
-                Vector2 cursorPos = new(Futile.mousePosition.x, Futile.mousePosition.y);
+                package = bow.package;
+                if (player.input[0].x != 0)
+                {
+                }
+
+                if (bow.aimPos is null)
+                {
+                    if (Plugin.Options.aimBowControls.Value == "Mouse")
+                    {
+                        bow.aimPos = new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + bow.camPos;
+                    }
+                    else
+                    {
+                        bow.aimPos = player.mainBodyChunk.pos + new Vector2(0f, 50f);
+                    }
+                }
+                Vector2 cursorPos = bow.aimPos.Value - bow.camPos;
 
                 Vector2 mesh1Pos = cursorPos + rotation * 5f;
                 triangle1Sprite.MoveVertice(0, mesh1Pos);
@@ -126,6 +149,13 @@ public static class Cursors
 
                 shadowSprite.SetPosition(cursorPos);
                 shadowSprite.alpha = 0.1f;
+
+                if (Plugin.Options.aimBowControls.Value == "Directional Inputs")
+                {
+                    //triangle1Sprite.alpha = 0;
+                    //triangle2Sprite.alpha = 0;
+                    //shadowSprite.alpha = 0;
+                }
             }
             else
             {

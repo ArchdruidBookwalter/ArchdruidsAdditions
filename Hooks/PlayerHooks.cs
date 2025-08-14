@@ -43,6 +43,13 @@ public static class PlayerHooks
         }
         if (obj is Objects.Bow)
         {
+            foreach (Creature.Grasp grasp in self.grasps)
+            {
+                if (grasp != null && grasp.grabbed != null && grasp.grabbed is Bow)
+                {
+                    return Player.ObjectGrabability.CantGrab;
+                }
+            }
             return Player.ObjectGrabability.OneHand;
         }
         return orig(self, obj);
@@ -103,16 +110,14 @@ public static class PlayerHooks
     }
     internal static void Player_ThrowObject(On.Player.orig_ThrowObject orig, Player self, int grasp, bool eu)
     {
-        if (self.grasps[grasp].grabbed is Objects.ParrySword sword)
+        if (self.grasps[grasp].grabbed is ParrySword sword)
         {
             sword.Use();
             return;
         }
-        else if (self.grasps[grasp].grabbed is Objects.Bow bow)
+        else if (self.grasps[grasp].grabbed is Bow bow)
         {
-            PlayerGraphics graphics = self.graphicsModule as PlayerGraphics;
             int otherGrasp = grasp == 0 ? 1 : 0;
-
             if (self.grasps[otherGrasp] is not null &&
                 self.grasps[otherGrasp].grabbed is Spear spear &&
                 self.animation != Player.AnimationIndex.ClimbOnBeam &&
@@ -120,15 +125,19 @@ public static class PlayerHooks
             {
                 bow.LoadSpearIntoBow(spear);
             }
-
             return;
         }
         else if (self.grasps[grasp].grabbed is Spear spear2)
         {
             int otherGrasp = grasp == 0 ? 1 : 0;
-            if (self.grasps[otherGrasp] is not null && self.grasps[otherGrasp].grabbed is Objects.Bow bow2)
+            if (self.grasps[otherGrasp] is not null &&
+                self.grasps[otherGrasp].grabbed is Bow bow2)
             {
-                bow2.LoadSpearIntoBow(spear2);
+                if (self.animation != Player.AnimationIndex.ClimbOnBeam &&
+                self.animation != Player.AnimationIndex.HangFromBeam)
+                {
+                    bow2.LoadSpearIntoBow(spear2);
+                }
                 return;
             }
         }
@@ -146,29 +155,6 @@ public static class PlayerHooks
                 RoomCamera camera = room.game.cameras[0];
 
                 /*
-                var spriteLeasers = camera.spriteLeasers;
-                for (int i = 0; i < spriteLeasers.Count(); i++)
-                {
-                    var sLeaser = spriteLeasers[i];
-
-                    if (sLeaser.drawableObject is GraphicsModule || sLeaser.drawableObject is Objects.Potato || sLeaser.drawableObject is CosmeticInsect)
-                    {
-                        for (int j = 0; j < sLeaser.sprites.Count(); j++)
-                        {
-                            var sprite = sLeaser.sprites[j];
-
-                            if (sprite.isVisible && numOfSprites < 50 && Custom.Dist(sprite.GetPosition() + camera.pos, self.mainBodyChunk.pos) < 500f)
-                            {
-                                Color color = GetColor(j);
-
-                                Rect rect = sprite.GetTextureRectRelativeToContainer();
-                                room.AddObject(new Objects.ColoredShapes.Rectangle(room, rect.center + camera.pos, rect.width, rect.height, sprite.rotation, color, 1));
-                                numOfSprites++;
-                            }
-                        }
-                    }
-                }*/
-
                 for (int i = 0; i < 3; i++)
                 {
                     foreach (PhysicalObject obj in room.physicalObjects[i])
@@ -194,46 +180,79 @@ public static class PlayerHooks
                             room.AddObject(new Objects.ColoredShapes.Rectangle(room, vector, 5f, 5f, 45f, new(0f, 1f, 0f), 1));
                         }
                     }
-                }
-
-                Type[] types = [typeof(RoomCamera.SpriteLeaser), typeof(RoomCamera), typeof(float), typeof(float2)];
-                Debug.Log(typeof(ScavengerGraphics.ScavengerHand).GetMethod("DrawSprites", types));
+                }*/
             }
         }
     }
     internal static Vector2 Player_GetHeldItemDirection(On.Player.orig_GetHeldItemDirection orig, Player self, int hand)
     {
-        if (self.grasps[hand].grabbed is Bow bow && bow.getRotation)
+        Vector2 spearVec1 = Custom.DirVec(self.mainBodyChunk.pos, self.grasps[hand].grabbed.bodyChunks[0].pos) * ((hand == 0) ? (-1f) : 1f);
+        if (self.animation != Player.AnimationIndex.HangFromBeam)
+        { spearVec1 = Custom.PerpendicularVector(spearVec1); }
+        Vector2 spearVec2 = Custom.DegToVec((80f + Mathf.Cos((float)(self.animationFrame + (self.leftFoot ? 9 : 3)) / 12f * 2f * 3.1415927f) * 4f *
+            (self.graphicsModule as PlayerGraphics).spearDir) * (self.graphicsModule as PlayerGraphics).spearDir);
+
+        if (self.grasps[hand].grabbed is Bow bow)
         {
-            Vector2 bodyVec = Custom.DirVec(self.bodyChunks[0].pos, self.bodyChunks[1].pos);
-            Vector2 objVec = Custom.DirVec(self.bodyChunks[0].pos, bow.firstChunk.pos);
-            //Methods.Methods.CreateLineBetweenTwoPoints(self.bodyChunks[0].pos, self.bodyChunks[1].pos, self.room, new(1f, 0f, 0f));
-            //Methods.Methods.CreateLineBetweenTwoPoints(self.bodyChunks[0].pos, bow.firstChunk.pos, self.room, new(1f, 0f, 0f));
-
-            float spearDir = (self.graphicsModule as PlayerGraphics).spearDir;
-            //self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos + new Vector2(0f, 50f), spearDir.ToString(), new(1f, 1f, 1f), 0));
-            bool airborne = false;
-            if (self.bodyChunks[0].ContactPoint.ToVector2().magnitude == 0 && self.bodyChunks[1].ContactPoint.ToVector2().magnitude == 0)
-            { airborne = true; }
-            //self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos + new Vector2(0f, 70f), airborne.ToString(), new(1f, 1f, 1f), 0));
-
-            Vector2 newRot;
-            if (self.animation == Player.AnimationIndex.HangFromBeam || self.animation == Player.AnimationIndex.ClimbOnBeam)
+            if (self.bodyMode == Player.BodyModeIndex.Crawl)
             {
-                newRot = Custom.PerpendicularVector(orig(self, hand));
-                newRot.x = newRot.x * (hand == 0 ? 1 : -1);
+                Vector2 crawlVec = Custom.PerpendicularVector(orig(self, hand));
+                if (crawlVec.y > 0)
+                {
+                    crawlVec = Custom.rotateVectorDeg(crawlVec, 180);
+                }
+                return crawlVec;
             }
-            else if (self.bodyMode == Player.BodyModeIndex.Crawl || self.bodyMode == Player.BodyModeIndex.CorridorClimb)
+            else if (self.animation == Player.AnimationIndex.ClimbOnBeam)
+            { return Custom.PerpendicularVector(orig(self, hand)); }
+
+            Vector2 bowVec2 = Custom.DirVec(self.bodyChunks[0].pos, self.bodyChunks[1].pos);
+            Vector2 bowVec1 = Custom.rotateVectorDeg(bowVec2, (60 + Math.Abs(3 * self.bodyChunks[0].vel.y)) * ((hand == 0) ? 1f : -1f));
+            if (bow.getRotation)
             {
-                newRot = Custom.PerpendicularVector(bodyVec);
+                //self.room.AddObject(new ColoredShapes.Rectangle(self.room, self.grasps[hand].grabbed.firstChunk.pos + bowVec1 * 20f, 0.2f, 40f, Custom.VecToDeg(bowVec1), new(1f, 0f, 0f), 0));
+                //self.room.AddObject(new ColoredShapes.Rectangle(self.room, self.grasps[hand].grabbed.firstChunk.pos + bowVec2 * 20f, 0.2f, 40f, Custom.VecToDeg(bowVec2), new(0f, 1f, 0f), 0));
+            }
+            return Vector3.Slerp(bowVec1, bowVec2, Math.Abs((self.graphicsModule as PlayerGraphics).spearDir));
+        }
+        else if (self.grasps[hand].grabbed is Spear spear)
+        {
+            //self.room.AddObject(new ColoredShapes.Rectangle(self.room, spear.firstChunk.pos + spearVec1 * 20f, 0.2f, 40f, Custom.VecToDeg(spearVec1), new(1f, 0f, 0f), 0));
+            //self.room.AddObject(new ColoredShapes.Rectangle(self.room, spear.firstChunk.pos + spearVec2 * 20f, 0.2f, 40f, Custom.VecToDeg(spearVec2), new(0f, 1f, 0f), 0));
+        }
+        return orig(self, hand);
+    }
+    internal static void Player_MovementUpdate(On.Player.orig_MovementUpdate orig, Player self, bool eu)
+    {
+        bool aimingBow = false;
+
+        foreach (Creature.Grasp grasp in self.grasps)
+        {
+            if (grasp is not null && grasp.grabbed is not null && grasp.grabbed is Bow bow && bow.aiming)
+            {
+                aimingBow = true;
+            }
+        }
+
+        Player.InputPackage package = self.input[0];
+
+        if (aimingBow)
+        {
+            self.input[0].x = 0; self.input[0].analogueDir.x = 0;
+            if (self.bodyMode == Player.BodyModeIndex.Crawl)
+            {
+                if (self.input[0].y < 0 || self.input[0].analogueDir.y < 0)
+                { self.input[0].y = 0; self.input[0].analogueDir.y = 0; }
             }
             else
             {
-                newRot = Vector2.Lerp(objVec, bodyVec, Math.Abs(spearDir));
+                self.input[0].y = 0; self.input[0].analogueDir.y = 0;
             }
-            return Vector2.Lerp(newRot.normalized, bow.rotation, 0.3f);
         }
-        return orig(self, hand);
+
+        orig(self, eu);
+
+        self.input[0] = package;
     }
     public static Color GetColor(int index)
     {
@@ -284,9 +303,20 @@ public static class PlayerHooks
     #region PlayerGraphics
     internal static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
+        Player.InputPackage package = self.player.input[0];
+        foreach (Creature.Grasp grasp in self.player.grasps)
+        {
+            if (grasp != null && grasp.grabbed != null && grasp.grabbed is Bow bow && bow.aiming)
+            {
+                self.player.input[0].x = 0; self.player.input[0].analogueDir.x = 0;
+                if (self.player.input[0].y < 0 || self.player.input[0].analogueDir.y < 0)
+                { self.player.input[0].y = 0; self.player.input[0].analogueDir.y = 0; }
+            }
+        }
+
         orig(self, sLeaser, rCam, timeStacker, camPos);
 
-        //self.owner.room.AddObject(new Objects.ColoredShapes.Rectangle(self.owner.room, new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + rCam.pos, 1f, 1f, 45f, new Color(1f, 1f, 0f), 1));
+        self.player.input[0] = package;
 
         foreach (Creature.Grasp grasp in self.player.grasps)
         {

@@ -8,6 +8,8 @@ using System.ComponentModel.Composition;
 using MonoMod.RuntimeDetour;
 using UnityEngine;
 using System.ComponentModel.Composition.Hosting;
+using System.Runtime.CompilerServices;
+using Unity.Mathematics;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -70,6 +72,8 @@ public static class MainHooks
             Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions");
             oneShot = true;
         }
+
+        MachineConnector.SetRegisteredOI(Plugin.PLUGIN_GUID, Plugin.Options);
 
         Debug.Log("\"Archdruid's Additions\" HAS SUCCESSFULY HOOKED, \"OnModsInit\" METHOD. =============================================");
     }

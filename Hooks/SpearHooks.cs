@@ -8,6 +8,9 @@ using ArchdruidsAdditions.Objects;
 using UnityEngine;
 using RWCustom;
 using HarmonyLib;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
+using EffExt;
+using On;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -23,7 +26,6 @@ public static class SpearHooks
                 {
                     if (obj is not null && obj is Bow bow && bow.loadedSpear is not null && bow.loadedSpear == self)
                     {
-                        
                         Vector2 stringPos = bow.firstChunk.pos - bow.rotation * (bow.bowWidth / 2) - bow.rotation * bow.aimCharge;
                         Vector2 lastStringPos = bow.firstChunk.lastPos - bow.lastRotation * (bow.bowWidth / 2) - bow.lastRotation * bow.aimCharge;
                         Vector2 spearPos = stringPos + bow.rotation * 21f;
@@ -41,19 +43,17 @@ public static class SpearHooks
             }
         }
         orig(self, sLeaser, rCam, timeStacker, camPos);
-
-        if (self is not null && self.room is not null)
+        if (self.grabbedBy.Count > 0)
         {
-            Trackers.ThrowTracker tracker = Methods.Methods.GetTracker(self, self.room) as Trackers.ThrowTracker;
-            if (tracker != null)
+            foreach (Creature.Grasp grasp in self.grabbedBy[0].grabber.grasps)
             {
-                //self.room.AddObject(new ColoredShapes.Rectangle(self.room, Vector2.Lerp(self.firstChunk.lastPos, self.firstChunk.pos, timeStacker), 1f, 1f, 45f, new(0f, 0f, 1f), 200));
-                if (self.firstChunk.vel.magnitude > 1000f)
+                if (grasp != null && grasp.grabbed != null && grasp.grabbed is Bow bow)
                 {
-                    self.firstChunk.vel = self.firstChunk.vel.normalized * 50f;
-                    self.rotation = self.firstChunk.vel.normalized;
+                    if (bow.loadedSpear != null && bow.loadedSpear == self)
+                    {
+                        self.ChangeOverlap(true);
+                    }
                 }
-                //Debug.Log("Spear Velocity: " + self.firstChunk.vel.magnitude);
             }
         }
     }
@@ -64,48 +64,22 @@ public static class SpearHooks
             self.addPoles = false;
             self.HitWall();
             self.firstChunk.vel = -self.firstChunk.vel;
-            //Debug.Log("WARNING: StuckInWall was NULL!");
+            Debug.Log("WARNING: StuckInWall was NULL!");
         }
-
-        /*
-        switch (self.mode.value)
+        if (self.firstChunk.ContactPoint.y != 0 && self.mode == Weapon.Mode.Thrown)
         {
-            case "Carried":
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "Carried", new(0f, 1f, 0f), 0));
-                break;
-            case "Free":
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "Free", new(0f, 1f, 0f), 0));
-                break;
-            case "Frozen":
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "Frozen", new(0f, 0f, 1f), 0));
-                break;
-            case "OnBack":
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "OnBack", new(0f, 1f, 0f), 0));
-                break;
-            case "StuckInCreature":
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "StuckInCreature", new(1f, 1f, 0f), 0));
-                break;
-            case "StuckInWall":
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "StuckInWall", new(1f, 1f, 0f), 0));
-                break;
-            case "Thrown":
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.firstChunk.pos, "Thrown", new(1f, 0f, 0f), 0));
-                break;
-        }*/
-
+            self.ChangeMode(Weapon.Mode.Free);
+            Methods.Methods.CreateDebugSquareAtChunk(self.firstChunk);
+        }
         orig(self, eu);
     }
-    internal static bool Spear_HitSomething(On.Spear.orig_HitSomething orig, Spear self, SharedPhysics.CollisionResult result, bool eu)
+    internal static Vector2 ElectricSpear_ZapperAttachPos(On.MoreSlugcats.ElectricSpear.orig_ZapperAttachPos orig, MoreSlugcats.ElectricSpear self, float timeStacker, int node)
     {
-        if (result.obj != null)
+        if (self.mode == Weapon.Mode.StuckInCreature)
         {
-            //self.room.AddObject(new ColoredShapes.Rectangle(self.room, result.collisionPoint, 2f, 2f, 45f, new(1f, 1f, 0f), 200));
-            //Debug.Log("");
-            //Debug.Log("Spear Hit Something?");
-            //Debug.Log("Object: " + result.chunk.owner.ToString());
-            //Debug.Log("Velocity: " + self.firstChunk.vel.magnitude);
-            //Debug.Log("");
+            Vector2 rotation = Vector3.Slerp(self.lastRotation, self.rotation, timeStacker);
+            return orig(self, timeStacker, node) - rotation * 20f;
         }
-        return orig(self, result, eu);
+        return orig(self, timeStacker, node);
     }
 }

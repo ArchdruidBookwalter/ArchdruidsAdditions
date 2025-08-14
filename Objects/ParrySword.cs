@@ -772,10 +772,10 @@ public class ParrySword : Weapon, IDrawable
                 if (room.game.devToolsActive)
                 {
                     foreach (Vector2 position in positions)
-                    { room.AddObject(new ColoredShapes.Rectangle(room, position, 1.5f, 1.5f, 45f, new(1f, 0f, 0f), 1)); }
+                    { room.AddObject(new ColoredShapes.Rectangle(room, position, 1.5f, 1.5f, 45f, "Red", 1)); }
                     foreach (Vector2 position in lastTipPositions)
-                    { room.AddObject(new ColoredShapes.Rectangle(room, position, 1.5f, 1.5f, 45f, new(0f, 1f, 0f), 1)); }
-                    room.AddObject(new ColoredShapes.Rectangle(room, lastTipPositions[0], 2f, 2f, 45f, new(1f, 1f, 0f), 1));
+                    { room.AddObject(new ColoredShapes.Rectangle(room, position, 1.5f, 1.5f, 45f, "Green", 1)); }
+                    room.AddObject(new ColoredShapes.Rectangle(room, lastTipPositions[0], 2f, 2f, 45f, "Yellow", 1));
                 }
             }
             else

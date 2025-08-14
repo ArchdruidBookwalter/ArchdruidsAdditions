@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RWCustom;
 using UnityEngine;
+using Unity.Mathematics;
 using Random = UnityEngine.Random;
 using ArchdruidsAdditions.Methods;
 using System.Diagnostics.Eventing.Reader;
@@ -27,11 +28,17 @@ public class Bow : Weapon, IDrawable
     public Vector2 aimDirection = new(0, 1);
     public bool aiming;
     public float aimCharge;
+    public int lastDirection = 1;
+
     public int scavAimCharge;
+    public float standStillCount;
+    public bool scavWithinRange = false;
 
-    public bool getRotation;
+    public Vector2 camPos;
+    public Vector2? aimPos = null;
+    public Player.InputPackage? package = null;
+    public WorldCoordinate? scavStandPos = null;
 
-    Vector2 camPos;
     Color blackColor = new(0f, 0f, 0f);
 
     new public ChunkDynamicSoundLoop soundLoop;
@@ -63,7 +70,6 @@ public class Bow : Weapon, IDrawable
         lastSpearPos = spearPos;
 
         lastLayer = "Items";
-        getRotation = false;
 
         soundLoop = new ChunkDynamicSoundLoop(this.firstChunk);
         soundLoop.sound = SoundID.Rock_Skidding_On_Ground_LOOP;
@@ -76,7 +82,7 @@ public class Bow : Weapon, IDrawable
     {
         base.PlaceInRoom(placeRoom);
     }
-    bool oneShot = true;
+    public bool getRotation = false;
     public override void Update(bool eu)
     {
         base.Update(eu);
@@ -85,17 +91,10 @@ public class Bow : Weapon, IDrawable
         lastStringPos = stringPos;
         lastSpearPos = spearPos;
 
-        for (int i = 0; i < room.game.cameras.Length; i++)
-        {
-            room.game.cameras[i].MoveObjectToContainer(this, room.game.cameras[i].ReturnFContainer("Items"));
-        }
-
         if (rotationSpeed > 10f)
         { rotationSpeed = 10f; }
         else if (rotationSpeed < -10f)
         { rotationSpeed = -10f; }
-
-        //bool grabbedByPlayer = false;
 
         if (loadedSpear is not null)
         {
@@ -111,6 +110,11 @@ public class Bow : Weapon, IDrawable
             CollideWithObjects = false;
             CollideWithTerrain = false;
 
+            if (grabbedBy[0].grabber.mainBodyChunk.vel.magnitude < 1 && standStillCount < 10)
+            { standStillCount++; }
+            else
+            { standStillCount = 0; }
+
             if (aiming)
             {
                 rotation = aimDirection;
@@ -119,7 +123,7 @@ public class Bow : Weapon, IDrawable
                 {
                     soundLoop.Volume = 0f;
                 }
-                else if (aimCharge > 5)
+                else if (aimCharge > 1)
                 {
                     soundLoop.Volume = 1f;
                     if (soundLoop.Volume > 1f) { soundLoop.Volume = 1f; }
@@ -130,20 +134,34 @@ public class Bow : Weapon, IDrawable
                 bowWidth = 10f;
                 bowLength = 60f;
                 soundLoop.Volume = 0f;
+                aimCharge = 0;
+                scavAimCharge = 0;
                 if (grabbedBy[0].grabber is Player player)
                 {
                     getRotation = true;
                     rotation = player.GetHeldItemDirection(grabbedBy[0].graspUsed);
                     getRotation = false;
                 }
+                else if (grabbedBy[0].grabber is Scavenger scav && grabbedBy[0].graspUsed > 0)
+                {
+                    rotation = (scav.graphicsModule as ScavengerGraphics).ItemDirection(grabbedBy[0].graspUsed);
+                }
                 else
-                { rotation = Custom.DirVec(grabbedBy[0].grabber.mainBodyChunk.pos, firstChunk.pos); }
+                {
+                    rotation = Custom.DirVec(grabbedBy[0].grabber.mainBodyChunk.pos, firstChunk.pos);
+                }
+                loadedSpear = null;
             }
         }
         else
         {
             bowWidth = 10f;
             bowLength = 60f;
+            soundLoop.Volume = 0f;
+            aimCharge = 0;
+            scavAimCharge = 0;
+            standStillCount = 0;
+            scavStandPos = null;
 
             if (firstChunk.contactPoint.y != 0)
             { rotation = new Vector2(0f, 1f); }
@@ -152,13 +170,12 @@ public class Bow : Weapon, IDrawable
 
             CollideWithObjects = true;
             CollideWithTerrain = true;
+
+            loadedSpear = null; aiming = false;
         }
 
         stringPos = firstChunk.pos - rotation * (bowWidth / 2) - rotation * aimCharge;
         spearPos = stringPos + rotation * 20f;
-
-        //room.AddObject(new ColoredShapes.Rectangle(room, firstChunk.pos, 0.2f, 5f, Custom.VecToDeg(rotation), new(0f, 1f, 0f), 10));
-        //room.AddObject(new ColoredShapes.Rectangle(room, spearPos, 1f, 1f, Custom.VecToDeg(rotation), new(1f, 1f, 0f), 10));
     }
     public override void TerrainImpact(int chunk, IntVector2 direction, float speed, bool firstContact)
     {
@@ -179,9 +196,16 @@ public class Bow : Weapon, IDrawable
     {
         loadedSpear = spear;
         aiming = true;
+        room.PlaySound(SoundID.Slugcat_Pick_Up_Rock, firstChunk.pos, 1f, 1f);
 
     }
-    Vector2 mousePos = new(0f, 0f);
+    public void UnloadSpearFromBow()
+    {
+        if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Scavenger)
+        { loadedSpear.ChangeOverlap(false); }
+        loadedSpear = null;
+        aiming = false;
+    }
     public void AimBow(bool eu, Vector2 aimDirection)
     {
         if (grabbedBy.Count == 0)
@@ -191,6 +215,8 @@ public class Bow : Weapon, IDrawable
         }
         else if (grabbedBy[0].grabber is Player player)
         {
+            //Debug.Log(Plugin.Options.aimBowControls.Value);
+
             scavAimCharge = 0;
             Player.InputPackage input = player.input[0];
             PlayerGraphics graphics = player.graphicsModule as PlayerGraphics;
@@ -207,14 +233,12 @@ public class Bow : Weapon, IDrawable
                 if (aimCharge == 0)
                 { aimCharge = 0.01f; }
                 if (aimCharge < 20)
-                { aimCharge *= 1.2f; }
+                { aimCharge *= 1.5f; }
 
                 bowWidth = 10f + aimCharge / 20f;
                 bowLength = 60f - aimCharge / 5f;
 
-                loadedSpear.ChangeOverlap(true);
-
-                graphics.LookAtPoint(mousePos, 10f);
+                graphics.LookAtPoint(aimPos.Value, 10f);
             }
             else
             {
@@ -224,18 +248,28 @@ public class Bow : Weapon, IDrawable
                 bowHand.pushOutOfTerrain = true;
                 if (aimCharge >= 20 && !isPlayerBusy)
                 {
-                    Trackers.ThrowTracker tracker = new(loadedSpear, room, 60f, eu)
+                    float force = 40f;
+                    if (player.animation == Player.AnimationIndex.Flip)
+                    {
+                        force = 60f;
+                        loadedSpear.spearDamageBonus += 1f;
+                        for (int i = 0; i < Random.Range(10, 12); i++)
+                        {
+                            player.room.AddObject(new Spark(firstChunk.pos, Custom.rotateVectorDeg(-aimDirection, -3f + i / 2f) * force, new Color(1f, 1f, 1f), null, 6, 8));
+                        }
+                    }
+                    Trackers.ThrowTracker tracker = new(loadedSpear, room, force, eu)
                     {
                         thrownBy = player,
                         startPos = spearPos,
                         shootDir = aimDirection,
                     };
                     loadedSpear.room.AddObject(tracker);
-                    loadedSpear.setPosAndTail(spearPos);
+                    loadedSpear.setPosAndTail(player.mainBodyChunk.pos);
                     loadedSpear.rotation = aimDirection;
                     loadedSpear.firstFrameTraceFromPos = spearPos + aimDirection * 1f;
 
-                    IntVector2 vector = new IntVector2();
+                    IntVector2 vector;
                     if (aimDirection.x > aimDirection.y)
                     { vector = new(Math.Sign(aimDirection.x), 0); }
                     else
@@ -243,6 +277,8 @@ public class Bow : Weapon, IDrawable
 
                     loadedSpear.Thrown(player, spearPos, spearPos + aimDirection * 20f, vector, 1f, eu);
                     loadedSpear.AllGraspsLetGoOfThisObject(true);
+                    loadedSpear.firstChunk.vel = loadedSpear.firstChunk.vel.normalized * force;
+                    loadedSpear.setPosAndTail(player.mainBodyChunk.pos);
                 }
                 loadedSpear = null;
                 aimCharge = 0f;
@@ -252,23 +288,28 @@ public class Bow : Weapon, IDrawable
         }
         else if (grabbedBy[0].grabber is Scavenger scav)
         {
-            if (scavAimCharge > 0)
+            ScavengerGraphics graphics = scav.graphicsModule as ScavengerGraphics;
+            ScavengerGraphics.ScavengerHand bowHand = graphics.hands[0];
+            ScavengerGraphics.ScavengerHand arrowHand = graphics.hands[1];
+
+            if (scav.animation is ScavengerAimBowAnimation)
             {
                 if (aimCharge == 0)
                 { aimCharge = 0.01f; }
                 if (aimCharge < 20)
-                { aimCharge *= 1.2f; }
+                { aimCharge *= 1.5f; }
 
                 bowWidth = 10f + aimCharge / 20f;
                 bowLength = 60f - aimCharge / 5f;
-
-                loadedSpear.ChangeOverlap(true);
             }
             else
             {
+                arrowHand.mode = Limb.Mode.Dangle;
+                bowHand.mode = Limb.Mode.Dangle;
+
                 bowWidth = 10f;
                 bowLength = 60f;
-                if (aimCharge >= 20)
+                if (aimCharge >= 20 && scav.AI.currentViolenceType == ScavengerAI.ViolenceType.Lethal)
                 {
                     Trackers.ThrowTracker tracker = new(loadedSpear, room, 60f, eu)
                     {
@@ -290,11 +331,13 @@ public class Bow : Weapon, IDrawable
                     loadedSpear.Thrown(scav, spearPos, spearPos + aimDirection * 20f, vector, 1f, eu);
                     scav.ReleaseGrasp(loadedSpear.grabbedBy[0].graspUsed);
                     loadedSpear.AllGraspsLetGoOfThisObject(true);
+                    loadedSpear.firstChunk.vel = loadedSpear.firstChunk.vel.normalized * 40f;
+                    loadedSpear.setPosAndTail(spearPos);
                 }
                 loadedSpear = null;
                 aimCharge = 0f;
+                scavAimCharge = 0;
                 aiming = false;
-                //Debug.Log("Spear was fired!");
                 return;
             }
         }
@@ -330,10 +373,7 @@ public class Bow : Weapon, IDrawable
         }
         else
         {
-            /*if (loadedSpear is not null)
-            { Debug.Log("Spear is not Null"); }
-            else
-            { Debug.Log("Spear is null"); }*/
+            this.camPos = camPos;
 
             float newBowLength = bowLength - aimCharge / 10f;
 
@@ -345,17 +385,39 @@ public class Bow : Weapon, IDrawable
             Vector2 baseStringPos = Vector2.Lerp(handleEnd1Pos, handleEnd2Pos, 0.5f);
             Vector2 stringPos = baseStringPos - rotVec * aimCharge * 1.1f;
 
-            this.camPos = camPos;
-
             if (grabbedBy.Count > 0)
             {
                 Methods.Methods.ChangeItemSpriteLayer(this, grabbedBy[0].grabber, grabbedBy[0].graspUsed);
                 if (grabbedBy[0].grabber is Player player)
                 {
+                    if (player.input[0].x != 0)
+                    { lastDirection = player.input[0].x; }
+
+                    if (Plugin.Options.aimBowControls.Value == "Directional Inputs")
+                    { package = player.input[0]; }
+
+                    if (Plugin.Options.aimBowControls.Value == "Mouse")
+                    {
+                        aimPos = new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + camPos;
+                    }
+                    else
+                    {
+                        if (aiming && package.HasValue && aimPos.HasValue)
+                        {
+                            float speed = 10f;
+                            if (package.Value.pckp)
+                            { speed = 3f; }
+                            aimPos = new Vector2(aimPos.Value.x + package.Value.analogueDir.normalized.x * speed, aimPos.Value.y + package.Value.analogueDir.normalized.y * speed);
+                        }
+                        else
+                        {
+                            aimPos = player.mainBodyChunk.pos + new Vector2(50f * lastDirection, 0f);
+                        }
+                    }
+
                     if (aiming && loadedSpear != null && loadedSpear.grabbedBy.Count > 0)
                     {
-                        mousePos = new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + camPos;
-                        aimDirection = Custom.DirVec(player.mainBodyChunk.pos, mousePos);
+                        aimDirection = Custom.DirVec(player.mainBodyChunk.pos, aimPos.Value);
 
                         PlayerGraphics graphics = player.graphicsModule as PlayerGraphics;
                         SlugcatHand arrowHand = graphics.hands[loadedSpear.grabbedBy[0].graspUsed];
@@ -376,43 +438,40 @@ public class Bow : Weapon, IDrawable
                         bowHand.huntSpeed = 100f;
                         bowHand.quickness = 1f;
                         bowHand.pushOutOfTerrain = false;
-
-                        loadedSpear.ChangeOverlap(true);
-                    }
-                    if (room.game.devToolsActive && player.input.Length > 0 && player.input[0].y > 0)
-                    {
-                        //room.AddObject(new ColoredShapes.Rectangle(room, handleEnd1Pos, 1f, 1f, 45f, new Color(1f, 0f, 0f), 1));
-                        //room.AddObject(new ColoredShapes.Rectangle(room, handleEnd2Pos, 1f, 1f, 45f, new Color(1f, 0f, 0f), 1));
                     }
                 }
                 else if (grabbedBy[0].grabber is Scavenger scav)
                 {
-                    Tracker.CreatureRepresentation creature = scav.AI.focusCreature;
-                    if (aiming && loadedSpear != null && loadedSpear.grabbedBy.Count > 0 && creature is not null)
+                    if (scav.animation is ScavengerAimBowAnimation && scav.AI.focusCreature != null && scav.AI.focusCreature.representedCreature.realizedCreature != null)
                     {
-                        if (scav.animation is ScavengerAimBowAnimation)
-                        {
-                            aimDirection = Custom.DirVec(firstChunk.pos, creature.representedCreature.realizedCreature.mainBodyChunk.pos);
+                        Vector2 aimPos = scav.AI.focusCreature.representedCreature.realizedCreature.mainBodyChunk.pos;
+                        Vector2 scavPos = scav.mainBodyChunk.pos;
+                        float distance = Custom.Dist(new Vector2(aimPos.x, 0), new Vector2(scavPos.x, 0));
+                        aimDirection = Custom.DirVec(scav.mainBodyChunk.pos, new Vector2(aimPos.x, aimPos.y + distance * 0.05f));
 
-                            ScavengerGraphics graphics = scav.graphicsModule as ScavengerGraphics;
-                            ScavengerGraphics.ScavengerHand bowHand = graphics.hands[0];
-                            ScavengerGraphics.ScavengerHand arrowHand = graphics.hands[1];
+                        ScavengerGraphics graphics = scav.graphicsModule as ScavengerGraphics;
+                        ScavengerGraphics.ScavengerHand bowHand = graphics.hands[0];
+                        ScavengerGraphics.ScavengerHand arrowHand = graphics.hands[1];
 
-                            //scav.room.AddObject(new ColoredShapes.Rectangle(scav.room, bowHand.pos, 2f, 2f, 45f, new(1f, 1f, 0f), 1));
-                            //scav.room.AddObject(new ColoredShapes.Rectangle(scav.room, arrowHand.pos, 2f, 2f, 45f, new(1f, 0f, 0f), 1));
+                        arrowHand.pos = stringPos;
+                        arrowHand.absoluteHuntPos = stringPos;
+                        arrowHand.huntSpeed = 100f;
+                        arrowHand.quickness = 1f;
+                        arrowHand.pushOutOfTerrain = false;
+                        arrowHand.mode = Limb.Mode.HuntAbsolutePosition;
 
-                            /*
-                            bowHand.pos = scav.mainBodyChunk.pos + aimDirection * 40f;
-                            bowHand.mode = Limb.Mode.HuntAbsolutePosition;
-                            bowHand.absoluteHuntPos = scav.mainBodyChunk.pos + aimDirection * 100f;
-                            bowHand.huntSpeed = 100f;
-                            bowHand.quickness = 1f;
-                            bowHand.pushOutOfTerrain = false;*/
-                        }
-                        loadedSpear.ChangeOverlap(true);
+                        bowHand.absoluteHuntPos = scav.mainBodyChunk.pos + aimDirection * 100f;
+                        bowHand.huntSpeed = 100f;
+                        bowHand.quickness = 1f;
+                        bowHand.pushOutOfTerrain = false;
+                        bowHand.mode = Limb.Mode.HuntAbsolutePosition;
                     }
                 }
-                //Methods.Methods.CreateLineBetweenTwoPoints(firstChunk.pos, firstChunk.pos + aimDirection * 40f, room, new(1f, 0f, 0f));
+                if (aiming && loadedSpear != null)
+                {
+                    ChangeOverlap(true);
+                    loadedSpear.ChangeOverlap(true);
+                }
             }
 
             sLeaser.sprites[0].x = bowMiddlePos.x - camPos.x;

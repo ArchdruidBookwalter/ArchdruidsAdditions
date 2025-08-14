@@ -57,35 +57,27 @@ public static class WeaponHooks
                     spear.alwaysStickInWalls = true;
                     spear.doNotTumbleAtLowSpeed = true;
 
-                    float rot; //= Custom.VecToDeg(spear.rotation);
-                    float thr; //= Custom.VecToDeg(spear.throwDir.ToVector2());
-
-                    /*
-                    Vector2 middlePos = Vector2.Lerp(spear.firstChunk.pos, spear.firstChunk.lastPos, 0.5f);
-                    float dist = Custom.Dist(spear.firstChunk.lastPos, spear.firstChunk.pos);
-                    float rot2 = Custom.VecToDeg(Custom.DirVec(spear.firstChunk.lastPos, spear.firstChunk.pos));
-                    Color color = new(1f, 0f, 0f);
-                    if (Mathf.Abs(Mathf.Abs(rot) - Mathf.Abs(thr)) < 10)
-                    { color = new(0f, 1f, 0f); }
-                    self.room.AddObject(new ColoredShapes.Rectangle(self.room, middlePos, 0.1f, dist, rot, color, 200));*/
-
+                    float rot; 
+                    float thr; 
                     IntVector2 contactPoint = spear.firstChunk.contactPoint;
                     if (contactPoint.x != 0 || contactPoint.y != 0)
                     {
-                        //self.room.AddObject(new ColoredShapes.Rectangle(self.room, spear.firstChunk.pos, 2f, 2f, 45f, new(1f, 1f, 0f), 200));
                         spear.firstChunk.vel = tracker.lastVel;
                         spear.rotation = spear.firstChunk.vel.normalized;
                         rot = Custom.VecToDeg(spear.rotation);
                         thr = Custom.VecToDeg(spear.throwDir.ToVector2());
                         if (spear.firstChunk.vel.magnitude > 30 && spear.throwDir == spear.firstChunk.ContactPoint && Mathf.Abs(Mathf.Abs(rot) - Mathf.Abs(thr)) < 10)
                         {
-                            Debug.Log("Spear Stuck!");
+                            //Debug.Log("Spear Stuck!");
                         }
                         else if (tracker.tickCount > 0)
                         {
                             spear.alwaysStickInWalls = false;
-                            spear.HitWall();
-                            Debug.Log("Spear Bounced!");
+                            if (contactPoint.y != 0 && Math.Abs(spear.firstChunk.vel.normalized.y) < 0.1f)
+                            { spear.ChangeMode(Weapon.Mode.Free); }
+                            else
+                            { spear.HitWall(); }
+                            //Debug.Log("Spear Bounced!");
                         }
                     }
                     else

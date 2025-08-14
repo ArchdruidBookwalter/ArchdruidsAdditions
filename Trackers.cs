@@ -36,5 +36,57 @@ public class Trackers
             this.force = force;
             this.eu = eu;
         }
+
+        public void Update()
+        {
+            tickCount++;
+            if (tickCount > 5 && weapon.grabbedBy.Count > 0)
+            { Destroy(); }
+        }
+    }
+    public class PlayerWalkSpeedTracker : UpdatableAndDeletable
+    {
+        public Player player;
+        public int speedFactor;
+        public int animFrame = 0;
+        public int frameCounter = 0;
+
+        public PlayerWalkSpeedTracker(Player player, int speedFactor)
+        {
+            this.player = player;
+            this.speedFactor = speedFactor;
+        }
+        public override void Update(bool eu)
+        {
+            base.Update(eu);
+            if (player.room != room)
+            {
+                Destroy();
+                return;
+            }
+
+            frameCounter++;
+            if (frameCounter >= speedFactor)
+            {
+                animFrame++;
+                frameCounter = 0;
+            }
+
+            player.animationFrame = animFrame;
+        }
+    }
+
+    public class SpearTracker : UpdatableAndDeletable
+    {
+        public Spear spear;
+        public SpearTracker(Spear spear, Room room)
+        {
+            this.spear = spear;
+            this.room = room;
+        }
+
+        public void FastUpdate()
+        {
+        }
     }
 }
