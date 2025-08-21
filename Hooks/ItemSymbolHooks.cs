@@ -44,7 +44,7 @@ public static class ItemSymbolHooks
         }
         else if (itemType == Enums.AbstractObjectType.ParrySword)
         {
-            color = new Color(0f, 1f, 0.5f);
+            color = new Color(1f, 0.79f, 0.3f);
         }
         else if (itemType == Enums.AbstractObjectType.Potato)
         {

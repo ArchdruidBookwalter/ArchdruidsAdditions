@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ArchdruidsAdditions.Objects;
+using RWCustom;
+using UnityEngine;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -54,9 +56,18 @@ public static class IteratorHooks
             }
             else if (item == Enums.MiscItemType.Potato)
             {
-                self.events.Add(new Conversation.TextEvent(self, 80, self.Translate(
+                self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
-                    "This is a plant. What more is there to say about it? I suppose the roots look edible enough for you to eat."
+                    "This is just a plant... What else is there to say about it? I suppose the roots look edible enough for you to eat."
+
+                    ), 0));
+            }
+            else if (item == Enums.MiscItemType.Bow)
+            {
+                self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
+
+                    "It's a bow, made from scavenged materials. The design is primitive," +
+                    "<LINE>but I assume it must be effective enough to be useful to you, <PLAYERNAME>."
 
                     ), 0));
             }
@@ -64,27 +75,34 @@ public static class IteratorHooks
     }
     internal static SLOracleBehaviorHasMark.MiscItemType On_SLOracleBehaviorHasMark_TypeOfMiscItem(On.SLOracleBehaviorHasMark.orig_TypeOfMiscItem orig, SLOracleBehaviorHasMark self, PhysicalObject obj)
     {
-        if (obj is Objects.ScarletFlowerBulb)
-        {
-            return Enums.MiscItemType.ScarletFlowerBulb;
-        }
-        if (obj is Objects.ParrySword)
-        {
-            return Enums.MiscItemType.ParrySword;
-        }
-        if (obj is Objects.Potato)
-        {
-            return Enums.MiscItemType.Potato;
-        }
+        if (obj is ScarletFlowerBulb)
+        { return Enums.MiscItemType.ScarletFlowerBulb; }
+
+        if (obj is ParrySword)
+        { return Enums.MiscItemType.ParrySword; }
+
+        if (obj is Potato)
+        { return Enums.MiscItemType.Potato; }
+
+        if (obj is Bow)
+        { return Enums.MiscItemType.Bow; }
+
         return orig(self, obj);
     }
     internal static void On_SLOracleBehavior_Update(On.SLOracleBehavior.orig_Update orig, SLOracleBehavior self, bool eu)
     {
         orig(self, eu);
-        if (self.holdingObject != null && self.holdingObject is ParrySword sword)
+        if (self.holdingObject != null)
         {
-            sword.rotation = new(1f, 0f);
-            sword.spinning = false;
+            if (self.holdingObject is ParrySword sword)
+            {
+                sword.rotation = new(1f, 0f);
+                sword.spinning = false;
+            }
+            else if (self.holdingObject is Bow bow)
+            {
+                bow.rotation = Vector2.Lerp(bow.rotation, Custom.DirVec(self.oracle.bodyChunks[0].pos, bow.firstChunk.pos), 0.5f);
+            }
         }
     }
 }
