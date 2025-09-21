@@ -17,7 +17,6 @@ public static class MainHooks
 {
     public const BindingFlags ALL_FLAGS = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic;
 
-    static bool oneShot;
     public static bool beastMasterActive = false;
     public static bool mouseDragActive = false;
     internal static void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
@@ -66,16 +65,20 @@ public static class MainHooks
         }
         #endregion
 
-        if (oneShot == false)
-        {
-            Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions");
-            Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions");
-            oneShot = true;
-        }
-
         MachineConnector.SetRegisteredOI(Plugin.PLUGIN_GUID, Plugin.Options);
 
         Debug.Log("\"Archdruid's Additions\" HAS SUCCESSFULY HOOKED, \"OnModsInit\" METHOD. =============================================");
+
+        Enums.AAEnums.RegisterAllEnums();
+
+        try
+        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions"); }
+        catch
+        { Debug.Log("ScarletFlower has already been placed in correct Devtools category."); }
+        try
+        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions"); }
+        catch
+        { Debug.Log("Potato has already been placed in correct Devtools category."); }
     }
     internal static void RainWorld_UnloadResources(On.RainWorld.orig_UnloadResources orig, RainWorld self)
     {
@@ -103,7 +106,25 @@ public static class MainHooks
     }
     internal static void RainWorld_OnModsEnabled(On.RainWorld.orig_OnModsEnabled orig, RainWorld self, ModManager.Mod[] newlyEnabledMods)
     {
-        orig(self, newlyEnabledMods); 
+        orig(self, newlyEnabledMods);
+        foreach (var mod in newlyEnabledMods)
+        {
+            if (mod.id == "archdruidbookwalter.archdruidsadditions")
+            {
+                Enums.AAEnums.RegisterAllEnums();
+
+                try
+                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions"); }
+                catch
+                { Debug.Log("ScarletFlower has already been placed in correct Devtools category."); }
+                try
+                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions"); }
+                catch
+                { Debug.Log("Potato has already been placed in correct Devtools category."); }
+
+                break;
+            }
+        }
     }
     internal static void RainWorld_OnModsDisabled(On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
     {
@@ -128,12 +149,7 @@ public static class MainHooks
                 {
                     MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.Potato);
                 }
-                Enums.AbstractObjectType.UnregisterValues();
-                Enums.MiscItemType.UnregisterValues();
-                Enums.MultiplayerItemType.UnregisterValues();
-                Enums.PlacedObjectType.UnregisterValues();
-                Enums.SandboxUnlockID.UnregisterValues();
-                Enums.ScavengerAnimationID.UnregisterValues();
+                Enums.AAEnums.UnregisterAllEnums();
                 break;
             }
         }

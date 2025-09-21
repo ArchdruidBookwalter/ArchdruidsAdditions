@@ -52,27 +52,4 @@ namespace ArchdruidsAdditions.Objects
             }
         }
     }
-    internal class ScavengerHoldBowAnimation : Scavenger.ScavengerAnimation
-    {
-        public Bow bow;
-        public Vector2 lookPos;
-        public int holdTimer;
-
-        public ScavengerHoldBowAnimation(Scavenger scavenger, Bow bow, Vector2 lookPos) : base(scavenger, Enums.ScavengerAnimationID.HoldBow)
-        {
-            this.bow = bow;
-            this.lookPos = lookPos;
-
-            holdTimer = 0;
-        }
-
-        public override void Update()
-        {
-            base.Update();
-            if (bow != null)
-            {
-                lookPos = bow.firstChunk.pos + bow.aimDirection * 50;
-            }
-        }
-    }
 }

@@ -24,8 +24,16 @@ namespace ArchdruidsAdditions.Configuration
                     []    
                 )
             );
+            spawnBowsEverywhere = config.Bind<bool>
+            ("SpawnBowsEverywhere", false,
+                new ConfigurableInfo
+                (
+                    "Enable this to make bows spawn in all regions."
+                )
+            );
         }
         public readonly Configurable<string> aimBowControls;
+        public readonly Configurable<bool> spawnBowsEverywhere;
 
         public override void Initialize()
         {
@@ -35,15 +43,15 @@ namespace ArchdruidsAdditions.Configuration
                 Tabs = [optionsTab];
 
                 Vector2 startPos = new(300f, 520f);
-                optionsTab.AddItems(new UIelement[]
-                {
+                optionsTab.AddItems(
+                [
                     new OpLabel(new Vector2(startPos.x - 150f, startPos.y), new Vector2(300f, 30f), "~ Archdruid's Additions : Options ~", FLabelAlignment.Center, true)
                     {
                         verticalAlignment = OpLabel.LabelVAlignment.Center,
                     }
-                });
-                optionsTab.AddItems(new UIelement[]
-                {
+                ]);
+                optionsTab.AddItems(
+                [
                     new OpLabel(startPos + new Vector2(-305f, -52f), new Vector2(300f, 30f), "Bow Controls:", FLabelAlignment.Right, false)
                     {
                         verticalAlignment = OpLabel.LabelVAlignment.Center,
@@ -52,14 +60,18 @@ namespace ArchdruidsAdditions.Configuration
                     new OpComboBox(aimBowControls, startPos + new Vector2(5f, -50f), 140f)
                     {
                     }
-                });
-                for (int i = 0; i < 13; i++)
-                {
-                    for (int j = 0; j < 16; j++)
+                ]);
+                optionsTab.AddItems(
+                [
+                    new OpLabel(startPos + new Vector2(-305f, -82f), new Vector2(300f, 30f), "Spawn Bows Everywhere:", FLabelAlignment.Right, false)
                     {
-                        //AddPoint(optionsTab, new Vector2(i * 50, j * 50));
+                        verticalAlignment = OpLabel.LabelVAlignment.Center,
+                        description = spawnBowsEverywhere.info.description,
+                    },
+                    new OpCheckBox(spawnBowsEverywhere, startPos + new Vector2(5f, -80f))
+                    {
                     }
-                }
+                ]);
             }
             catch (Exception ex)
             {

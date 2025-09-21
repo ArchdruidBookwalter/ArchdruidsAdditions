@@ -5,45 +5,48 @@ using System.Text;
 using System.Threading.Tasks;
 using ArchdruidsAdditions.Objects;
 using DevInterface;
+using static ArchdruidsAdditions.Effects.LightRodPowerEffect;
 
 namespace ArchdruidsAdditions.Enums;
 
-public static class AbstractObjectType
+public class AAEnums
 {
-    public static AbstractPhysicalObject.AbstractObjectType Bow = new("Bow", true);
-    public static AbstractPhysicalObject.AbstractObjectType ScarletFlowerBulb = new("ScarletFlowerBulb", true);
-    public static AbstractPhysicalObject.AbstractObjectType ParrySword = new("ParrySword", true);
-    public static AbstractPhysicalObject.AbstractObjectType Potato = new("Potato", true);
-    public static void UnregisterValues()
+    public static void RegisterAllEnums()
     {
-        if (Bow != null)
-        {
-            Bow.Unregister();
-            Bow = null;
-        }
-        if (ScarletFlowerBulb != null)
-        {
-            ScarletFlowerBulb.Unregister();
-            ScarletFlowerBulb = null;
-        }
-        if (ParrySword != null)
-        {
-            ParrySword.Unregister();
-            ParrySword = null;
-        }
-        if (Potato != null)
-        {
-            Potato.Unregister();
-            Potato = null;
-        }
+        AbstractObjectType.RegisterValues();
+        MiscItemType.RegisterValues();
+        MultiplayerItemType.RegisterValues();
+        PlacedObjectType.RegisterValues();
+        SandboxUnlockID.RegisterValues();
+        ScavengerAnimationID.RegisterValues();
+        CreatureTemplateType.RegisterValues();
+    }
+    public static void UnregisterAllEnums()
+    {
+        AbstractObjectType.UnregisterValues();
+        MiscItemType.UnregisterValues();
+        MultiplayerItemType.UnregisterValues();
+        PlacedObjectType.UnregisterValues();
+        SandboxUnlockID.UnregisterValues();
+        ScavengerAnimationID.UnregisterValues();
+        CreatureTemplateType.UnregisterValues();
     }
 }
-public static class MiscItemType
+
+public class AbstractObjectType
 {
-    public static SLOracleBehaviorHasMark.MiscItemType Bow = new("Bow", true);
-    public static SLOracleBehaviorHasMark.MiscItemType ScarletFlowerBulb = new("ScarletFlowerBulb", true);
-    public static SLOracleBehaviorHasMark.MiscItemType ParrySword = new("ParrySword", true);
-    public static SLOracleBehaviorHasMark.MiscItemType Potato = new("Potato", true);
+    public static AbstractPhysicalObject.AbstractObjectType Bow;
+    public static AbstractPhysicalObject.AbstractObjectType ScarletFlowerBulb;
+    public static AbstractPhysicalObject.AbstractObjectType ParrySword;
+    public static AbstractPhysicalObject.AbstractObjectType Potato;
+
+    public static void RegisterValues()
+    {
+        Bow = new("Bow", true);
+        ScarletFlowerBulb = new("ScarletFlowerBulb", true);
+        ParrySword = new("ParrySword", true);
+        Potato = new("Potato", true);
+    }
 
     public static void UnregisterValues()
     {
@@ -69,12 +72,21 @@ public static class MiscItemType
         }
     }
 }
-public static class MultiplayerItemType
+public class MiscItemType
 {
-    public static PlacedObject.MultiplayerItemData.Type Bow = new("Bow", true);
-    public static PlacedObject.MultiplayerItemData.Type ScarletFlowerBulb = new("ScarletFlowerBulb", true);
-    public static PlacedObject.MultiplayerItemData.Type ParrySword = new("ParrySword", true);
-    public static PlacedObject.MultiplayerItemData.Type Potato = new("Potato", true);
+    public static SLOracleBehaviorHasMark.MiscItemType Bow;
+    public static SLOracleBehaviorHasMark.MiscItemType ScarletFlowerBulb;
+    public static SLOracleBehaviorHasMark.MiscItemType ParrySword;
+    public static SLOracleBehaviorHasMark.MiscItemType Potato;
+
+    public static void RegisterValues()
+    {
+        Bow = new("Bow", true);
+        ScarletFlowerBulb = new("ScarletFlowerBulb", true);
+        ParrySword = new("ParrySword", true);
+        Potato = new("Potato", true);
+    }
+
     public static void UnregisterValues()
     {
         if (Bow != null)
@@ -99,10 +111,56 @@ public static class MultiplayerItemType
         }
     }
 }
-public static class PlacedObjectType
+public class MultiplayerItemType
 {
-    public static PlacedObject.Type ScarletFlower = new("ScarletFlower", true);
-    public static PlacedObject.Type Potato = new("Potato", true);
+    public static PlacedObject.MultiplayerItemData.Type Bow;
+    public static PlacedObject.MultiplayerItemData.Type ScarletFlowerBulb;
+    public static PlacedObject.MultiplayerItemData.Type ParrySword;
+    public static PlacedObject.MultiplayerItemData.Type Potato;
+
+    public static void RegisterValues()
+    {
+        Bow = new("Bow", true);
+        ScarletFlowerBulb = new("ScarletFlowerBulb", true);
+        ParrySword = new("ParrySword", true);
+        Potato = new("Potato", true);
+    }
+
+    public static void UnregisterValues()
+    {
+        if (Bow != null)
+        {
+            Bow.Unregister();
+            Bow = null;
+        }
+        if (ScarletFlowerBulb != null)
+        {
+            ScarletFlowerBulb.Unregister();
+            ScarletFlowerBulb = null;
+        }
+        if (ParrySword != null)
+        {
+            ParrySword.Unregister();
+            ParrySword = null;
+        }
+        if (Potato != null)
+        {
+            Potato.Unregister();
+            Potato = null;
+        }
+    }
+}
+public class PlacedObjectType
+{
+    public static PlacedObject.Type ScarletFlower;
+    public static PlacedObject.Type Potato;
+
+    public static void RegisterValues()
+    {
+        ScarletFlower = new("ScarletFlower", true);
+        Potato = new("Potato", true);
+    }
+
     public static void UnregisterValues()
     {
         if (ScarletFlower != null)
@@ -117,12 +175,21 @@ public static class PlacedObjectType
         }
     }
 }
-public static class SandboxUnlockID
+public class SandboxUnlockID
 {
-    public static MultiplayerUnlocks.SandboxUnlockID Bow = new("Bow", true);
-    public static MultiplayerUnlocks.SandboxUnlockID ScarletFlowerBulb = new("ScarletFlowerBulb", true);
-    public static MultiplayerUnlocks.SandboxUnlockID ParrySword = new("ParrySword", true);
-    public static MultiplayerUnlocks.SandboxUnlockID Potato = new("Potato", true);
+    public static MultiplayerUnlocks.SandboxUnlockID Bow;
+    public static MultiplayerUnlocks.SandboxUnlockID ScarletFlowerBulb;
+    public static MultiplayerUnlocks.SandboxUnlockID ParrySword;
+    public static MultiplayerUnlocks.SandboxUnlockID Potato;
+
+    public static void RegisterValues()
+    {
+        Bow = new("Bow", true);
+        ScarletFlowerBulb = new("ScarletFlowerBulb", true);
+        ParrySword = new("ParrySword", true);
+        Potato = new("Potato", true);
+    }
+
     public static void UnregisterValues()
     {
         if (Bow != null)
@@ -147,11 +214,14 @@ public static class SandboxUnlockID
         }
     }
 }
-
-public static class ScavengerAnimationID
+public class ScavengerAnimationID
 {
-    public static Scavenger.ScavengerAnimation.ID AimBow = new("AimBow", true);
-    public static Scavenger.ScavengerAnimation.ID HoldBow = new("HoldBow", true);
+    public static Scavenger.ScavengerAnimation.ID AimBow;
+
+    public static void RegisterValues()
+    {
+        AimBow = new("AimBow", true);
+    }
 
     public static void UnregisterValues()
     {
@@ -160,10 +230,23 @@ public static class ScavengerAnimationID
             AimBow.Unregister();
             AimBow = null;
         }
-        if (HoldBow != null)
+    }
+}
+public class CreatureTemplateType
+{
+    public static CreatureTemplate.Type Herring;
+
+    public static void RegisterValues()
+    {
+        Herring = new("Herring", true);
+    }
+
+    public static void UnregisterValues()
+    {
+        if (Herring != null)
         {
-            HoldBow.Unregister();
-            HoldBow = null;
+            Herring.Unregister();
+            Herring = null;
         }
     }
 }

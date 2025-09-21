@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -69,5 +65,23 @@ public static class RoomHooks
                 }
             }
         }
+    }
+
+    internal static float Room_ElectricPower(Func<Room, float> orig, Room self)
+    {
+        foreach (RoomSettings.RoomEffect effect in self.roomSettings.effects)
+        {
+            if (effect.type.value == "ForceRoomEnergy")
+            {
+                foreach (UpdatableAndDeletable updel in self.updateList)
+                {
+                    if (updel is Effects.LightRodPowerEffect.LightRodPower power)
+                    {
+                        return power.currentPower;
+                    }
+                }
+            }
+        }
+        return orig(self);
     }
 }

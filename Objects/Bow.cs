@@ -142,7 +142,7 @@ public class Bow : Weapon, IDrawable
                     rotation = player.GetHeldItemDirection(grabbedBy[0].graspUsed);
                     getRotation = false;
                 }
-                else if (grabbedBy[0].grabber is Scavenger scav && grabbedBy[0].graspUsed > 0)
+                else if (grabbedBy[0].grabber is Scavenger scav && grabbedBy[0].graspUsed > 0 && scav.graphicsModule != null)
                 {
                     rotation = (scav.graphicsModule as ScavengerGraphics).ItemDirection(grabbedBy[0].graspUsed);
                 }

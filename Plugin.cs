@@ -1,19 +1,10 @@
 ﻿using System;
-using System.Globalization;
 using BepInEx;
-using DevInterface;
-using UnityEngine;
-using RWCustom;
-using System.Text.RegularExpressions;
-using System.Text;
-using Mono.Cecil.Cil;
-using MonoMod.Cil;
-using System.Reflection.Emit;
 using System.Security.Permissions;
 using MonoMod.RuntimeDetour;
 using System.Reflection;
 using Unity.Mathematics;
-using System.Runtime.CompilerServices;
+using EffExt;
 
 #pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -32,6 +23,8 @@ public sealed class Plugin : BaseUnityPlugin
     public const BindingFlags ALL_FLAGS = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic;
 
     public static Configuration.PluginOptions Options;
+    public static RegionData.RegionData RegionData;
+
     public Plugin()
     {
         try { Options = new Configuration.PluginOptions(); }
@@ -41,9 +34,22 @@ public sealed class Plugin : BaseUnityPlugin
 
     public void OnEnable()
     {
+        EffectDefinitionBuilder builder = new EffectDefinitionBuilder("ForceRoomEnergy");
+        builder.SetEffectInitializer(Effects.LightRodPowerEffect.EffectSpawner);
+        builder.AddFloatField("DriftStrength", 0f, 0.1f, 0f, 0f, "DriftStrength");
+        builder.AddIntField("DriftMode", 0, 2, 0, "DriftMode");
+        builder.AddFloatField("ResetChance", 0f, 100f, 0f, 0f, "ResetChance");
+        builder.AddFloatField("ResetCooldown", 0f, 2000f, 0f, 0f, "ResetCD");
+        builder.SetCategory("AAEffects");
+        builder.Register();
+
         #region AbstractPhysicalObject Hooks
         On.AbstractPhysicalObject.Realize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Realize;
         On.AbstractConsumable.IsTypeConsumable += Hooks.AbstractPhysicalObjectHooks.AbstractConsumable_IsTypeConsumable;
+        #endregion
+
+        #region AbstractCreature Hooks
+        On.AbstractCreature.Realize += Hooks.AbstractCreatureHooks.AbstractCreature_Realize;
         #endregion
 
         #region AI Hooks
@@ -68,11 +74,6 @@ public sealed class Plugin : BaseUnityPlugin
         On.RedSwarmer.Update += Hooks.InsectHooks.RedSwarmer_Update;
         #endregion
 
-        #region Item Symbol Hooks
-        On.ItemSymbol.SpriteNameForItem += Hooks.ItemSymbolHooks.ItemSymbol_SpriteNameForItem;
-        On.ItemSymbol.ColorForItem += Hooks.ItemSymbolHooks.ItemSymbol_ColorForItem;
-        #endregion
-
         #region Iterator Hooks
         On.SLOracleBehaviorHasMark.MoonConversation.AddEvents += Hooks.IteratorHooks.On_MoonConversation_AddEvents;
         On.SLOracleBehaviorHasMark.TypeOfMiscItem += Hooks.IteratorHooks.On_SLOracleBehaviorHasMark_TypeOfMiscItem;
@@ -92,6 +93,10 @@ public sealed class Plugin : BaseUnityPlugin
         On.MainLoopProcess.GrafUpdate += Hooks.MenuHooks.MainLoopProcess_GrafUpdate;
         #endregion
 
+        #region OverWorld Hooks
+        On.OverWorld.ctor += Hooks.OverWorldHooks.OverWorld_ctor;
+        #endregion
+
         #region Player
         On.Player.GetHeldItemDirection += Hooks.PlayerHooks.Player_GetHeldItemDirection;
         On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
@@ -100,6 +105,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.Player.SlugcatGrab += Hooks.PlayerHooks.Player_SlugcatGrab;
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
         On.Player.MovementUpdate += Hooks.PlayerHooks.Player_MovementUpdate;
+        On.Player.Update += Hooks.PlayerHooks.Player_Update;
         On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
         #endregion
 
@@ -109,6 +115,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Room Hooks
         On.Room.Loaded += Hooks.RoomHooks.Room_Loaded;
+        new Hook(typeof(Room).GetMethod("get_ElectricPower"), Hooks.RoomHooks.Room_ElectricPower);
         #endregion
 
         #region Scavenger Hooks
@@ -152,10 +159,22 @@ public sealed class Plugin : BaseUnityPlugin
         On.MoreSlugcats.ElectricSpear.ZapperAttachPos += Hooks.SpearHooks.ElectricSpear_ZapperAttachPos;
         #endregion
 
+        #region Symbol Hooks
+        On.ItemSymbol.SpriteNameForItem += Hooks.SymbolHooks.ItemSymbol_SpriteNameForItem;
+        On.ItemSymbol.ColorForItem += Hooks.SymbolHooks.ItemSymbol_ColorForItem;
+        On.CreatureSymbol.SpriteNameOfCreature += Hooks.SymbolHooks.CreatureSymbol_SpriteNameOfCreature;
+        On.CreatureSymbol.ColorOfCreature += Hooks.SymbolHooks.CreatureSymbol_ColorOfCreature;
+        #endregion
+
         #region Weapon Hooks
         On.Weapon.Thrown += Hooks.WeaponHooks.Weapon_Thrown;
         On.Weapon.HitWall += Hooks.WeaponHooks.Weapon_HitWall;
         On.Weapon.Update += Hooks.WeaponHooks.Weapon_Update;
+        #endregion
+
+        #region World Hooks
+        On.WorldLoader.CreatureTypeFromString += Hooks.WorldHooks.WorldLoader_CreatureTypeFromString;
+        On.StaticWorld.InitCustomTemplates += Hooks.StaticWorldHooks.InitCustomTemplates;
         #endregion
 
         //On.Player.Update += Hooks.PlayerHooks.Player_Update;

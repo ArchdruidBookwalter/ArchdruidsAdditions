@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using ArchdruidsAdditions.Creatures;
 using ArchdruidsAdditions.Objects;
 using IL.Smoke;
 using RWCustom;
@@ -50,6 +51,10 @@ public static class PlayerHooks
                     return Player.ObjectGrabability.CantGrab;
                 }
             }
+            return Player.ObjectGrabability.OneHand;
+        }
+        if (obj is Herring)
+        {
             return Player.ObjectGrabability.OneHand;
         }
         return orig(self, obj);
@@ -149,39 +154,7 @@ public static class PlayerHooks
 
         if (self.room != null && self.room.game.devToolsActive)
         {
-            if (self.input[0].y > 0)
-            {
-                Room room = self.room;
-                RoomCamera camera = room.game.cameras[0];
-
-                /*
-                for (int i = 0; i < 3; i++)
-                {
-                    foreach (PhysicalObject obj in room.physicalObjects[i])
-                    {
-                        foreach (BodyChunk chunk in obj.bodyChunks)
-                        {
-                            float radius = chunk.rad * 2;
-
-                            if (radius < 2f)
-                            { radius = 2f; }
-
-                            float hue = (float)obj.bodyChunks.IndexOf(chunk) / obj.bodyChunks.Length;
-                            Color color = UnityEngine.Random.ColorHSV(hue, hue, 1f, 1f, 1f, 1f);
-                            room.AddObject(new Objects.ColoredShapes.Rectangle(room, chunk.pos, radius, radius, 0f, color, 1));
-                        }
-                        foreach (PhysicalObject.BodyChunkConnection chain in obj.bodyChunkConnections)
-                        {
-                            room.AddObject(new Objects.ColoredShapes.Rectangle(room, Vector2.Lerp(chain.chunk1.pos, chain.chunk2.pos, 0.5f), 0.1f, chain.distance, Custom.VecToDeg(Custom.DirVec(chain.chunk1.pos, chain.chunk2.pos)), new(0f, 0f, 1f), 1));
-                        }
-                        if (obj is Spear)
-                        {
-                            Vector2 vector = obj.room.MiddleOfTile(obj.firstChunk.pos);
-                            room.AddObject(new Objects.ColoredShapes.Rectangle(room, vector, 5f, 5f, 45f, new(0f, 1f, 0f), 1));
-                        }
-                    }
-                }*/
-            }
+            //Methods.Methods.CreateDebugText(self.mainBodyChunk, self.room.ElectricPower.ToString(), "Red");
         }
     }
     internal static Vector2 Player_GetHeldItemDirection(On.Player.orig_GetHeldItemDirection orig, Player self, int hand)

@@ -305,6 +305,10 @@ public static class ScavengerHooks
         if (ModManager.Watcher && type == Watcher.WatcherEnums.CreatureTemplateType.ScavengerDisciple || type == Watcher.WatcherEnums.CreatureTemplateType.ScavengerTemplar)
         { wantToUseBow = false; }
 
+        string thisRegionHasBows = Plugin.RegionData.ReadRegionData(self.world.region.name, "ScavsHaveBows");
+        if ((thisRegionHasBows is null || thisRegionHasBows.Contains("false")) && !Plugin.Options.spawnBowsEverywhere.Value)
+        { wantToUseBow = false; }
+
         if (wantToUseBow && Random.value < 0.2f)
         {
             AbstractPhysicalObject.CreatureGripStick zeroGrip = null;
@@ -331,6 +335,10 @@ public static class ScavengerHooks
         CreatureTemplate.Type type = self.parent.creatureTemplate.type;
         bool wantToUseBow = true;
         if (ModManager.Watcher && type == Watcher.WatcherEnums.CreatureTemplateType.ScavengerDisciple || type == Watcher.WatcherEnums.CreatureTemplateType.ScavengerTemplar)
+        { wantToUseBow = false; }
+
+        string thisRegionHasBows = Plugin.RegionData.ReadRegionData(self.world.region.name, "ScavsHaveBows");
+        if ((thisRegionHasBows is null || thisRegionHasBows.Contains("false")) && !Plugin.Options.spawnBowsEverywhere.Value)
         { wantToUseBow = false; }
 
         if (wantToUseBow && Random.value < 0.2f)
@@ -370,9 +378,13 @@ public static class ScavengerHooks
     }
     internal static AbstractPhysicalObject ScavengerAbstractAI_TradeItem(On.ScavengerAbstractAI.orig_TradeItem orig, ScavengerAbstractAI self, bool main)
     {
-        if (!main && Random.value < 0.2f)
+        string thisRegionHasBows = Plugin.RegionData.ReadRegionData(self.world.region.name, "ScavsHaveBows");
+        if ((thisRegionHasBows is not null && thisRegionHasBows.Contains("true")) || Plugin.Options.spawnBowsEverywhere.Value)
         {
-            return new AbstractConsumable(self.world, Enums.AbstractObjectType.Bow, null, self.parent.pos, self.world.game.GetNewID(), -1, -1, null);
+            if (!main && Random.value < 0.2f)
+            {
+                return new AbstractConsumable(self.world, Enums.AbstractObjectType.Bow, null, self.parent.pos, self.world.game.GetNewID(), -1, -1, null);
+            }
         }
         return orig(self, main);
     }
@@ -431,22 +443,27 @@ public static class ScavengerHooks
     internal static void ScavengerTreasury_ctor(On.ScavengerTreasury.orig_ctor orig, ScavengerTreasury self, Room room, PlacedObject pobj)
     {
         orig(self, room, pobj);
-        if (room.abstractRoom.firstTimeRealized)
+
+        string thisRegionHasBows = Plugin.RegionData.ReadRegionData(room.world.region.name, "ScavsHaveBows");
+        if ((thisRegionHasBows is not null && thisRegionHasBows.Contains("true")) || Plugin.Options.spawnBowsEverywhere.Value)
         {
-            for (int i = 0; i < self.tiles.Count; i++)
+            if (room.abstractRoom.firstTimeRealized)
             {
-                if (UnityEngine.Random.value < Mathf.InverseLerp(self.Rad, self.Rad / 5f, Vector2.Distance(room.MiddleOfTile(self.tiles[i]), pobj.pos)))
+                for (int i = 0; i < self.tiles.Count; i++)
                 {
-                    AbstractPhysicalObject newObj = null;
-                    if (UnityEngine.Random.value < 0.2f)
+                    if (UnityEngine.Random.value < Mathf.InverseLerp(self.Rad, self.Rad / 5f, Vector2.Distance(room.MiddleOfTile(self.tiles[i]), pobj.pos)))
                     {
-                        newObj = new(room.world, Enums.AbstractObjectType.Bow, null, room.GetWorldCoordinate(self.tiles[i]), room.game.GetNewID());
-                    }
-                    if (newObj is not null)
-                    {
-                        self.property.Add(newObj);
-                        room.abstractRoom.entities.Add(newObj);
-                        Debug.Log("Naturally Spawned Bow!");
+                        AbstractPhysicalObject newObj = null;
+                        if (UnityEngine.Random.value < 0.2f)
+                        {
+                            newObj = new(room.world, Enums.AbstractObjectType.Bow, null, room.GetWorldCoordinate(self.tiles[i]), room.game.GetNewID());
+                        }
+                        if (newObj is not null)
+                        {
+                            self.property.Add(newObj);
+                            room.abstractRoom.entities.Add(newObj);
+                            Debug.Log("Naturally Spawned Bow!");
+                        }
                     }
                 }
             }

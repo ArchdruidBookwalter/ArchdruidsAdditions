@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace ArchdruidsAdditions.Hooks;
 
-public static class ItemSymbolHooks
+public static class SymbolHooks
 {
     internal static string ItemSymbol_SpriteNameForItem(On.ItemSymbol.orig_SpriteNameForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
     {
@@ -59,5 +59,23 @@ public static class ItemSymbolHooks
             color = orig.Invoke(itemType, intData);
         }
         return color;
+    }
+
+    internal static string CreatureSymbol_SpriteNameOfCreature(On.CreatureSymbol.orig_SpriteNameOfCreature orig, IconSymbol.IconSymbolData iconData)
+    {
+        if (iconData.critType == Enums.CreatureTemplateType.Herring)
+        {
+            return "Kill_Bat";
+        }
+        return orig(iconData);
+    }
+
+    internal static Color CreatureSymbol_ColorOfCreature(On.CreatureSymbol.orig_ColorOfCreature orig, IconSymbol.IconSymbolData iconData)
+    {
+        if (iconData.critType == Enums.CreatureTemplateType.Herring)
+        {
+            return new Color(1f, 0f, 0f);
+        }
+        return orig(iconData);
     }
 }
