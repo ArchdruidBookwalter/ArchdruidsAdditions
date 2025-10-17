@@ -19,6 +19,13 @@ namespace ArchdruidsAdditions.Methods
 {
     public static class Methods
     {
+        public static void CheckIfNull(object value, string valueName)
+        {
+            if (value is null)
+            { Debug.Log(valueName + " is Null!"); }
+            else
+            { Debug.Log(valueName + " is not Null!"); }
+        }
         public static void ChangeItemSpriteLayer(PlayerCarryableItem obj, Creature grabber, int graspUsed)
         {
             Room room = obj.room;

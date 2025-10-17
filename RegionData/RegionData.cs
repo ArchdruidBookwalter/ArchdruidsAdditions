@@ -11,10 +11,13 @@ namespace ArchdruidsAdditions.RegionData
 
         public RegionData(RainWorldGame game, SlugcatStats.Timeline time)
         {
-            regionDataList = LoadAllRegionData(game, time);
+            if (!game.IsArenaSession)
+            {
+                regionDataList = LoadAllRegionData(time);
+            }
         }
 
-        public List<string[]> LoadAllRegionData(RainWorldGame game, SlugcatStats.Timeline time)
+        public List<string[]> LoadAllRegionData(SlugcatStats.Timeline time)
         {
             List<string[]> regionDataList = [];
 

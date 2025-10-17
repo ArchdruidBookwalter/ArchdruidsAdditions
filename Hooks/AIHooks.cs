@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 using ArchdruidsAdditions.Objects;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -22,5 +23,31 @@ public static class AIHooks
             }
         }
         orig(self, destination);
+    }
+    internal static CreatureSpecificAImap[] RoomPreprocessor_DecompressStringToAImaps(On.RoomPreprocessor.orig_DecompressStringToAImaps orig, string s, AImap map)
+    {
+        /*
+        UnityEngine.Debug.Log("");
+        UnityEngine.Debug.Log(StaticWorld.preBakedPathingCreatures.Length);
+        UnityEngine.Debug.Log("");*/
+        return orig(s, map);
+    }
+    internal static PathCost AImap_TileCostForCreature(On.AImap.orig_TileCostForCreature_WorldCoordinate_CreatureTemplate orig, AImap self, WorldCoordinate pos, CreatureTemplate temp)
+    {
+        if (temp.type == Enums.CreatureTemplateType.Herring)
+        {
+            PathCost cost = orig(self, pos, temp);
+            int terrainProximity = self.getTerrainProximity(pos);
+
+            if (terrainProximity < 5)
+            {
+                int resistance = 5 - terrainProximity;
+                cost.resistance += 10 * resistance;
+            }
+
+            return cost;
+        }
+
+        return orig(self, pos, temp);
     }
 }

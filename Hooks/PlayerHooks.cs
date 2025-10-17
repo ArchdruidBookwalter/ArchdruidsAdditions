@@ -4,12 +4,14 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 using ArchdruidsAdditions.Creatures;
 using ArchdruidsAdditions.Objects;
 using IL.Smoke;
 using RWCustom;
 using Unity.Mathematics;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -18,7 +20,7 @@ public static class PlayerHooks
     #region Player
     internal static bool Player_CanBeSwallowed(On.Player.orig_CanBeSwallowed orig, Player self, PhysicalObject obj)
     {
-        if (obj is Objects.ScarletFlowerBulb)
+        if (obj is ScarletFlowerBulb)
         {
             return true;
         }
@@ -26,9 +28,9 @@ public static class PlayerHooks
     }
     internal static Player.ObjectGrabability Player_Grabability(On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
     {
-        if (obj is Objects.Potato)
+        if (obj is Potato)
         {
-            if ((obj as Objects.Potato).buried)
+            if ((obj as Potato).buried)
             {
                 if (self.grasps[0] != null && self.grasps[1] != null)
                 {
@@ -38,11 +40,11 @@ public static class PlayerHooks
             }
             return Player.ObjectGrabability.OneHand;
         }
-        if (obj is Objects.ParrySword)
+        if (obj is ParrySword)
         {
             return Player.ObjectGrabability.BigOneHand;
         }
-        if (obj is Objects.Bow)
+        if (obj is Bow)
         {
             foreach (Creature.Grasp grasp in self.grasps)
             {
@@ -61,11 +63,11 @@ public static class PlayerHooks
     }
     internal static bool Player_IsObjectThrowable(On.Player.orig_IsObjectThrowable orig,  Player self, PhysicalObject obj)
     {
-        if (obj is Objects.ParrySword)
+        if (obj is ParrySword)
         {
             return true;
         }
-        if (obj is Objects.Bow)
+        if (obj is Bow)
         {
             return true;
         }
@@ -77,14 +79,14 @@ public static class PlayerHooks
         {
             return orig(self, favorSpears);
         }
-        Objects.Potato closestPotato = null;
+        Potato closestPotato = null;
         float dist;
         float oldDist = float.MaxValue;
         for (int i = 0; i < self.room.physicalObjects.Length; i++)
         {
             for (int j = 0; j < self.room.physicalObjects[i].Count; j++)
             {
-                if (self.room.physicalObjects[i][j] is Objects.Potato thisPotato && thisPotato.buried)
+                if (self.room.physicalObjects[i][j] is Potato thisPotato && thisPotato.buried)
                 {
                     dist = Custom.Dist(thisPotato.bodyChunks[1].pos, self.bodyChunks[0].pos);
                     if (dist < 20f && dist < oldDist)
@@ -103,10 +105,14 @@ public static class PlayerHooks
     }
     internal static void Player_SlugcatGrab(On.Player.orig_SlugcatGrab orig, Player self, PhysicalObject obj, int graspUsed)
     {
-        if (obj is Objects.Potato potato && potato.buried)
+        if (obj is Potato potato && potato.buried)
         {
             self.LoseAllGrasps();
             self.Grab(obj, graspUsed, 1, Creature.Grasp.Shareability.CanNotShare, 0.5f, true, false);
+        }
+        else if (obj is Herring)
+        {
+            self.Grab(obj, graspUsed, 0, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
         }
         else
         {
@@ -148,13 +154,25 @@ public static class PlayerHooks
         }
         orig(self, grasp, eu);
     }
+    static int clearConsoleCooldown = 0;
     internal static void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
     {
         orig(self, eu);
 
+        if (clearConsoleCooldown > 0)
+        { clearConsoleCooldown--; }
+
         if (self.room != null && self.room.game.devToolsActive)
         {
-            //Methods.Methods.CreateDebugText(self.mainBodyChunk, self.room.ElectricPower.ToString(), "Red");
+            if (self.input[0].spec && self.input[0].jmp && clearConsoleCooldown == 0)
+            {
+                if (File.Exists("consoleLog.txt"))
+                {
+                    File.Delete("consoleLog.txt");
+                }
+                clearConsoleCooldown = 100;
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Cleared Console!", "Red", 50));
+            }
         }
     }
     internal static Vector2 Player_GetHeldItemDirection(On.Player.orig_GetHeldItemDirection orig, Player self, int hand)
@@ -181,17 +199,7 @@ public static class PlayerHooks
 
             Vector2 bowVec2 = Custom.DirVec(self.bodyChunks[0].pos, self.bodyChunks[1].pos);
             Vector2 bowVec1 = Custom.rotateVectorDeg(bowVec2, (60 + Math.Abs(3 * self.bodyChunks[0].vel.y)) * ((hand == 0) ? 1f : -1f));
-            if (bow.getRotation)
-            {
-                //self.room.AddObject(new ColoredShapes.Rectangle(self.room, self.grasps[hand].grabbed.firstChunk.pos + bowVec1 * 20f, 0.2f, 40f, Custom.VecToDeg(bowVec1), new(1f, 0f, 0f), 0));
-                //self.room.AddObject(new ColoredShapes.Rectangle(self.room, self.grasps[hand].grabbed.firstChunk.pos + bowVec2 * 20f, 0.2f, 40f, Custom.VecToDeg(bowVec2), new(0f, 1f, 0f), 0));
-            }
             return Vector3.Slerp(bowVec1, bowVec2, Math.Abs((self.graphicsModule as PlayerGraphics).spearDir));
-        }
-        else if (self.grasps[hand].grabbed is Spear spear)
-        {
-            //self.room.AddObject(new ColoredShapes.Rectangle(self.room, spear.firstChunk.pos + spearVec1 * 20f, 0.2f, 40f, Custom.VecToDeg(spearVec1), new(1f, 0f, 0f), 0));
-            //self.room.AddObject(new ColoredShapes.Rectangle(self.room, spear.firstChunk.pos + spearVec2 * 20f, 0.2f, 40f, Custom.VecToDeg(spearVec2), new(0f, 1f, 0f), 0));
         }
         return orig(self, hand);
     }
@@ -226,6 +234,10 @@ public static class PlayerHooks
         orig(self, eu);
 
         self.input[0] = package;
+    }
+    internal static bool Player_IsCreatureLegalToHoldWithoutStun(On.Player.orig_IsCreatureLegalToHoldWithoutStun orig, Player self, Creature grabbedCreature)
+    {
+        return orig(self, grabbedCreature);
     }
     public static Color GetColor(int index)
     {
@@ -293,10 +305,30 @@ public static class PlayerHooks
 
         foreach (Creature.Grasp grasp in self.player.grasps)
         {
-            if (grasp is not null && grasp.grabbed is Objects.Potato potato && potato.playerSquint)
+            if (grasp is not null && grasp.grabbed is Potato potato && potato.playerSquint)
             {
                 sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
             }
+        }
+    }
+    #endregion
+
+    #region SlugcatHand
+    internal static void SlugcatHand_Update(On.SlugcatHand.orig_Update orig, SlugcatHand self)
+    {
+        orig(self);
+
+        Player player = self.owner.owner as Player;
+        Creature.Grasp grasp = player.grasps[self.limbNumber];
+
+        if (grasp != null && grasp.grabbed is Herring herring && !herring.dead)
+        {
+            self.huntSpeed = Random.value * 5f;
+            self.quickness = Random.value * 0.3f;
+            self.vel += Custom.RNV() * 1f;
+            self.pos += Custom.RNV() * 1f;
+            (player.graphicsModule as PlayerGraphics).NudgeDrawPosition(0, Custom.DirVec(player.mainBodyChunk.pos, self.pos) * 1f * Random.value);
+            (player.graphicsModule as PlayerGraphics).head.vel += Custom.DirVec(player.mainBodyChunk.pos, self.pos) * 1f * Random.value;
         }
     }
     #endregion

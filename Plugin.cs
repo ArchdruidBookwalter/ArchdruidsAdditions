@@ -4,6 +4,7 @@ using System.Security.Permissions;
 using MonoMod.RuntimeDetour;
 using System.Reflection;
 using Unity.Mathematics;
+using UnityEngine;
 using EffExt;
 
 #pragma warning disable CS0618
@@ -50,10 +51,13 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region AbstractCreature Hooks
         On.AbstractCreature.Realize += Hooks.AbstractCreatureHooks.AbstractCreature_Realize;
+        On.AbstractCreature.InitiateAI += Hooks.AbstractCreatureHooks.AbstractCreature_InitiateAI;
         #endregion
 
         #region AI Hooks
         On.ArtificialIntelligence.SetDestination += Hooks.AIHooks.ArtificialIntelligence_SetDestination;
+        On.RoomPreprocessor.DecompressStringToAImaps += Hooks.AIHooks.RoomPreprocessor_DecompressStringToAImaps;
+        On.AImap.TileCostForCreature_WorldCoordinate_CreatureTemplate += Hooks.AIHooks.AImap_TileCostForCreature;
         #endregion
 
         #region Devtools Hooks
@@ -97,6 +101,22 @@ public sealed class Plugin : BaseUnityPlugin
         On.OverWorld.ctor += Hooks.OverWorldHooks.OverWorld_ctor;
         #endregion
 
+        #region PathFinderHooks
+        On.PathFinder.ctor += Hooks.PathFinderHooks.PathFinder_ctor;
+        On.PathFinder.CheckConnectionCost += Hooks.PathFinderHooks.PathFinder_CheckConnectionCost;
+        On.FollowPathVisualizer.Update += Hooks.PathFinderHooks.FollowPathVisualizer_Update;
+        On.AbstractSpacePathFinder.Path += Hooks.PathFinderHooks.AbstractSpacePathFinder_Path;
+        On.AbstractSpacePathFinder.AddNode += Hooks.PathFinderHooks.AbstractSpacePathFinder_AddNode;
+        //On.StandardPather.FollowPath += Hooks.PathFinderHooks.StandardPather_FollowPath;
+        //On.StandardPather.HeuristicForCell += Hooks.PathFinderHooks.StandardPather_HeuristicForCell;
+        //On.AbstractCreatureAI.SetDestination += Hooks.PathFinderHooks.AbstractCreatureAI_SetDestination;
+        //On.ArtificialIntelligence.SetDestination += Hooks.PathFinderHooks.ArtificialIntelligence_SetDestination;
+        //On.PathFinder.SetDestination += Hooks.PathFinderHooks.PathFinder_SetDestination;
+        //On.PathFinder.DestinationHasChanged += Hooks.PathFinderHooks.PathFinder_DestinationHasChanged;
+        //On.PathFinder.AssignNewDestination += Hooks.PathFinderHooks.PathFinder_AssignNewDestination;
+        On.QuickConnectivity.Check += Hooks.PathFinderHooks.QuickConnectivity_Check;
+        #endregion
+
         #region Player
         On.Player.GetHeldItemDirection += Hooks.PlayerHooks.Player_GetHeldItemDirection;
         On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
@@ -106,7 +126,9 @@ public sealed class Plugin : BaseUnityPlugin
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
         On.Player.MovementUpdate += Hooks.PlayerHooks.Player_MovementUpdate;
         On.Player.Update += Hooks.PlayerHooks.Player_Update;
+        On.Player.IsCreatureLegalToHoldWithoutStun += Hooks.PlayerHooks.Player_IsCreatureLegalToHoldWithoutStun;
         On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
+        On.SlugcatHand.Update += Hooks.PlayerHooks.SlugcatHand_Update;
         #endregion
 
         #region Process Hooks
@@ -175,8 +197,16 @@ public sealed class Plugin : BaseUnityPlugin
         #region World Hooks
         On.WorldLoader.CreatureTypeFromString += Hooks.WorldHooks.WorldLoader_CreatureTypeFromString;
         On.StaticWorld.InitCustomTemplates += Hooks.StaticWorldHooks.InitCustomTemplates;
+        On.StaticWorld.InitStaticWorldRelationships += Hooks.StaticWorldHooks.InitStaticWorldRelationships;
+        On.StaticWorld.InitStaticWorldRelationshipsMSC += Hooks.StaticWorldHooks.InitStaticWorldRelationshipsMSC;
+        On.StaticWorld.InitStaticWorldRelationshipsWatcher += Hooks.StaticWorldHooks.InitStaticWorldRelationshipsWatcher;
         #endregion
 
         //On.Player.Update += Hooks.PlayerHooks.Player_Update;
+    }
+
+    private PathCost PathFinder_CheckConnectionCost(On.PathFinder.orig_CheckConnectionCost orig, PathFinder self, PathFinder.PathingCell start, PathFinder.PathingCell goal, MovementConnection connection, bool followingPath)
+    {
+        throw new NotImplementedException();
     }
 }
