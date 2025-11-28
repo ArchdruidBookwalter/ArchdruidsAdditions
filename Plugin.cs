@@ -52,6 +52,11 @@ public sealed class Plugin : BaseUnityPlugin
         #region AbstractCreature Hooks
         On.AbstractCreature.Realize += Hooks.AbstractCreatureHooks.AbstractCreature_Realize;
         On.AbstractCreature.InitiateAI += Hooks.AbstractCreatureHooks.AbstractCreature_InitiateAI;
+        On.AbstractCreature.ctor += Hooks.AbstractCreatureHooks.AbstractCreature_ctor;
+        #endregion
+
+        #region AbstractRoom Hooks
+        On.AbstractRoom.ConnectivityCost += Hooks.AbstractRoomHooks.AbstractRoom_ConnectivityCost;
         #endregion
 
         #region AI Hooks
@@ -60,11 +65,22 @@ public sealed class Plugin : BaseUnityPlugin
         On.AImap.TileCostForCreature_WorldCoordinate_CreatureTemplate += Hooks.AIHooks.AImap_TileCostForCreature;
         #endregion
 
+        #region Creature
+        On.TailSegment.ctor += Hooks.CreatureHooks.TailSegment_ctor;
+        On.TailSegment.Update += Hooks.CreatureHooks.TailSegment_Update;
+        #endregion
+
         #region Devtools Hooks
         On.DevInterface.ObjectsPage.CreateObjRep += Hooks.DevtoolsHooks.ObjectsPage_CreateObjRep;
         On.DevInterface.Panel.CopyToClipboard += Hooks.DevtoolsHooks.Panel_CopyToClipboard;
         On.DevInterface.Panel.PasteFromClipboard += Hooks.DevtoolsHooks.Panel_PasteFromClipboard;
         On.PlacedObject.GenerateEmptyData += Hooks.DevtoolsHooks.PlacedObject_GenerateEmptyData;
+        On.DevInterface.MapPage.CreatureVis.CritString += Hooks.DevtoolsHooks.DevInterface_MapPage_CreatureVis_CritString;
+        On.DevInterface.MapPage.CreatureVis.CritCol += Hooks.DevtoolsHooks.DevInterface_MapPage_CreatureVis_CritCol;
+        #endregion
+
+        #region FLabel Hooks
+        On.FLabel.Redraw += Hooks.FLabelHooks.Redraw;
         #endregion
 
         #region HUDHooks
@@ -103,17 +119,16 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region PathFinderHooks
         On.PathFinder.ctor += Hooks.PathFinderHooks.PathFinder_ctor;
+        On.PathFinder.CoordinateCost += Hooks.PathFinderHooks.PathFinder_CoordinateCost;
         On.PathFinder.CheckConnectionCost += Hooks.PathFinderHooks.PathFinder_CheckConnectionCost;
-        On.FollowPathVisualizer.Update += Hooks.PathFinderHooks.FollowPathVisualizer_Update;
+        On.PathFinder.CreatePathForAbstractreature += Hooks.PathFinderHooks.PathFinder_CreatePathForAbstractCreature;
+
         On.AbstractSpacePathFinder.Path += Hooks.PathFinderHooks.AbstractSpacePathFinder_Path;
         On.AbstractSpacePathFinder.AddNode += Hooks.PathFinderHooks.AbstractSpacePathFinder_AddNode;
-        //On.StandardPather.FollowPath += Hooks.PathFinderHooks.StandardPather_FollowPath;
-        //On.StandardPather.HeuristicForCell += Hooks.PathFinderHooks.StandardPather_HeuristicForCell;
-        //On.AbstractCreatureAI.SetDestination += Hooks.PathFinderHooks.AbstractCreatureAI_SetDestination;
-        //On.ArtificialIntelligence.SetDestination += Hooks.PathFinderHooks.ArtificialIntelligence_SetDestination;
-        //On.PathFinder.SetDestination += Hooks.PathFinderHooks.PathFinder_SetDestination;
-        //On.PathFinder.DestinationHasChanged += Hooks.PathFinderHooks.PathFinder_DestinationHasChanged;
-        //On.PathFinder.AssignNewDestination += Hooks.PathFinderHooks.PathFinder_AssignNewDestination;
+
+        On.FollowPathVisualizer.Update += Hooks.PathFinderHooks.FollowPathVisualizer_Update;
+        On.FollowPathVisualizer.DrawSprites += Hooks.PathFinderHooks.FollowPathVisualizer_DrawSprites;
+
         On.QuickConnectivity.Check += Hooks.PathFinderHooks.QuickConnectivity_Check;
         #endregion
 

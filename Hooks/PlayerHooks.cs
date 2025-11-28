@@ -55,7 +55,7 @@ public static class PlayerHooks
             }
             return Player.ObjectGrabability.OneHand;
         }
-        if (obj is Herring)
+        if (obj is CloudFish)
         {
             return Player.ObjectGrabability.OneHand;
         }
@@ -110,7 +110,7 @@ public static class PlayerHooks
             self.LoseAllGrasps();
             self.Grab(obj, graspUsed, 1, Creature.Grasp.Shareability.CanNotShare, 0.5f, true, false);
         }
-        else if (obj is Herring)
+        else if (obj is CloudFish)
         {
             self.Grab(obj, graspUsed, 0, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
         }
@@ -171,7 +171,39 @@ public static class PlayerHooks
                     File.Delete("consoleLog.txt");
                 }
                 clearConsoleCooldown = 100;
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Cleared Console!", "Red", 50));
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Cleared Console!", "Red", "White", 50));
+            }
+            else if (self.input[0].spec && self.input[0].pckp && clearConsoleCooldown == 0)
+            {
+                clearConsoleCooldown = 100;
+
+                /*
+                Debug.Log("");
+                RoomCamera camera = self.room.game.cameras[0];
+                for (int i = 0; i < camera.spriteLeasers.Count; i++)
+                {
+                    RoomCamera.SpriteLeaser spriteLeaser = camera.spriteLeasers[i];
+                    if (spriteLeaser.drawableObject is UpdatableAndDeletable updel)
+                    {
+                        Debug.Log("Sprite Leaser " + i + ": " + updel.GetType().Name);
+                        foreach (FSprite sprite in spriteLeaser.sprites)
+                        {
+                            Debug.Log(sprite.element.name);
+                        }
+                    }
+                }
+                self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Checked Every Sprite!", "Green", "White", 50));*/
+
+                if (Methods.Methods.DebugShapes == true)
+                {
+                    Methods.Methods.DebugShapes = false;
+                    self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Turned Off Debug Sprites!", "Green", "White", 50));
+                }
+                else
+                {
+                    Methods.Methods.DebugShapes = true;
+                    self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Turned On Debug Sprites!", "Green", "White", 50));
+                }
             }
         }
     }
@@ -237,6 +269,10 @@ public static class PlayerHooks
     }
     internal static bool Player_IsCreatureLegalToHoldWithoutStun(On.Player.orig_IsCreatureLegalToHoldWithoutStun orig, Player self, Creature grabbedCreature)
     {
+        if (grabbedCreature is CloudFish)
+        {
+            return true;
+        }
         return orig(self, grabbedCreature);
     }
     public static Color GetColor(int index)
@@ -321,7 +357,7 @@ public static class PlayerHooks
         Player player = self.owner.owner as Player;
         Creature.Grasp grasp = player.grasps[self.limbNumber];
 
-        if (grasp != null && grasp.grabbed is Herring herring && !herring.dead)
+        if (grasp != null && grasp.grabbed is CloudFish cloudFish && !cloudFish.dead)
         {
             self.huntSpeed = Random.value * 5f;
             self.quickness = Random.value * 0.3f;

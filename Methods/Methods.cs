@@ -140,40 +140,80 @@ namespace ArchdruidsAdditions.Methods
             }
             return null;
         }
-        public static void CreateLineBetweenTwoPoints(Vector2 point1, Vector2 point2, Room room, string color)
+
+        #region Debug Shapes
+        public static bool DebugShapes = true;
+        public static void CreateLineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, string color, int maxLife)
         {
+            if (!DebugShapes)
+            { return; }
+
             Vector2 middlePos = Vector2.Lerp(point1, point2, 0.5f);
             float dist = Custom.Dist(point1, point2);
-            float rotation = Custom.VecToDeg(Custom.DirVec(point1, point2));
-            room.AddObject(new Objects.ColoredShapes.Rectangle(room, middlePos, 0.2f, dist, rotation, color, 0));
+            Vector2 rotation = Custom.DirVec(point1, point2);
+            Create_Square(room, middlePos, 0.2f, dist, rotation, color, maxLife);
         }
+        public static void Create_Text(Room room, Vector2 pos, string text, string color, int maxLife)
+        {
+            if (!DebugShapes)
+            { return; }
 
-        public static void CreateDebugText(BodyChunk chunk, string text)
-        { chunk.owner.room.AddObject(new ColoredShapes.Text(chunk.owner.room, chunk.pos, text, "White", 0));}
-        public static void CreateDebugText(BodyChunk chunk, string text, string color)
-        { chunk.owner.room.AddObject(new ColoredShapes.Text(chunk.owner.room, chunk.pos, text, color, 0)); }
-        public static void CreateDebugText(BodyChunk chunk, string text, string color, int line)
-        { chunk.owner.room.AddObject(new ColoredShapes.Text(chunk.owner.room, new Vector2(chunk.pos.x, chunk.pos.y + 10 * line), text, color, 0)); }
-        public static void CreateDebugText(BodyChunk chunk, string text, string color, int line, int maxLife)
-        { chunk.owner.room.AddObject(new ColoredShapes.Text(chunk.owner.room, new Vector2(chunk.pos.x, chunk.pos.y + 10 * line), text, color, maxLife)); }
+            Player player = room.game.FirstRealizedPlayer;
+            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
+            {
+                return;
+            }
+            room.AddObject(new ColoredShapes.Text(room, pos, text, color, "White", maxLife));
+        }
+        public static void Create_Text(Room room, Vector2 pos, string text, Color color, int maxLife)
+        {
+            if (!DebugShapes)
+            { return; }
 
-        public static void CreateDebugSquareAtChunk(BodyChunk chunk)
-        { chunk.owner.room.AddObject(new ColoredShapes.Rectangle(chunk.owner.room, chunk.pos, 10f, 10f, 45f, "Yellow", 0)); }
-        public static void CreateDebugSquareAtChunk(BodyChunk chunk, string color)
-        { chunk.owner.room.AddObject(new ColoredShapes.Rectangle(chunk.owner.room, chunk.pos, 10f, 10f, 45f, color, 0)); }
-        public static void CreateDebugSquareAtChunk(BodyChunk chunk, string color, float size)
-        { chunk.owner.room.AddObject(new ColoredShapes.Rectangle(chunk.owner.room, chunk.pos, size, size, 45f, color, 0)); }
-        public static void CreateDebugSquareAtChunk(BodyChunk chunk, string color, float size, int maxLife)
-        { chunk.owner.room.AddObject(new ColoredShapes.Rectangle(chunk.owner.room, chunk.pos, size, size, 45f, color, maxLife)); }
+            Player player = room.game.FirstRealizedPlayer;
+            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
+            {
+                return;
+            }
+            room.AddObject(new ColoredShapes.Text(room, pos, text, color, "White", maxLife));
+        }
+        public static void Create_Square(Room room, Vector2 pos, float width, float height, Vector2 rotation, string color, int maxLife)
+        {
+            if (!DebugShapes)
+            { return; }
 
-        public static void CreateDebugSquareAtPos(Vector2 pos, Room room)
-        { room.AddObject(new ColoredShapes.Rectangle(room, pos, 10f, 10f, 45f, "Yellow", 0)); }
-        public static void CreateDebugSquareAtPos(Vector2 pos, Room room, string color)
-        { room.AddObject(new ColoredShapes.Rectangle(room, pos, 10f, 10f, 45f, color, 0)); }
-        public static void CreateDebugSquareAtPos(Vector2 pos, Room room, string color, float size)
-        { room.AddObject(new ColoredShapes.Rectangle(room, pos, size, size, 45f, color, 0)); }
-        public static void CreateDebugSquareAtPos(Vector2 pos, Room room, string color, float size, int maxLife)
-        { room.AddObject(new ColoredShapes.Rectangle(room, pos, size, size, 45f, color, maxLife)); }
+            Player player = room.game.FirstRealizedPlayer;
+            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
+            {
+                return;
+            }
+            room.AddObject(new ColoredShapes.Rectangle(room, pos, width, height, Custom.VecToDeg(rotation), color, maxLife));
+        }
+        public static void Create_LineAndDot(Room room, Vector2 startPos, Vector2 endPos, string color, int maxLife)
+        {
+            if (!DebugShapes)
+            { return; }
+
+            Player player = room.game.FirstRealizedPlayer;
+            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
+            {
+                return;
+            }
+            room.AddObject(new ColoredShapes.LineAndDot(room, startPos, endPos, color, maxLife));
+        }
+        public static void Create_Dot(Room room, Vector2 pos, string color, int maxLife)
+        {
+            if (!DebugShapes)
+            { return; }
+
+            Player player = room.game.FirstRealizedPlayer;
+            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
+            {
+                return;
+            }
+            room.AddObject(new ColoredShapes.Dot(room, pos, color, maxLife));
+        }
+        #endregion
 
 
         public static T Check<T>(Expression<Func<T>> expression)

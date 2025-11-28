@@ -20,31 +20,32 @@ public static class StaticWorldHooks
         tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.Standard, 1f, PathCost.Legality.Allowed));
         tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.ShortCut, 1f, PathCost.Legality.Allowed));
         tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.NPCTransportation, 10f, PathCost.Legality.Allowed));
+        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.SideHighway, 1f, PathCost.Legality.Allowed));
 
-        CreatureTemplate herring = new CreatureTemplate(Enums.CreatureTemplateType.Herring, null, tileTypeResistances, tileConnectionResistances,
+        CreatureTemplate cloudFish = new CreatureTemplate(Enums.CreatureTemplateType.CloudFish, null, tileTypeResistances, tileConnectionResistances,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
 
-        herring.canFly = true;
-        herring.AI = true;
-        herring.requireAImap = true;
-        herring.doPreBakedPathing = false;
-        herring.smallCreature = true;
-        herring.name = "Herring";
+        cloudFish.canFly = true;
+        cloudFish.AI = true;
+        cloudFish.requireAImap = true;
+        cloudFish.doPreBakedPathing = false;
+        cloudFish.smallCreature = true;
+        cloudFish.name = "CloudFish";
 
         CreatureTemplate flyTemplate = StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.Fly);
-        herring.preBakedPathingAncestor = flyTemplate;
-        herring.relationships = flyTemplate.relationships;
+        cloudFish.preBakedPathingAncestor = flyTemplate;
+        cloudFish.relationships = flyTemplate.relationships;
 
         ExtEnumType type = ExtEnum<CreatureTemplate.Type>.values;
         foreach (string name in type.entries)
         {
-            if (name == "Herring")
+            if (name == "CloudFish")
             {
                 int index = type.entries.IndexOf(name);
                 if (StaticWorld.creatureTemplates[index] == null)
-                { StaticWorld.creatureTemplates[index] = herring; }
+                { StaticWorld.creatureTemplates[index] = cloudFish; }
                 else
-                { Debug.Log("FAILED TO ADD HERRING TO STATICWORLD!"); }
+                { Debug.Log("FAILED TO ADD CLOUDFISH TO STATICWORLD!"); }
             }
         }
 
@@ -55,32 +56,48 @@ public static class StaticWorldHooks
     {
         orig();
 
-        #region Herring
+        #region CloudFish
 
         #region Ignores
-        StaticWorld.EstablishRelationship(Enums.CreatureTemplateType.Herring, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(Enums.CreatureTemplateType.CloudFish, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
-        StaticWorld.EstablishRelationship(CreatureTemplate.Type.EggBug, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.EggBug, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
-        StaticWorld.EstablishRelationship(CreatureTemplate.Type.BigNeedleWorm, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.BigNeedleWorm, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
-        StaticWorld.EstablishRelationship(CreatureTemplate.Type.MirosBird, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.CicadaA, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
-        StaticWorld.EstablishRelationship(CreatureTemplate.Type.DaddyLongLegs, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.CicadaB, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.LanternMouse, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
         #endregion
 
         #region Eats
-        StaticWorld.EstablishRelationship(CreatureTemplate.Type.Slugcat, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.Slugcat, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.5f));
-        StaticWorld.EstablishRelationship(CreatureTemplate.Type.CicadaA, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.Leech, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
+
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.LizardTemplate, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.2f));
-        StaticWorld.EstablishRelationship(CreatureTemplate.Type.CicadaB, Enums.CreatureTemplateType.Herring,
-            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.4f));
-        StaticWorld.EstablishRelationship(CreatureTemplate.Type.JetFish, Enums.CreatureTemplateType.Herring,
-            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.2f));
-        StaticWorld.EstablishRelationship(CreatureTemplate.Type.LanternMouse, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.BlueLizard, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.5f));
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.JetFish, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.2f));
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.BigSpider, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.2f));
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.DropBug, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.2f));
+
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.RedLizard, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.Vulture, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.DaddyLongLegs, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
+        StaticWorld.EstablishRelationship(CreatureTemplate.Type.MirosBird, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
         #endregion
 
         #endregion
@@ -90,22 +107,24 @@ public static class StaticWorldHooks
     {
         orig();
 
-        #region Herring
+        #region CloudFish
 
         #region Ignores
-        StaticWorld.EstablishRelationship(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.FireBug, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.FireBug, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
-        StaticWorld.EstablishRelationship(DLCSharedEnums.CreatureTemplateType.MirosVulture, Enums.CreatureTemplateType.Herring,
-            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
-        StaticWorld.EstablishRelationship(DLCSharedEnums.CreatureTemplateType.Yeek, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(DLCSharedEnums.CreatureTemplateType.Yeek, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f));
         #endregion
 
         #region Eats
-        StaticWorld.EstablishRelationship(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.SlugNPC, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.SlugNPC, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.5f));
-        StaticWorld.EstablishRelationship(DLCSharedEnums.CreatureTemplateType.ZoopLizard, Enums.CreatureTemplateType.Herring,
+        StaticWorld.EstablishRelationship(DLCSharedEnums.CreatureTemplateType.ZoopLizard, Enums.CreatureTemplateType.CloudFish,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.5f));
+        StaticWorld.EstablishRelationship(DLCSharedEnums.CreatureTemplateType.MirosVulture, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
+        StaticWorld.EstablishRelationship(MoreSlugcats.MoreSlugcatsEnums.CreatureTemplateType.TrainLizard, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
         #endregion
 
         #endregion
@@ -116,16 +135,16 @@ public static class StaticWorldHooks
     {
         orig();
 
-        #region Herring
+        #region CloudFish
 
         #region Ignores
         #endregion
 
         #region Eats
-        StaticWorld.EstablishRelationship(Watcher.WatcherEnums.CreatureTemplateType.SandGrub, Enums.CreatureTemplateType.Herring,
-            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 1f));
-        StaticWorld.EstablishRelationship(Watcher.WatcherEnums.CreatureTemplateType.Loach, Enums.CreatureTemplateType.Herring,
-            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.1f));
+        StaticWorld.EstablishRelationship(Watcher.WatcherEnums.CreatureTemplateType.SandGrub, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 2f));
+        StaticWorld.EstablishRelationship(Watcher.WatcherEnums.CreatureTemplateType.Loach, Enums.CreatureTemplateType.CloudFish,
+            new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
         #endregion
 
         #endregion

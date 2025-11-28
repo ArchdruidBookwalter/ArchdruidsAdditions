@@ -234,19 +234,19 @@ public class ScavengerAnimationID
 }
 public class CreatureTemplateType
 {
-    public static CreatureTemplate.Type Herring;
+    public static CreatureTemplate.Type CloudFish;
 
     public static void RegisterValues()
     {
-        Herring = new("Herring", true);
+        CloudFish = new("CloudFish", true);
     }
 
     public static void UnregisterValues()
     {
-        if (Herring != null)
+        if (CloudFish != null)
         {
-            Herring.Unregister();
-            Herring = null;
+            CloudFish.Unregister();
+            CloudFish = null;
         }
     }
 }

@@ -34,7 +34,7 @@ public static class AIHooks
     }
     internal static PathCost AImap_TileCostForCreature(On.AImap.orig_TileCostForCreature_WorldCoordinate_CreatureTemplate orig, AImap self, WorldCoordinate pos, CreatureTemplate temp)
     {
-        if (temp.type == Enums.CreatureTemplateType.Herring)
+        if (temp.type == Enums.CreatureTemplateType.CloudFish)
         {
             PathCost cost = orig(self, pos, temp);
             int terrainProximity = self.getTerrainProximity(pos);
@@ -46,6 +46,11 @@ public static class AIHooks
             }
 
             return cost;
+        }
+
+        if (self.getAItile(pos).acc == AItile.Accessibility.Solid)
+        {
+            return new PathCost(0f, PathCost.Legality.IllegalTile);
         }
 
         return orig(self, pos, temp);

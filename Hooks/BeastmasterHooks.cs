@@ -18,11 +18,12 @@ public static class BeastmasterHooks
     {
         orig(self, orig2, self2);
 
+        /*
         if (self.isMenuOpen)
         { beastMasterMenuOpen = true; }
         else { beastMasterMenuOpen = false; }
 
         if (self.displayContainer != null && Cursors.container != null)
-        { Cursors.container.MoveToFront(); }
+        { Cursors.container.MoveToFront(); }*/
     }
 }

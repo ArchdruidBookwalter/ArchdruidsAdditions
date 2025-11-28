@@ -63,18 +63,18 @@ public static class SymbolHooks
 
     internal static string CreatureSymbol_SpriteNameOfCreature(On.CreatureSymbol.orig_SpriteNameOfCreature orig, IconSymbol.IconSymbolData iconData)
     {
-        if (iconData.critType == Enums.CreatureTemplateType.Herring)
+        if (iconData.critType == Enums.CreatureTemplateType.CloudFish)
         {
-            return "Kill_Bat";
+            return "CloudFish";
         }
         return orig(iconData);
     }
 
     internal static Color CreatureSymbol_ColorOfCreature(On.CreatureSymbol.orig_ColorOfCreature orig, IconSymbol.IconSymbolData iconData)
     {
-        if (iconData.critType == Enums.CreatureTemplateType.Herring)
+        if (iconData.critType == Enums.CreatureTemplateType.CloudFish)
         {
-            return new Color(1f, 0f, 0f);
+            return new Color(0.6f, 0.8f, 0.8f);
         }
         return orig(iconData);
     }

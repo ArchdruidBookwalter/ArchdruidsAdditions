@@ -10,8 +10,8 @@ public static class WorldHooks
 {
     internal static CreatureTemplate.Type WorldLoader_CreatureTypeFromString(On.WorldLoader.orig_CreatureTypeFromString orig, string s)
     {
-        if (s == "Herring")
-        { return Enums.CreatureTemplateType.Herring; }
+        if (s == "CloudFish")
+        { return Enums.CreatureTemplateType.CloudFish; }
         return orig(s);
     }
 }

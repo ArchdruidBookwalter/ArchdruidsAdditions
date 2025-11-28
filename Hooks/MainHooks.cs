@@ -63,6 +63,10 @@ public static class MainHooks
         {
             Futile.atlasManager.LoadAtlas("atlases/Potato");
         }
+        if (!Futile.atlasManager.DoesContainAtlas("CloudFish"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/CloudFish");
+        }
         #endregion
 
         MachineConnector.SetRegisteredOI(Plugin.PLUGIN_GUID, Plugin.Options);
@@ -102,6 +106,10 @@ public static class MainHooks
         if (Futile.atlasManager.DoesContainAtlas("Potato"))
         {
             Futile.atlasManager.UnloadAtlas("Potato");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("CloudFish"))
+        {
+            Futile.atlasManager.UnloadAtlas("CloudFish");
         }
     }
     internal static void RainWorld_OnModsEnabled(On.RainWorld.orig_OnModsEnabled orig, RainWorld self, ModManager.Mod[] newlyEnabledMods)

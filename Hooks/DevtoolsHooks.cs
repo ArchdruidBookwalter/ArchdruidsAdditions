@@ -9,6 +9,7 @@ using RWCustom;
 using MonoMod.Cil;
 using Mono.Cecil.Cil;
 using ArchdruidsAdditions.Objects;
+using ArchdruidsAdditions.Creatures;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -114,4 +115,33 @@ public static class DevtoolsHooks
             }
         }
     }
+    internal static string DevInterface_MapPage_CreatureVis_CritString(On.DevInterface.MapPage.CreatureVis.orig_CritString orig, AbstractCreature creature)
+    {
+        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
+        {
+            return "H";
+        }
+        return orig(creature);
+    }
+    internal static Color DevInterface_MapPage_CreatureVis_CritCol(On.DevInterface.MapPage.CreatureVis.orig_CritCol orig, AbstractCreature creature)
+    {
+        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
+        {
+            CloudFishAI.Behavior behavior = (creature.abstractAI as CloudFishAbstractAI).behavior;
+            if (behavior == CloudFishAI.Behavior.Follow)
+            {
+                return new(0.8f, 0.8f, 0f);
+            }
+            else if (behavior == CloudFishAI.Behavior.Flee)
+            {
+                return new(0.9f, 0.2f, 0.2f);
+            }
+            else
+            {
+                return new(0f, 0.8f, 0.9f);
+            }
+        }
+        return orig(creature);
+    }
+
 }

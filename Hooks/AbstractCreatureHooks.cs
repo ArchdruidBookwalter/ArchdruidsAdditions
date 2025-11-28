@@ -15,9 +15,9 @@ public static class AbstractCreatureHooks
     {
         if (self.Room != null && self.realizedCreature == null)
         {
-            if (self.creatureTemplate.type == Enums.CreatureTemplateType.Herring)
+            if (self.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
             {
-                self.realizedCreature = new Herring(self, self.world);
+                self.realizedCreature = new CloudFish(self, self.world);
                 self.InitiateAI();
             }
         }
@@ -26,15 +26,20 @@ public static class AbstractCreatureHooks
     }
     internal static void AbstractCreature_InitiateAI(On.AbstractCreature.orig_InitiateAI orig, AbstractCreature self)
     {
-        if (self.creatureTemplate.type == Enums.CreatureTemplateType.Herring)
+        if (self.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
         {
-            /*
-            Debug.Log("");
-            Debug.Log("AbstractCreature_InitiateAI Method was called by Herring.");
-            Debug.Log("");
-            */
-            self.abstractAI.RealAI = new HerringAI(self, self.world);
+            CloudFishAI newAI = new(self, self.world);
+            self.abstractAI.RealAI = newAI;
         }
         orig(self);
+    }
+    internal static void AbstractCreature_ctor(On.AbstractCreature.orig_ctor orig, AbstractCreature self, World world, CreatureTemplate creatureTemplate, Creature realizedCreature, WorldCoordinate pos, EntityID ID)
+    {
+        orig(self, world, creatureTemplate, realizedCreature, pos, ID);
+
+        if (creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
+        {
+            self.abstractAI = new CloudFishAbstractAI(world, self);
+        }
     }
 }

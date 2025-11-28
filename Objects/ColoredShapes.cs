@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,7 @@ using RWCustom;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using Color = UnityEngine.Color;
+using Random = UnityEngine.Random;
 
 namespace ArchdruidsAdditions.Objects;
 
@@ -37,6 +39,10 @@ public class ColoredShapes
             {
                 this.color = new(1f, 0f, 0f);
             }
+            else if (color == "Orange")
+            {
+                this.color = new(1f, 0.5f, 0f);
+            }
             else if (color == "Green")
             {
                 this.color = new(0f, 1f, 0f);
@@ -53,6 +59,10 @@ public class ColoredShapes
             {
                 this.color = new(1f, 0f, 1f);
             }
+            else if (color == "Cyan")
+            {
+                this.color = new(0f, 1f, 1f);
+            }
             else if (color == "White")
             {
                 this.color = new(1f, 1f, 1f);
@@ -61,6 +71,22 @@ public class ColoredShapes
             {
                 this.color = new(0.1f, 0.1f, 0.1f);
             }
+            else
+            {
+                this.color = Custom.HSL2RGB(Random.Range(0f, 1f), 1f, 1f);
+            }
+        }
+
+        public Rectangle(Room room, Vector2 center, float width, float height, float rotation, Color color, int maxLife)
+        {
+            this.center = center;
+            this.width = width;
+            this.height = height;
+            this.rotation = rotation;
+            this.room = room;
+            this.maxLife = maxLife;
+            this.life = 0;
+            this.color = color;
         }
 
         public override void Update(bool eu)
@@ -337,8 +363,16 @@ public class ColoredShapes
         public FLabel label;
         public int lifeTime = 0;
 
-        public Text(Room room, Vector2 pos, String text, string color, int maxLife)
+        public Color color2;
+
+        public Text(Room room, Vector2 pos, String text, string color, string color2, int maxLife)
         {
+            Player player = room.game.FirstRealizedPlayer;
+            if (player.room == null)
+            {
+                return;
+            }
+
             this.room = room;
             this.pos = pos;
             this.maxLife = maxLife;
@@ -349,38 +383,70 @@ public class ColoredShapes
 
             if (color == "Red")
             {
-                label.color = new(1f, 0f, 0f);
+                this.color = new(1f, 0f, 0f);
             }
             else if (color == "Green")
             {
-                label.color = new(0f, 1f, 0f);
+                this.color = new(0f, 1f, 0f);
             }
             else if (color == "Blue")
             {
-                label.color = new(0f, 0f, 1f);
+                this.color = new(0f, 0f, 1f);
             }
             else if (color == "Yellow")
             {
-                label.color = new(1f, 1f, 0f);
+                this.color = new(1f, 1f, 0f);
             }
             else if (color == "Purple")
             {
-                label.color = new(1f, 0f, 1f);
+                this.color = new(1f, 0f, 1f);
+            }
+            else if (color == "Cyan")
+            {
+                this.color = new(0f, 1f, 1f);
             }
             else if (color == "White")
             {
-                label.color = new(1f, 1f, 1f);
+                this.color = new(1f, 1f, 1f);
             }
             else if (color == "Black")
             {
-                label.color = new(0.1f, 0.1f, 0.1f);
+                this.color = new(0.1f, 0.1f, 0.1f);
+            }
+
+            if (color == "Red")
+            {
+                this.color2 = new(1f, 0f, 0f);
+            }
+            else if (color == "White")
+            {
+                this.color2 = new(1f, 1f, 1f);
             }
         }
+        public Text(Room room, Vector2 pos, String text, Color color, string color2, int maxLife)
+        {
+            Player player = room.game.FirstRealizedPlayer;
+            if (player.room == null)
+            {
+                return;
+            }
+
+            this.room = room;
+            this.pos = pos;
+            this.maxLife = maxLife;
+
+            label = new FLabel(Custom.GetFont(), "TEST");
+            label.alignment = FLabelAlignment.Center;
+            label.text = text;
+            this.color = color;
+        }
+
         public override void Update(bool eu)
         {
             base.Update(eu);
             lifeTime++;
-            if (lifeTime > maxLife)
+
+            if (lifeTime > maxLife || !room.BeingViewed)
             {
                 Destroy();
             }
@@ -388,29 +454,248 @@ public class ColoredShapes
 
         public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
+            sLeaser.sprites = new FSprite[1];
+            sLeaser.sprites[0] = new FSprite("pixel", true);
+
             AddToContainer(sLeaser, rCam, null);
         }
         public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
+            //Debug.Log("DrawSprites       Method was called!");
+            label.color = color;
             label.SetPosition(pos - camPos);
 
-            if (room != null && room.game.devToolsActive)
-            { label.alpha = 1; }
-            else { label.alpha = 0; }
+            sLeaser.sprites[0].SetPosition(pos - camPos);
+            sLeaser.sprites[0].color = color;
+            sLeaser.sprites[0].scale = 10f;
+            sLeaser.sprites[0].alpha = 0;
 
             if (slatedForDeletetion || room != rCam.room)
             {
-                sLeaser.CleanSpritesAndRemove();
                 label.RemoveFromContainer();
+                sLeaser.CleanSpritesAndRemove();
             }
         }
         public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
         {
+            //Debug.Log("ApplyPalette      Method was called!");
+        }
+        public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
+        {
+            //Debug.Log("AddToContainer    Method was called!");
+
+            newContainer ??= rCam.ReturnFContainer("HUD");
+
+            foreach (FSprite sprite in sLeaser.sprites)
+            {
+                sprite.RemoveFromContainer();
+                newContainer.AddChild(sprite);
+            }
+
+            label.RemoveFromContainer();
+            newContainer.AddChild(label);
+        }
+    }
+    public class LineAndDot : UpdatableAndDeletable, IDrawable
+    {
+        public Vector2 startPos;
+        public Vector2 endPos;
+        public Color color;
+        public int life;
+        public int maxLife;
+        public LineAndDot(Room room, Vector2 startPos, Vector2 endPos, string color, int maxLife)
+        {
+            this.room = room;
+            this.startPos = startPos;
+            this.endPos = endPos;
+            this.maxLife = maxLife;
+            this.life = 0;
+
+            if (color == "Red")
+            {
+                this.color = new(1f, 0f, 0f);
+            }
+            else if (color == "Orange")
+            {
+                this.color = new(1f, 0.5f, 0f);
+            }
+            else if (color == "Green")
+            {
+                this.color = new(0f, 1f, 0f);
+            }
+            else if (color == "Blue")
+            {
+                this.color = new(0f, 0f, 1f);
+            }
+            else if (color == "Yellow")
+            {
+                this.color = new(1f, 1f, 0f);
+            }
+            else if (color == "Purple")
+            {
+                this.color = new(1f, 0f, 1f);
+            }
+            else if (color == "Cyan")
+            {
+                this.color = new(0f, 1f, 1f);
+            }
+            else if (color == "White")
+            {
+                this.color = new(1f, 1f, 1f);
+            }
+            else if (color == "Black")
+            {
+                this.color = new(0.1f, 0.1f, 0.1f);
+            }
+        }
+        public override void Update(bool eu)
+        {
+            base.Update(eu);
+            life++;
+            if (life > maxLife)
+            {
+                Destroy();
+            }
         }
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
         {
             newContainer ??= rCam.ReturnFContainer("HUD");
-            newContainer.AddChild(label);
+
+            foreach (FSprite fsprite in sLeaser.sprites)
+            {
+                fsprite.RemoveFromContainer();
+                newContainer.AddChild(fsprite);
+            }
+        }
+
+        public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
+        {
+        }
+
+        public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        {
+            Vector2 middlePos = Vector2.Lerp(startPos, endPos, 0.5f);
+            float angle = Custom.VecToDeg(Custom.DirVec(startPos, endPos));
+            float length = Custom.Dist(startPos, endPos);
+
+            sLeaser.sprites[0].SetPosition(middlePos - camPos);
+            sLeaser.sprites[0].rotation = angle;
+            sLeaser.sprites[0].scaleY = length;
+            sLeaser.sprites[0].color = color;
+
+            sLeaser.sprites[1].SetPosition(endPos - camPos);
+            sLeaser.sprites[1].scale = 0.5f;
+            sLeaser.sprites[1].color = color;
+
+            if (slatedForDeletetion || room != rCam.room)
+            {
+                sLeaser.CleanSpritesAndRemove();
+            }
+        }
+
+        public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
+        {
+            sLeaser.sprites = new FSprite[2];
+
+            sLeaser.sprites[0] = new FSprite("pixel", true);
+            sLeaser.sprites[1] = new FSprite("Circle20", true);
+
+            AddToContainer(sLeaser, rCam, null);
+        }
+    }
+    public class Dot : UpdatableAndDeletable, IDrawable
+    {
+        public Vector2 pos;
+        public Color color;
+        public int life;
+        public int maxLife;
+        public Dot(Room room, Vector2 pos, string color, int maxLife)
+        {
+            this.room = room;
+            this.pos = pos;
+            this.maxLife = maxLife;
+            this.life = 0;
+
+            if (color == "Red")
+            {
+                this.color = new(1f, 0f, 0f);
+            }
+            else if (color == "Orange")
+            {
+                this.color = new(1f, 0.5f, 0f);
+            }
+            else if (color == "Green")
+            {
+                this.color = new(0f, 1f, 0f);
+            }
+            else if (color == "Blue")
+            {
+                this.color = new(0f, 0f, 1f);
+            }
+            else if (color == "Yellow")
+            {
+                this.color = new(1f, 1f, 0f);
+            }
+            else if (color == "Purple")
+            {
+                this.color = new(1f, 0f, 1f);
+            }
+            else if (color == "Cyan")
+            {
+                this.color = new(0f, 1f, 1f);
+            }
+            else if (color == "White")
+            {
+                this.color = new(1f, 1f, 1f);
+            }
+            else if (color == "Black")
+            {
+                this.color = new(0.1f, 0.1f, 0.1f);
+            }
+        }
+        public override void Update(bool eu)
+        {
+            base.Update(eu);
+            life++;
+            if (life > maxLife)
+            {
+                Destroy();
+            }
+        }
+        public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
+        {
+            newContainer ??= rCam.ReturnFContainer("HUD");
+
+            foreach (FSprite fsprite in sLeaser.sprites)
+            {
+                fsprite.RemoveFromContainer();
+                newContainer.AddChild(fsprite);
+            }
+        }
+
+        public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
+        {
+        }
+
+        public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        {
+            sLeaser.sprites[0].SetPosition(pos - camPos);
+            sLeaser.sprites[0].scale = 0.5f;
+            sLeaser.sprites[0].color = color;
+
+            if (slatedForDeletetion || room != rCam.room)
+            {
+                sLeaser.CleanSpritesAndRemove();
+            }
+        }
+
+        public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
+        {
+            sLeaser.sprites = new FSprite[1];
+
+            sLeaser.sprites[0] = new FSprite("Circle20", true);
+
+            AddToContainer(sLeaser, rCam, null);
         }
     }
 }

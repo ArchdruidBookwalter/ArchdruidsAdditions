@@ -69,7 +69,6 @@ public static class SpearHooks
         if (self.firstChunk.ContactPoint.y != 0 && self.mode == Weapon.Mode.Thrown)
         {
             self.ChangeMode(Weapon.Mode.Free);
-            Methods.Methods.CreateDebugSquareAtChunk(self.firstChunk);
         }
         orig(self, eu);
     }
