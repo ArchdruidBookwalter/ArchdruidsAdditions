@@ -143,7 +143,17 @@ namespace ArchdruidsAdditions.Methods
 
         #region Debug Shapes
         public static bool DebugShapes = true;
-        public static void CreateLineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, string color, int maxLife)
+        public static void Create_LineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, string color, int maxLife)
+        {
+            if (!DebugShapes)
+            { return; }
+
+            Vector2 middlePos = Vector2.Lerp(point1, point2, 0.5f);
+            float dist = Custom.Dist(point1, point2);
+            Vector2 rotation = Custom.DirVec(point1, point2);
+            Create_Square(room, middlePos, 0.2f, dist, rotation, color, maxLife);
+        }
+        public static void Create_LineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, Color color, int maxLife)
         {
             if (!DebugShapes)
             { return; }
@@ -178,6 +188,18 @@ namespace ArchdruidsAdditions.Methods
             room.AddObject(new ColoredShapes.Text(room, pos, text, color, "White", maxLife));
         }
         public static void Create_Square(Room room, Vector2 pos, float width, float height, Vector2 rotation, string color, int maxLife)
+        {
+            if (!DebugShapes)
+            { return; }
+
+            Player player = room.game.FirstRealizedPlayer;
+            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
+            {
+                return;
+            }
+            room.AddObject(new ColoredShapes.Rectangle(room, pos, width, height, Custom.VecToDeg(rotation), color, maxLife));
+        }
+        public static void Create_Square(Room room, Vector2 pos, float width, float height, Vector2 rotation, Color color, int maxLife)
         {
             if (!DebugShapes)
             { return; }

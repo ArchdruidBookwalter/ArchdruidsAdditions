@@ -53,6 +53,8 @@ public sealed class Plugin : BaseUnityPlugin
         On.AbstractCreature.Realize += Hooks.AbstractCreatureHooks.AbstractCreature_Realize;
         On.AbstractCreature.InitiateAI += Hooks.AbstractCreatureHooks.AbstractCreature_InitiateAI;
         On.AbstractCreature.ctor += Hooks.AbstractCreatureHooks.AbstractCreature_ctor;
+        On.AbstractCreature.InDenUpdate += Hooks.AbstractCreatureHooks.AbstractCreature_InDenUpdate;
+        On.AbstractCreature.Update += Hooks.AbstractCreatureHooks.AbstractCreature_Update;
         #endregion
 
         #region AbstractRoom Hooks
@@ -66,6 +68,7 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         #region Creature
+        On.Creature.Update += Hooks.CreatureHooks.Creature_Update;
         On.TailSegment.ctor += Hooks.CreatureHooks.TailSegment_ctor;
         On.TailSegment.Update += Hooks.CreatureHooks.TailSegment_Update;
         #endregion

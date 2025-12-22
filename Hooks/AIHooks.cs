@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using ArchdruidsAdditions.Objects;
+using static ArchdruidsAdditions.Methods.Methods;
+using RWCustom;
 
 namespace ArchdruidsAdditions.Hooks;
 

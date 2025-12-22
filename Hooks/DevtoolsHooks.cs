@@ -127,19 +127,12 @@ public static class DevtoolsHooks
     {
         if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
         {
-            CloudFishAI.Behavior behavior = (creature.abstractAI as CloudFishAbstractAI).behavior;
-            if (behavior == CloudFishAI.Behavior.Follow)
+            CloudFishAbstractAI AI = creature.abstractAI as CloudFishAbstractAI;
+            if (AI.behavior == CloudFishAI.Behavior.Flee)
             {
-                return new(0.8f, 0.8f, 0f);
+                return new(0.8f, 0.2f, 0.2f);
             }
-            else if (behavior == CloudFishAI.Behavior.Flee)
-            {
-                return new(0.9f, 0.2f, 0.2f);
-            }
-            else
-            {
-                return new(0f, 0.8f, 0.9f);
-            }
+            return AI.flock.color;
         }
         return orig(creature);
     }

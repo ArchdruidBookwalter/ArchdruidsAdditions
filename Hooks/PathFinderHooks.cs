@@ -101,7 +101,7 @@ public static class PathFinderHooks
     {
         if (self.AI is CloudFishAI cloudFishAI)
         {
-            Debug.Log("CLOUDFISH CALLED: PathFinder_CreatePathForAbstractCreature METHOD");
+            //Debug.Log("CLOUDFISH CALLED: PathFinder_CreatePathForAbstractCreature METHOD");
         }
         return orig(self, searchDestination);
     }
@@ -164,8 +164,8 @@ public static class PathFinderHooks
     {
         if (self.parent.creatureTemplate.name == "CloudFish")
         {
-            Debug.Log("----------------------------------------------------------------");
-            Debug.Log("AbstractCreatureAI_SetDestination Method was called for: CloudFish");
+            //Debug.Log("----------------------------------------------------------------");
+            //Debug.Log("AbstractCreatureAI_SetDestination Method was called for: CloudFish");
         }
         orig(self, destination);
     }
@@ -173,7 +173,7 @@ public static class PathFinderHooks
     {
         if (self.creature.creatureTemplate.name == "CloudFish")
         {
-            Debug.Log("ArtificalIntelligence_SetDestination Method was called for: CloudFish");
+            //Debug.Log("ArtificalIntelligence_SetDestination Method was called for: CloudFish");
         }
         orig(self, destination);
     }
@@ -181,7 +181,7 @@ public static class PathFinderHooks
     {
         if (template.name == "CloudFish")
         {
-            Debug.Log("QuickConnectivity_Check Method was called for: CloudFish");
+            //Debug.Log("QuickConnectivity_Check Method was called for: CloudFish");
         }
         return orig(room, template, start, goal, maxGenerations);
     }

@@ -10,6 +10,11 @@ namespace ArchdruidsAdditions.Hooks;
 
 public static class CreatureHooks
 {
+    internal static void Creature_Update(On.Creature.orig_Update orig, Creature self, bool eu)
+    {
+        //Methods.Methods.Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), self.VisibilityBonus.ToString(), "Yellow", 0);
+        orig(self, eu);
+    }
     internal static void TailSegment_ctor(On.TailSegment.orig_ctor orig, TailSegment self,
         GraphicsModule module, float radius, float connectionRadius, TailSegment connectedSegment, float surfaceFriction, float airFriction, float affectPrevious, bool pullInPreviousPos)
     {

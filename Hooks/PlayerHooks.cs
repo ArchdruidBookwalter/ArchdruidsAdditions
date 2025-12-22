@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.IO;
 using ArchdruidsAdditions.Creatures;
 using ArchdruidsAdditions.Objects;
+using ArchdruidsAdditions.Methods;
 using IL.Smoke;
 using RWCustom;
 using Unity.Mathematics;
@@ -205,6 +206,14 @@ public static class PlayerHooks
                     self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Turned On Debug Sprites!", "Green", "White", 50));
                 }
             }
+            Vector2 mousePos = new Vector2(Futile.mousePosition.x, Futile.mousePosition.y);
+            Vector2 camPos = self.room.game.cameras[0].pos;
+            Vector2 tagPos = self.room.MiddleOfTile(self.room.GetTilePosition(mousePos + camPos));
+            //Methods.Methods.Create_Square(self.room, tagPos, 20f, 20f, new(0, 1), "Red", 0);
+            AItile AItile = self.room.aimap.getAItile(mousePos + camPos);
+            Room.Tile tile = self.room.GetTile(mousePos + camPos);
+            //Methods.Methods.Create_Text(self.room, tagPos + new Vector2(0f, 20f), tile.Terrain.ToString(), "Red", 0);
+            //Methods.Methods.Create_Text(self.room, tagPos + new Vector2(0f, 30f), AItile.acc.ToString(), "Red", 0);
         }
     }
     internal static Vector2 Player_GetHeldItemDirection(On.Player.orig_GetHeldItemDirection orig, Player self, int hand)
