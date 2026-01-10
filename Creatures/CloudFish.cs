@@ -1,8 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.WebSockets;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using DevConsole;
+using DevInterface;
+using HarmonyLib;
 using IL.MoreSlugcats;
 using RWCustom;
 using UnityEngine;
@@ -21,8 +26,8 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
     public float dominance;
     public int bites;
     public bool eaten;
-    public Color color;
-    public Color IDcolor;
+
+    public int whistleTimer;
 
     public Smoke.NewVultureSmoke smoke = null;
     public bool emittingSmoke = false;
@@ -56,11 +61,9 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
         CloudFishAbstractAI abstractAI = abstractCreature.abstractAI as CloudFishAbstractAI;
         dominance = abstractAI.dominance;
 
-        color = Custom.HSL2RGB(Random.Range(0.4f, 0.6f), Mathf.Clamp(0f + dominance / 100f, 0f, 1f), 0.5f);
-
-        IDcolor = Custom.HSL2RGB(dominance / 20f, 1f, 0.5f);
-
         AI = new(abstractCreature, world);
+
+        whistleTimer = 0;
     }
 
     public override void PlaceInRoom(Room placeRoom)
@@ -70,77 +73,86 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
     }
     public override void Update(bool eu)
     {
-        base.Update(eu);
+        float section = 0;
 
-        GoThroughFloors = true;
+        try
+        {
+            section = 1;
+            base.Update(eu);
 
-        if (!dead)
-        {
-            ChangeCollisionLayer(1);
-            releasedSmoke = false;
-        }
-        else
-        {
-            ChangeCollisionLayer(0);
-        }
+            GoThroughFloors = true;
 
-        if (room != null)
-        {
-            if (Consious)
+            if (!dead)
             {
-                Act();
-
-                gravity = 0.1f;
-
-                IntVector2 tilePos = room.GetTilePosition(firstChunk.pos);
-                Room.Tile tile = room.GetTile(firstChunk.pos);
-                if (shortcutDelay == 0 && tile.Terrain == Room.Tile.TerrainType.ShortcutEntrance && room.shortcutData(tilePos).shortCutType != ShortcutData.Type.DeadEnd)
-                {
-                    enteringShortCut = tilePos;
-                }
-
-                if (firstChunk.vel.magnitude > 1f)
-                {
-                    rotation = Vector2.Lerp(rotation.normalized, firstChunk.vel.normalized, 0.2f);
-                }
-
-                lungs = 1f;
+                ChangeCollisionLayer(1);
+                releasedSmoke = false;
             }
             else
             {
-                gravity = 0.9f;
-                AI.behavior = CloudFishAI.Behavior.Flee;
-                AI.fleeCounter = 0;
-
-                TailSegment[] tail = (graphicsModule as CloudFishGraphics).tail;
-                rotation = Custom.DirVec(tail[0].pos, firstChunk.pos);
+                ChangeCollisionLayer(1);
             }
 
-            if (grabbedBy.Count > 0 && grabbedBy[0].grabber is not Player)
+            section = 2;
+            if (room != null)
             {
-                foreach (RoomCamera camera in room.game.cameras)
+                if (Consious)
                 {
-                    camera.MoveObjectToContainer(graphicsModule, camera.ReturnFContainer("Background"));
+                    section = 2.1f;
+                    Act();
+
+                    gravity = 0.1f;
+                    bounce = 0.2f;
+
+                    IntVector2 tilePos = room.GetTilePosition(firstChunk.pos);
+                    Room.Tile tile = room.GetTile(firstChunk.pos);
+                    if (shortcutDelay == 0 && tile.Terrain == Room.Tile.TerrainType.ShortcutEntrance && room.shortcutData(tilePos).shortCutType != ShortcutData.Type.DeadEnd)
+                    {
+                        enteringShortCut = tilePos;
+                    }
+
+                    lungs = 1f;
                 }
-            }
-            else
-            {
-                foreach (RoomCamera camera in room.game.cameras)
+                else
                 {
-                    camera.MoveObjectToContainer(graphicsModule, camera.ReturnFContainer("Midground"));
+                    section = 2.2f;
+
+                    gravity = 0.9f;
+                    if (room.gravity < 0.1f)
+                    { bounce = 0.4f; }
+                    else
+                    { bounce = 0.2f; }
+
+                    AI.behavior = CloudFishAI.Behavior.Flee;
+                    AI.fleeCounter = 0;
+                }
+
+                section = 2.3f;
+                if (grabbedBy.Count > 0 && grabbedBy[0].grabber is not Player)
+                {
+                    foreach (RoomCamera camera in room.game.cameras)
+                    {
+                        camera.MoveObjectToContainer(graphicsModule, camera.ReturnFContainer("Background"));
+                    }
+                }
+                else
+                {
+                    foreach (RoomCamera camera in room.game.cameras)
+                    {
+                        camera.MoveObjectToContainer(graphicsModule, camera.ReturnFContainer("Midground"));
+                    }
                 }
             }
         }
-
-        lastRotation = rotation;
+        catch (Exception e)
+        {
+            Methods.Methods.Log_Exception(e, "CLOUDFISH UPDATE", section);
+        }
     }
     public override void Grabbed(Grasp grasp)
     {
         if (!dead)
-        { room.PlaySound(SoundID.Fly_Caught, firstChunk.pos, 1f, 1.5f); }
-        if (grabbedBy.Count > 0)
         {
-            firstChunk.vel *= 0.1f;
+            room.PlaySound(Enums.NewSoundID.AA_CloudFishScream, firstChunk.pos, 2f, Random.Range(1f, 1.4f));
         }
         base.Grabbed(grasp);
     }
@@ -161,22 +173,25 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
     public override void Die()
     {
         base.Die();
-        foreach (CloudFishAI.TrackedObject obj in AI.trackedCreatures)
+
+        room?.PlaySound(Enums.NewSoundID.AA_CloudFishDeath, firstChunk.pos, 2f, Random.Range(1f, 1.4f));
+
+        if (AI != null && AI.trackedCreatures != null && AI.trackedCreatures.Count > 0)
         {
-            if (obj.obj is CloudFish cloudFish && Custom.DistLess(firstChunk.pos, cloudFish.firstChunk.pos, 1000))
+            foreach (CloudFishAI.TrackedObject obj in AI.trackedCreatures)
             {
-                cloudFish.AI.behavior = CloudFishAI.Behavior.Flee;
-                cloudFish.AI.fleeCounter = 0;
+                if (obj.obj is CloudFish cloudFish && Custom.DistLess(firstChunk.pos, cloudFish.firstChunk.pos, 1000) && cloudFish.room != null)
+                {
+                    cloudFish.AI.fleeCounter = 0;
+                    cloudFish.AI.abstractAI.behavior = CloudFishAI.Behavior.Flee;
+                    cloudFish.AI.lastDangerRoom = cloudFish.room;
+                }
             }
         }
     }
     public void Act()
     {
         AI.Update();
-        if (AI.behavior == CloudFishAI.Behavior.Flee && Random.value > 0.9f)
-        {
-            room.PlaySound(SoundID.Bat_Afraid_Flying_Sounds, firstChunk.pos, 1f, 1f);
-        }
     }
     public override void InitiateGraphicsModule()
     {
@@ -209,18 +224,29 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
     }
     public override void Violence(BodyChunk source, Vector2? directionAndMomentum, BodyChunk hitChunk, Appendage.Pos hitAppendage, DamageType type, float damage, float stunBonus)
     {
-        if (type == DamageType.Stab)
+        float newDamage = damage;
+        if (type != null && type == DamageType.Stab)
         {
-            ReleaseSmoke(-directionAndMomentum.Value.normalized);
+            newDamage *= 5f;
+            if (directionAndMomentum.HasValue)
+            {
+                ReleaseSmoke(-directionAndMomentum.Value.normalized);
+            }
+            else
+            {
+                ReleaseSmoke(Custom.RNV() * 20f);
+            }
         }
-        base.Violence(source, directionAndMomentum, hitChunk, hitAppendage, type, damage, stunBonus);
+        base.Violence(source, directionAndMomentum, hitChunk, hitAppendage, type, newDamage, stunBonus);
     }
     public void ReleaseSmoke(Vector2 dir)
     {
         if (!releasedSmoke)
         {
-            Color startColor = Custom.HSL2RGB(0.5f, 0.5f, 0.9f);
-            Color endColor = Custom.HSL2RGB(0.5f, 0.2f, 0.1f);
+            CloudFishGraphics graphics = graphicsModule as CloudFishGraphics;
+            float bodyHue = Custom.RGB2HSL(graphics.bodyColor).x;
+            Color startColor = Custom.HSL2RGB(bodyHue, 0.2f, 0.8f);
+            Color endColor = Custom.HSL2RGB(bodyHue, 0.2f, 0.1f);
             releasedSmoke = true;
             room.AddObject(new GasJet(firstChunk, dir, 4f, 20, startColor, endColor));
         }
@@ -288,14 +314,32 @@ public class CloudFishGraphics : GraphicsModule
 
     public TriangleMesh bodyMech;
     public TriangleMesh shineMesh;
+
     public TriangleMesh tailFinMesh1;
     public TriangleMesh tailFinMesh2;
     public TriangleMesh bodyFinMesh1;
     public TriangleMesh bodyFinMesh2;
+
+    public Whisker whisker1;
+    public Whisker whisker2;
+    public Whisker whisker3;
+    public Whisker whisker4;
+    public float wiggleWhiskers;
+
     public FSprite eye1;
     public FSprite eye2;
 
     public TailSegment[] tail;
+    public int numOfTailSegments;
+    public int numOfFinSegments;
+    public int numOfBodySegments;
+    public int bodyFin1Length;
+    public int bodyFin2Length;
+
+    public bool shakeTail;
+    public float shakeTailTimer;
+    public float maxTailShake = 5;
+    public Vector2 tailShakeDir;
 
     public Vector2 bodyRotation;
     public Vector2 lastBodyRotation;
@@ -309,102 +353,168 @@ public class CloudFishGraphics : GraphicsModule
     public Vector2 eyesLookDir;
     public Vector2 lastEyesLookDir;
 
-    public Color color;
+    public Color bodyColor;
+    public Color eyeColor;
+
+    public Color blackColor;
+    public float darkness;
 
     public CloudFishGraphics(PhysicalObject ow) : base(ow, false)
     {
         cloudFish = ow as CloudFish;
-
         List<BodyPart> list = [];
 
-        tail = new TailSegment[5];
-        
-        tail[0] = new TailSegment(this, 4f, 15f, null, 0.8f, 1f, 0f, true);
-        tail[1] = new TailSegment(this, 3f, 15f, tail[0], 0.8f, 1f, 0f, true);
-        tail[2] = new TailSegment(this, 2f, 15f, tail[1], 0.8f, 1f, 0f, true);
-        tail[3] = new TailSegment(this, 1f, 15f, tail[2], 0.8f, 1f, 0f, true);
-        tail[4] = new TailSegment(this, 1f, 15f, tail[3], 0.8f, 1f, 0f, true);
+        Random.State state = Random.state;
+        Random.InitState(cloudFish.abstractCreature.ID.RandomSeed);
+
+        #region Body And Tail
+        float tailSegmentLength = 10f;
+        float tailSegmentWidth = 4f;
+        numOfBodySegments = Random.Range(4, 6);
+        numOfFinSegments = Random.Range(3, 5);
+        numOfTailSegments = numOfBodySegments + (numOfFinSegments - 1);
+
+        tail = new TailSegment[numOfTailSegments];
+        tail[0] = new TailSegment(this, tailSegmentWidth, tailSegmentLength, null, 0.8f, 1f, 0f, true);
+        for (int i = 1; i < numOfTailSegments; i++)
+        {
+            tail[i] = new TailSegment(this, Mathf.Lerp(tailSegmentWidth, 0, (float)i / numOfBodySegments), tailSegmentLength, tail[i - 1], 0.8f, 1f, 0f, true);
+        }
 
         foreach (TailSegment segment in tail)
         { list.Add(segment); }
+        #endregion
+
+
+        #region Colors
+        float dominance = cloudFish.dominance;
+        if (Random.value < 0.001)
+        {
+            bodyColor = Custom.HSL2RGB(Custom.WrappedRandomVariation(0f, 0.1f, 0.6f), Mathf.Pow(dominance, 2) / 3f, Custom.ClampedRandomVariation(0.8f, 0.05f, 0.1f));
+            eyeColor = new(1f, 0f, 0f);
+        }
+        else
+        {
+            Color baseDomColor = Custom.HSL2RGB(0.52f, 0.4f, 0.5f);
+            Color baseSubColor = Custom.HSL2RGB(0.52f, 0f, 0.5f);
+            Color baseEyeColor = new(0f, 1f, 1f);
+            float spread = 0.1f;
+
+            try
+            {
+                string domColor = Plugin.RegionData.ReadRegionData(cloudFish.room.world.region.name, "CloudFishColorA");
+                if (domColor != null)
+                {
+                    if (domColor.StartsWith("#"))
+                    {
+                        domColor = domColor.Remove(0, 1);
+                    }
+                    baseDomColor = Custom.hexToColor(domColor);
+                }
+
+                string subColor = Plugin.RegionData.ReadRegionData(cloudFish.room.world.region.name, "CloudFishColorB");
+                if (subColor != null)
+                {
+                    if (subColor.StartsWith("#"))
+                    {
+                        subColor = subColor.Remove(0, 1);
+                    }
+                    baseSubColor = Custom.hexToColor(subColor);
+                }
+
+                string eyeColor = Plugin.RegionData.ReadRegionData(cloudFish.room.world.region.name, "CloudFishEyeColor");
+                if (eyeColor != null)
+                {
+                    if (eyeColor.StartsWith("#"))
+                    {
+                        eyeColor = eyeColor.Remove(0, 1);
+                    }
+                    baseEyeColor = Custom.hexToColor(eyeColor);
+                }
+
+                string hueSpread = Plugin.RegionData.ReadRegionData(cloudFish.room.world.region.name, "CloudFishHueSpread");
+                if (hueSpread != null)
+                {
+                    spread = float.Parse(hueSpread);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("Exception occured when trying to get the region color data for a Cloudfish! Is the region properties file formatted correctly? Check the Steam Workshop page for more information.");
+                Debug.LogException(e);
+            }
+
+            Vector3 colorAVec = Custom.RGB2HSL(baseDomColor);
+            Vector3 colorBVec = Custom.RGB2HSL(baseSubColor);
+
+            Color dominantColor = Custom.HSL2RGB(Custom.WrappedRandomVariation(colorAVec.x, spread, 0.6f), colorAVec.y, Custom.ClampedRandomVariation(colorAVec.z, 0.05f, 0.1f));
+            Color submissiveColor = Custom.HSL2RGB(Custom.WrappedRandomVariation(colorBVec.x, spread, 0.6f), colorBVec.y, Custom.ClampedRandomVariation(colorBVec.z, 0.05f, 0.1f));
+
+            bodyColor = Color.Lerp(submissiveColor, dominantColor, dominance);
+            eyeColor = baseEyeColor;
+        }
+        #endregion
+
+
+        #region Whiskers
+        whisker1 = new(this, new Vector2(0f, 1f), 20f, Random.Range(10f, 20f), 0.8f, cloudFish.firstChunk);
+        whisker2 = new(this, new Vector2(0f, 1f), 20f, Random.Range(10f, 20f), 0.8f, cloudFish.firstChunk);
+        whisker3 = new(this, new Vector2(0f, 1f), 20f, Random.Range(10f, 20f), 0.8f, cloudFish.firstChunk);
+        whisker4 = new(this, new Vector2(0f, 1f), 20f, Random.Range(10f, 20f), 0.8f, cloudFish.firstChunk);
+        list.Add(whisker1.bodyPart);
+        list.Add(whisker2.bodyPart);
+        list.Add(whisker3.bodyPart);
+        list.Add(whisker4.bodyPart);
+        #endregion
+
+
+        #region Fins
+        bodyFin1Length = Random.Range(2, 4);
+        bodyFin2Length = Random.Range(2, 4);
+        #endregion
+
+
+        Random.state = state;
 
         bodyParts = list.ToArray();
-
-        color = cloudFish.color;
     }
 
     public override void Update()
     {
         base.Update();
 
-        bodyRotation = cloudFish.rotation;
-
-        lastEyesLookDir = eyesLookDir;
-
         tail[0].connectedPoint = cloudFish.firstChunk.pos;
-
-        Vector2 previousSegmentRotation = bodyRotation;
-        foreach (TailSegment segment in tail)
-        {
-            segment.Update();
-            segment.vel *= 0.5f;
-            Vector2 segmentConnectPos = segment.connectedPoint ?? segment.connectedSegment.pos;
-            Vector2 segmentRotation = Custom.DirVec(segment.pos, segmentConnectPos);
-
-            if (!cloudFish.Consious || cloudFish.grabbedBy.Count > 0)
-            {
-                segment.vel += new Vector2(0f, -2f);
-            }
-            if (Custom.DistLess(segment.pos, cloudFish.firstChunk.pos, segment.rad))
-            {
-                segment.pos = cloudFish.firstChunk.pos - segmentRotation * segment.rad;
-            }
-            if (Custom.DistLess(segment.pos, segmentConnectPos, segment.connectionRad))
-            {
-                segment.pos = segmentConnectPos - segmentRotation * segment.connectionRad;
-            }
-
-            float angle = Custom.Angle(segmentRotation, previousSegmentRotation);
-            if (Mathf.Abs(angle) > 20)
-            {
-                //Create_Square(cloudFish.room, segment.pos, 2f, 2f, segmentRotation, "Red", 100);
-                segment.pos = segmentConnectPos + Custom.rotateVectorDeg(-previousSegmentRotation, angle > 0 ? 20 : -20) * segment.connectionRad;
-            }
-
-            previousSegmentRotation = segmentRotation;
-        }
-
-        Vector2 dirVec = Custom.DirVec(tail[0].pos, cloudFish.firstChunk.pos);
 
         if (!cloudFish.Consious)
         {
+            wiggleWhiskers = 0;
             eyesLookDir = new Vector2(0f, 0f);
-            if (cloudFish.firstChunk.ContactPoint.ToVector2().magnitude > 0.1)
-            {
-                Vector2 rotation = Custom.DirVec(tail[0].pos, cloudFish.firstChunk.pos);
-                tail[0].pos = cloudFish.firstChunk.pos + Custom.PerpendicularVector(cloudFish.firstChunk.ContactPoint.ToVector2()) * (rotation.x < 0 ? 15 : -15);
-            }
-            if (cloudFish.grabbedBy.Count > 0)
-            {
-                TailSegment segment = tail[1];
-                Vector2 segmentRotation = Custom.DirVec(segment.connectedSegment.pos, segment.pos);
-                Vector2 connectedSegmentPoint = segment.connectedSegment.connectedPoint.HasValue ? segment.connectedSegment.connectedPoint.Value : segment.connectedSegment.connectedSegment.pos;
-                Vector2 connectedSegmentRotation = Custom.DirVec(connectedSegmentPoint, segment.connectedSegment.pos);
-                float angle = Custom.Angle(segmentRotation, connectedSegmentRotation);
-                Vector2 segmentRotation2 = Custom.DirVec(tail[0].connectedPoint.Value, tail[0].pos);
-                if (angle > 30)
-                {
-                    tail[0].vel += Custom.PerpendicularVector(Custom.DirVec(tail[0].pos, cloudFish.grabbedBy[0].grabber.mainBodyChunk.pos));
-                }
-                else if (angle < -30)
-                {
-                    tail[0].vel -= Custom.PerpendicularVector(Custom.DirVec(tail[0].pos, cloudFish.grabbedBy[0].grabber.mainBodyChunk.pos));
-                }
-            }
         }
         else
         {
-            if (cloudFish.AI.behavior == CloudFishAI.Behavior.Wander || cloudFish.AI.behavior == CloudFishAI.Behavior.Follow)
+            wiggleWhiskers = Random.Range(-10, 10);
+            CloudFishAI.MovementType movement = cloudFish.AI.movementType;
+            CloudFishAI.Behavior behavior = cloudFish.AI.behavior;
+
+            if (movement == CloudFishAI.MovementType.FollowPath || movement == CloudFishAI.MovementType.GoStraightToPoint || movement == CloudFishAI.MovementType.AvoidWalls)
+            {
+                this.shakeTail = true;
+                if (shakeTailTimer > maxTailShake * 2f)
+                {
+                    shakeTailTimer = 0;
+                }
+                else
+                {
+                    shakeTailTimer += cloudFish.AI.speed / 5f;
+                }
+            }
+            else
+            {
+                this.shakeTail = false;
+                shakeTailTimer = 0;
+            }
+
+            if (behavior == CloudFishAI.Behavior.Wander || behavior == CloudFishAI.Behavior.Follow)
             {
                 Vector2 pos = cloudFish.firstChunk.pos;
                 Creature closestCreature = null;
@@ -440,209 +550,478 @@ public class CloudFishGraphics : GraphicsModule
             }
         }
 
+        float shakeTail = Mathf.PingPong(shakeTailTimer, maxTailShake) - maxTailShake / 2f;
+        tailShakeDir = Custom.rotateVectorDeg(bodyRotation, shakeTail);
+
+        Vector2 previousSegmentRotation = Custom.DirVec(tail[0].pos, cloudFish.firstChunk.pos);
+        foreach (TailSegment segment in tail)
+        {
+            int i = tail.IndexOf(segment);
+
+            if (i != 0 && cloudFish.bites == 1)
+            {
+                break;
+            }
+
+            segment.Update();
+
+            if (!cloudFish.Consious && cloudFish.grabbedBy.Count > 0 && i == 0)
+            {
+                //segment.pos = segment.connectedPoint.Value + Custom.DegToVec(120) * segment.connectionRad;
+                //segment.lastPos = segment.pos;
+            }
+
+            segment.vel *= 0.5f;
+            Vector2 segmentConnectPos = segment.connectedPoint ?? segment.connectedSegment.pos;
+            Vector2 segmentRotation = Custom.DirVec(segment.pos, segmentConnectPos);
+
+            if (!cloudFish.Consious || cloudFish.grabbedBy.Count > 0)
+            {
+                segment.vel += new Vector2(0f, -2f);
+            }
+            if (Custom.DistLess(segment.pos, cloudFish.firstChunk.pos, segment.rad))
+            {
+                segment.pos = cloudFish.firstChunk.pos - segmentRotation * segment.rad;
+            }
+            if (Custom.DistLess(segment.pos, segmentConnectPos, segment.connectionRad))
+            {
+                segment.pos = segmentConnectPos - segmentRotation * segment.connectionRad;
+            }
+
+            string color = "Green";
+
+            float angle = Custom.Angle(segmentRotation, previousSegmentRotation);
+            if (Mathf.Abs(angle) > 20)
+            {
+                color = "Yellow";
+                Vector2 tryPos = segmentConnectPos + Custom.rotateVectorDeg(-previousSegmentRotation, angle > 0 ? 20 : -20) * segment.connectionRad;
+                if (cloudFish.room.GetTile(tryPos).Solid && segment.connectedSegment != null)
+                {
+                    Vector2 conSegConPos = segment.connectedSegment.connectedPoint ?? segment.connectedSegment.connectedSegment.pos;
+                    Vector2 conSegRot = Custom.DirVec(conSegConPos, segment.connectedSegment.pos);
+                    for (int j = 0; j < 10; j++)
+                    {
+                        Vector2 newConSegRot = Custom.rotateVectorDeg(conSegRot, (angle > 0 ? 20 : -20) * j);
+                        Vector2 newConSegPos = conSegConPos + newConSegRot * segment.connectedSegment.connectionRad;
+                        Vector2 newSegPos = newConSegPos + newConSegRot * segment.connectionRad;
+                        Vector2 newSegRot = Custom.DirVec(newSegPos, newConSegPos);
+                        float newAngle = Custom.Angle(newSegRot, newConSegRot);
+
+                        //Create_Square(cloudFish.room, newConSegPos, 1f, 1f, conSegRot, "White", 0);
+                        //Create_Square(cloudFish.room, newSegPos, 1f, 1f, conSegRot, "Purple", 0);
+                        if (!cloudFish.room.GetTile(newSegPos).Solid)
+                        {
+                            //segment.pos = newSegPos;
+                            //segment.lastPos = newSegPos;
+                            //segment.connectedSegment.pos = newConSegPos;
+                            //segment.connectedSegment.lastPos = newConSegPos;
+                            //break;
+                        }
+                    }
+                    color = "Red";
+                }
+                segment.pos = segmentConnectPos + Custom.rotateVectorDeg(-previousSegmentRotation, angle > 0 ? 20 : -20) * segment.connectionRad;
+            }
+
+            segment.PushOutOfTerrain(cloudFish.room, cloudFish.firstChunk.pos);
+
+            //Create_Square(cloudFish.room, segment.pos, 2f, 2f, segmentRotation, color, 0);
+            previousSegmentRotation = segmentRotation;
+        }
+
         lastBodyRotation = bodyRotation;
+        if (cloudFish.bites > 1)
+        {
+            bodyRotation = Custom.DirVec(tail[0].pos, cloudFish.firstChunk.pos);
+        }
+        else
+        {
+            if (cloudFish.firstChunk.ContactPoint.ToVector2().magnitude < 0.1f && cloudFish.firstChunk.vel.magnitude > 0.1f)
+            {
+                bodyRotation = Custom.rotateVectorDeg(bodyRotation, 1);
+            }
+        }
+
+        Vector2 whisker1Dir = Custom.RotateAroundOrigo(bodyRotation, 45 + wiggleWhiskers);
+        Vector2 whisker2Dir = Custom.RotateAroundOrigo(bodyRotation, -45 - wiggleWhiskers);
+        Vector2 whisker3Dir = Custom.RotateAroundOrigo(bodyRotation, 90 + wiggleWhiskers);
+        Vector2 whisker4Dir = Custom.RotateAroundOrigo(bodyRotation, -90 - wiggleWhiskers);
+
+        whisker1.Update(whisker1Dir);
+        whisker2.Update(whisker2Dir);
+        whisker3.Update(whisker3Dir);
+        whisker4.Update(whisker4Dir);
     }
     public override void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
     {
-        sLeaser.sprites = new FSprite[8];
+        sLeaser.sprites = new FSprite[16];
 
-        TriangleMesh bodyMesh = TriangleMesh.MakeLongMesh(3, true, false);
+        TriangleMesh bodyMesh = TriangleMesh.MakeLongMesh(numOfTailSegments, true, false);
         sLeaser.sprites[0] = bodyMesh;
-
-        TriangleMesh shineMesh = TriangleMesh.MakeLongMesh(2, true, false);
+        TriangleMesh shineMesh = TriangleMesh.MakeLongMesh(numOfTailSegments, true, false);
         sLeaser.sprites[1] = shineMesh;
 
         sLeaser.sprites[2] = new FSprite("JetFishEyeA", true);
         sLeaser.sprites[3] = new FSprite("JetFishEyeB", true);
 
-        TriangleMesh finMesh1 = TriangleMesh.MakeLongMesh(1, false, false);
+        int tailFinVertices = (numOfFinSegments * 2) - 1;
+        int finSegments = (tailFinVertices + 3) / 4;
+        TriangleMesh finMesh1 = TriangleMesh.MakeLongMesh(5, false, false);
         sLeaser.sprites[4] = finMesh1;
-
-        TriangleMesh finMesh2 = TriangleMesh.MakeLongMesh(1, false, false);
+        TriangleMesh finMesh2 = TriangleMesh.MakeLongMesh(5, false, false);
         sLeaser.sprites[5] = finMesh2;
-
-        TriangleMesh finMesh3 = TriangleMesh.MakeLongMesh(1, false, false);
+        TriangleMesh finMesh3 = TriangleMesh.MakeLongMesh(5, false, false);
         sLeaser.sprites[6] = finMesh3;
-
-        TriangleMesh finMesh4 = TriangleMesh.MakeLongMesh(1, false, false);
+        TriangleMesh finMesh4 = TriangleMesh.MakeLongMesh(5, false, false);
         sLeaser.sprites[7] = finMesh4;
+
+        TriangleMesh whiskerMesh1 = TriangleMesh.MakeLongMesh(4, true, false);
+        sLeaser.sprites[8] = whiskerMesh1;
+        TriangleMesh whiskerMesh2 = TriangleMesh.MakeLongMesh(4, true, false);
+        sLeaser.sprites[9] = whiskerMesh2;
+        TriangleMesh whiskerMesh3 = TriangleMesh.MakeLongMesh(4, true, false);
+        sLeaser.sprites[10] = whiskerMesh3;
+        TriangleMesh whiskerMesh4 = TriangleMesh.MakeLongMesh(4, true, false);
+        sLeaser.sprites[11] = whiskerMesh4;
+
+        sLeaser.sprites[12] = whisker1.triMesh;
+        sLeaser.sprites[13] = whisker2.triMesh;
+        sLeaser.sprites[14] = whisker3.triMesh;
+        sLeaser.sprites[15] = whisker4.triMesh;
 
         AddToContainer(sLeaser, rCam, null);
     }
     public override void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
-        Vector2 chunkPos = Vector2.Lerp(cloudFish.firstChunk.lastPos, cloudFish.firstChunk.pos, timeStacker);
-        Vector2 rotation = Vector2.Lerp(cloudFish.lastRotation, cloudFish.rotation, timeStacker);
-        Vector2 eyesLookDirection = Vector2.Lerp(lastEyesLookDir, eyesLookDir, timeStacker);
-
-        Vector2 tail0Pos = Vector2.Lerp(tail[0].lastPos, tail[0].pos, timeStacker);
-        Vector2 tail1Pos = Vector2.Lerp(tail[1].lastPos, tail[1].pos, timeStacker);
-        Vector2 tail2Pos = Vector2.Lerp(tail[2].lastPos, tail[2].pos, timeStacker);
-        Vector2 tail3Pos = Vector2.Lerp(tail[3].lastPos, tail[3].pos, timeStacker);
-        Vector2 tail4Pos = Vector2.Lerp(tail[4].lastPos, tail[4].pos, timeStacker);
-
-        Vector2 tail0Rot = Custom.DirVec(tail0Pos, chunkPos);
-        Vector2 tail1Rot = Custom.DirVec(tail1Pos, tail0Pos);
-        Vector2 tail2Rot = Custom.DirVec(tail2Pos, tail1Pos);
-        Vector2 tail3Rot = Custom.DirVec(tail3Pos, tail2Pos);
-        Vector2 tail4Rot = Custom.DirVec(tail4Pos, tail3Pos);
-
-        #region Body
-        Vector2 bodyPos0 = chunkPos - camPos + Custom.PerpendicularVector(tail0Rot) * 2f + tail0Rot * 8f;
-        Vector2 bodyPos1 = chunkPos - camPos - Custom.PerpendicularVector(tail0Rot) * 2f + tail0Rot * 8f;
-        Vector2 bodyPos2 = chunkPos - camPos + Custom.PerpendicularVector(tail0Rot) * tail[0].StretchedRad + tail0Rot * 5f;
-        Vector2 bodyPos3 = chunkPos - camPos - Custom.PerpendicularVector(tail0Rot) * tail[0].StretchedRad + tail0Rot * 5f;
-        Vector2 bodyPos4 = tail0Pos - camPos + Custom.PerpendicularVector(tail0Rot) * tail[0].StretchedRad;
-        Vector2 bodyPos5 = tail0Pos - camPos - Custom.PerpendicularVector(tail0Rot) * tail[0].StretchedRad;
-        Vector2 bodyPos6 = tail1Pos - camPos + Custom.PerpendicularVector(tail1Rot) * tail[1].StretchedRad;
-        Vector2 bodyPos7 = tail1Pos - camPos - Custom.PerpendicularVector(tail1Rot) * tail[1].StretchedRad;
-        Vector2 bodyPos8 = tail2Pos - camPos + Custom.PerpendicularVector(tail2Rot) * tail[2].StretchedRad;
-        Vector2 bodyPos9 = tail2Pos - camPos - Custom.PerpendicularVector(tail2Rot) * tail[2].StretchedRad;
-        Vector2 bodyPos10 = tail3Pos - camPos;
-
-        if (cloudFish.bites == 3)
+        float section = 0;
+        try
         {
-            bodyPos8 = bodyPos6;
-            bodyPos9 = bodyPos7;
-            bodyPos10 = bodyPos7;
+            Vector2 chunkPos = Vector2.Lerp(cloudFish.firstChunk.lastPos, cloudFish.firstChunk.pos, timeStacker) - camPos;
+            Vector2 eyesLookDirection = Vector2.Lerp(lastEyesLookDir, eyesLookDir, timeStacker);
+            int bites = cloudFish.bites;
+
+            List<Vector2> tailPositions = [];
+            List<Vector2> tailRotations = [];
+            List<Vector2> bodyPositions = [];
+            List<Vector2> shinePositions = [];
+            List<Vector2> bodyFin1Positions = [];
+            List<Vector2> bodyFin2Positions = [];
+            List<Vector2> tailFin1Positions = [];
+            List<Vector2> tailFin2Positions = [];
+            tailPositions.Add(chunkPos);
+
+            Vector2 headRot = Vector2.Lerp(lastBodyRotation, bodyRotation, timeStacker);
+            float rotX = headRot.x;
+
+            Vector2 headPos1 = chunkPos + headRot * (tail[0].StretchedRad * 2f) - Custom.PerpendicularVector(headRot) * (tail[0].StretchedRad / 2f);
+            Vector2 headPos2 = chunkPos + headRot * (tail[0].StretchedRad * 2f) + Custom.PerpendicularVector(headRot) * (tail[0].StretchedRad / 2f);
+            Vector2 headPos3 = chunkPos - Custom.PerpendicularVector(headRot) * tail[0].StretchedRad;
+            Vector2 headPos4 = chunkPos + Custom.PerpendicularVector(headRot) * tail[0].StretchedRad;
+
+            bodyPositions.Add(headPos1);
+            bodyPositions.Add(headPos2);
+            bodyPositions.Add(headPos3);
+            bodyPositions.Add(headPos4);
+
+            shinePositions.Add(chunkPos + Custom.PerpendicularVector(headRot) * rotX * 2f);
+
+            bodyFin1Positions.Add(headPos3);
+            bodyFin2Positions.Add(headPos4);
+
+            section = 1;
+
+            #region Getting Draw Positions 
+            Vector2 bodySegConnectPos = chunkPos;
+            float bodyFinWidth = 5f;
+            int tailFinIndex = 0;
+            float tailFinWidth = 5f;
+
+            for (int i = 0; i < numOfTailSegments; i++)
+            {
+                if (bites < 4 && i > bites - 1)
+                {
+                    break;
+                }
+
+                TailSegment segment = tail[i];
+
+                Vector2 segmentPos = Vector2.Lerp(segment.lastPos, segment.pos, timeStacker) - camPos;
+                Vector2 segmentRot = Custom.DirVec(bodySegConnectPos, segmentPos);
+                Vector2 perpRot = Custom.PerpendicularVector(segmentRot);
+                tailPositions.Add(segmentPos);
+                tailRotations.Add(segmentRot);
+                float segmentRad = Mathf.Clamp(segment.StretchedRad, 0.1f, 50);
+
+                section = 1.1f;
+
+                if (i == numOfBodySegments)
+                {
+                    bodyPositions.Add(segmentPos);
+
+                    shinePositions.Add(segmentPos);
+                }
+                else
+                {
+                    if (i < numOfBodySegments)
+                    {
+                        Vector2 bodyPos1 = segmentPos + perpRot * segmentRad;
+                        Vector2 bodyPos2 = segmentPos - perpRot * segmentRad;
+                        bodyPositions.Add(bodyPos1);
+                        bodyPositions.Add(bodyPos2);
+
+                        Vector2 shinePos1 = segmentPos + perpRot * (segmentRad / 4f) - perpRot * rotX;
+                        Vector2 shinePos2 = segmentPos - perpRot * (segmentRad / 4f) - perpRot * rotX;
+                        shinePositions.Add(shinePos1);
+                        shinePositions.Add(shinePos2);
+                    }
+
+                    section = 1.2f;
+
+                    if (i < bodyFin1Length - 1)
+                    {
+                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad);
+                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * bodyFinWidth);
+                    }
+                    else if (i == bodyFin1Length - 1)
+                    {
+                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * bodyFinWidth / 2f);
+                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * bodyFinWidth);
+                    }
+                    else if (i == bodyFin1Length)
+                    {
+                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * bodyFinWidth);
+                    }
+
+                    section = 1.3f;
+
+                    if (i < bodyFin2Length - 1)
+                    {
+                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad);
+                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * bodyFinWidth);
+                    }
+                    else if (i == bodyFin2Length - 1)
+                    {
+                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * bodyFinWidth / 2f);
+                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * bodyFinWidth);
+                    }
+                    else if (i == bodyFin2Length)
+                    {
+                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * bodyFinWidth);
+                    }
+                    bodyFinWidth++;
+                }
+
+                section = 1.4f;
+
+                if (i > numOfBodySegments - 2)
+                {
+                    if (tailFinIndex == 0)
+                    {
+                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad);
+
+                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad);
+                    }
+                    else if (i == numOfTailSegments - 1)
+                    {
+                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * tailFinWidth);
+
+                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * tailFinWidth);
+                    }
+                    else if (tailFinIndex == 1)
+                    {
+                        tailFin1Positions.Add(segmentPos);
+                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * tailFinWidth);
+
+                        tailFin2Positions.Add(segmentPos);
+                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * tailFinWidth);
+                    }
+                    else
+                    {
+                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * tailFinWidth / 2f);
+                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * tailFinWidth);
+
+                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * tailFinWidth / 2f);
+                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * tailFinWidth);
+                    }
+                    tailFinWidth += Mathf.Sqrt(tailFinIndex);
+                    tailFinIndex++;
+                }
+
+                bodySegConnectPos = segmentPos;
+            }
+            #endregion
+
+            section = 2;
+
+            #region Setting Mech Vertices
+            bodyMech = sLeaser.sprites[0] as TriangleMesh;
+            if (bodyPositions.Count > 0)
+            {
+                for (int i = 0; i < bodyMech.vertices.Length; i++)
+                {
+                    Vector2 bodyPos = bodyPositions[Mathf.Clamp(i, 0, bodyPositions.Count - 1)];
+                    bodyMech.MoveVertice(i, bodyPos);
+                }
+                bodyMech.alpha = 1f;
+            }
+
+            shineMesh = sLeaser.sprites[1] as TriangleMesh;
+            if (shinePositions.Count > 0)
+            {
+                for (int i = 0; i < shineMesh.vertices.Length; i++)
+                {
+                    Vector2 shinePos = shinePositions[Mathf.Clamp(i, 0, shinePositions.Count - 1)];
+
+                    shineMesh.MoveVertice(i, shinePos);
+                }
+                shineMesh.alpha = 1f;
+            }
+
+            tailFinMesh1 = sLeaser.sprites[4] as TriangleMesh;
+            if (tailFin1Positions.Count > 0)
+            {
+                for (int i = 0; i < tailFinMesh1.vertices.Length; i++)
+                {
+                    Vector2 finPos = tailFin1Positions[Mathf.Clamp(i, 0, tailFin1Positions.Count - 1)];
+
+                    tailFinMesh1.MoveVertice(i, finPos);
+                }
+                tailFinMesh1.alpha = 1f;
+            }
+
+            tailFinMesh2 = sLeaser.sprites[5] as TriangleMesh;
+            if (tailFin2Positions.Count > 0)
+            {
+                for (int i = 0; i < tailFinMesh2.vertices.Length; i++)
+                {
+                    Vector2 finPos = tailFin2Positions[Mathf.Clamp(i, 0, tailFin2Positions.Count - 1)];
+
+                    tailFinMesh2.MoveVertice(i, finPos);
+                }
+                tailFinMesh2.alpha = 1f;
+            }
+
+            bodyFinMesh1 = sLeaser.sprites[6] as TriangleMesh;
+            if (bodyFin1Positions.Count > 0)
+            {
+                for (int i = 0; i < bodyFinMesh1.vertices.Length; i++)
+                {
+                    Vector2 finPos = bodyFin1Positions[Mathf.Clamp(i, 0, bodyFin1Positions.Count - 1)];
+
+                    bodyFinMesh1.MoveVertice(i, finPos);
+                }
+                bodyFinMesh1.alpha = 1f;
+            }
+
+            bodyFinMesh2 = sLeaser.sprites[7] as TriangleMesh;
+            if (bodyFin2Positions.Count > 0)
+            {
+                for (int i = 0; i < bodyFinMesh2.vertices.Length; i++)
+                {
+                    Vector2 finPos = bodyFin2Positions[Mathf.Clamp(i, 0, bodyFin2Positions.Count - 1)];
+
+                    bodyFinMesh2.MoveVertice(i, finPos);
+                }
+                bodyFinMesh2.alpha = 1f;
+            }
+            #endregion
+
+            section = 3;
+
+            #region Eye
+            eye1 = sLeaser.sprites[2];
+            eye1.SetPosition(chunkPos);
+            eye1.rotation = Custom.VecToDeg(headRot);
+            eye1.scale = 1f;
+            eye1.alpha = 1f;
+
+            eye2 = sLeaser.sprites[3];
+            eye2.SetPosition(chunkPos + eyesLookDirection * 1f);
+            eye2.rotation = Custom.VecToDeg(headRot);
+            eye2.scale = 0.5f;
+            eye2.alpha = 1f;
+            #endregion
+
+            section = 4;
+
+            #region Whiskers
+
+            whisker1.DrawSprite(camPos, timeStacker, bodyPositions[0], headRot, true);
+            whisker2.DrawSprite(camPos, timeStacker, bodyPositions[1], headRot, false);
+            whisker3.DrawSprite(camPos, timeStacker, bodyPositions[0], headRot, true);
+            whisker4.DrawSprite(camPos, timeStacker, bodyPositions[1], headRot, false);
+
+            #endregion
+
+            section = 5;
+
+            #region Color
+            Vector2 actualChunkPos = chunkPos + camPos;
+            float roomDarkness = Mathf.Clamp((rCam.room.Darkness(actualChunkPos) - 0.3f) * 1.6f, 0f, 1f);
+
+            float lightSourceExposure = 0;
+            float r = 0;
+            float g = 0;
+            float b = 0;
+            List<LightSource> nearbyLightSources = [];
+            foreach (LightSource light in rCam.room.lightSources)
+            {
+                CircularSprite newSprite = new(light.ElementName, 64);
+                float trueLightRad = light.rad * (newSprite.width / 2f) * 0.125f;
+
+                if (Custom.DistLess(actualChunkPos, light.pos, trueLightRad))
+                {
+                    float thisLightExposure = Mathf.Lerp(1, 0, Custom.Dist(actualChunkPos, light.pos) / trueLightRad);
+                    lightSourceExposure = Mathf.Max(lightSourceExposure, thisLightExposure);
+
+                    r = Mathf.Max(r, light.color.r * thisLightExposure);
+                    g = Mathf.Max(g, light.color.g * thisLightExposure);
+                    b = Mathf.Max(b, light.color.b * thisLightExposure);
+                }
+            }
+
+            float trueDarkness = roomDarkness - lightSourceExposure;
+            Color lightColor = new(r, g, b);
+            Color baseColor = Color.Lerp(this.bodyColor, Color.Lerp(this.bodyColor, lightColor, Custom.RGB2HSL(lightColor).y), Mathf.Clamp(lightSourceExposure, 0, 0.5f));
+
+            Vector3 vecBodyColor = Custom.RGB2HSL(baseColor);
+            Color bodyColor = Color.Lerp(Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, vecBodyColor.z), blackColor, trueDarkness);
+            Color shineColor = Color.Lerp(Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z + 0.2f, 0f, 1f)), blackColor, trueDarkness);
+            Color finColor = Color.Lerp(Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z - 0.1f, 0f, 1f)), blackColor, trueDarkness);
+
+            bodyMech.color = bodyColor;
+            shineMesh.color = Color.Lerp(shineColor, bodyColor, darkness * 0.5f);
+
+            tailFinMesh1.color = finColor;
+            tailFinMesh2.color = finColor;
+            bodyFinMesh1.color = finColor;
+            bodyFinMesh2.color = finColor;
+
+            whisker1.triMesh.color = finColor;
+            whisker2.triMesh.color = finColor;
+            whisker3.triMesh.color = finColor;
+            whisker4.triMesh.color = finColor;
+
+            eye1.color = blackColor;
+            eye2.color = eyeColor;
+            #endregion
+
+            section = 6;
+
+            if (cloudFish.bites <= 3)
+            {
+                tailFinMesh1.alpha = 0f;
+                tailFinMesh2.alpha = 0f;
+            }
+
+            if (cloudFish.slatedForDeletetion || cloudFish.room != rCam.room)
+            {
+                sLeaser.CleanSpritesAndRemove();
+            }
         }
-        else if (cloudFish.bites == 2)
+        catch (Exception e)
         {
-            bodyPos6 = bodyPos4;
-            bodyPos7 = bodyPos5;
-            bodyPos8 = bodyPos4;
-            bodyPos9 = bodyPos5;
-            bodyPos10 = bodyPos5;
-        }
-        else if (cloudFish.bites == 1)
-        {
-            bodyPos4 = Vector2.Lerp(bodyPos2, bodyPos4, 0.5f);
-            bodyPos5 = Vector2.Lerp(bodyPos3, bodyPos5, 0.5f);
-            bodyPos6 = bodyPos4;
-            bodyPos7 = bodyPos5;
-            bodyPos8 = bodyPos4;
-            bodyPos9 = bodyPos5;
-            bodyPos10 = bodyPos5;
-        }
-
-        bodyMech = sLeaser.sprites[0] as TriangleMesh;
-        bodyMech.MoveVertice(0, bodyPos0);
-        bodyMech.MoveVertice(1, bodyPos1);
-        bodyMech.MoveVertice(2, bodyPos2);
-        bodyMech.MoveVertice(3, bodyPos3);
-        bodyMech.MoveVertice(4, bodyPos4);
-        bodyMech.MoveVertice(5, bodyPos5);
-        bodyMech.MoveVertice(6, bodyPos6);
-        bodyMech.MoveVertice(7, bodyPos7);
-        bodyMech.MoveVertice(8, bodyPos8);
-        bodyMech.MoveVertice(9, bodyPos9);
-        bodyMech.MoveVertice(10, bodyPos10);
-        bodyMech.alpha = 1f;
-        #endregion
-
-        #region Shine
-        float rotXfac = tail0Rot.x;
-        Vector2 middleShinePos0 = tail0Pos - camPos + Custom.PerpendicularVector(tail0Rot) * tail[0].StretchedRad * rotXfac * 0.25f;
-        Vector2 middleShinePos1 = tail1Pos - camPos + Custom.PerpendicularVector(tail0Rot) * tail[1].StretchedRad * rotXfac * 0.25f;
-
-        Vector2 shinePos0 = chunkPos - camPos + Custom.PerpendicularVector(tail0Rot) * tail[0].StretchedRad * 0.5f * rotXfac + tail0Rot * 6f;
-        Vector2 shinePos1 = middleShinePos0 + Custom.PerpendicularVector(tail0Rot) * tail[0].StretchedRad * 0.25f;
-        Vector2 shinePos2 = middleShinePos0 - Custom.PerpendicularVector(tail0Rot) * tail[0].StretchedRad * 0.25f;
-        Vector2 shinePos3 = middleShinePos1 + Custom.PerpendicularVector(tail1Rot) * tail[1].StretchedRad * 0.25f;
-        Vector2 shinePos4 = middleShinePos1 - Custom.PerpendicularVector(tail1Rot) * tail[1].StretchedRad * 0.25f;
-        Vector2 shinePos5 = tail2Pos - camPos + Custom.PerpendicularVector(tail2Rot) * tail[2].StretchedRad * 0.2f * rotXfac;
-
-        if (cloudFish.bites == 3)
-        {
-            shinePos5 = shinePos4;
-        }
-        else if (cloudFish.bites == 2)
-        {
-            shinePos3 = shinePos1;
-            shinePos4 = shinePos2;
-            shinePos5 = shinePos2;
-        }
-        else if (cloudFish.bites == 1)
-        {
-            shinePos1 = Vector2.Lerp(shinePos1, shinePos0, 0.5f);
-            shinePos2 = Vector2.Lerp(shinePos2, shinePos0, 0.5f);
-            shinePos3 = shinePos1;
-            shinePos4 = shinePos2;
-            shinePos5 = shinePos2;
-        }
-
-        shineMesh = sLeaser.sprites[1] as TriangleMesh;
-        shineMesh.MoveVertice(0, shinePos0);
-        shineMesh.MoveVertice(1, shinePos1);
-        shineMesh.MoveVertice(2, shinePos2);
-        shineMesh.MoveVertice(3, shinePos3);
-        shineMesh.MoveVertice(4, shinePos4);
-        shineMesh.MoveVertice(5, shinePos5);
-        shineMesh.MoveVertice(6, shinePos5);
-        shineMesh.alpha = 1f;
-        #endregion
-
-        #region Eye
-        eye1 = sLeaser.sprites[2];
-        eye1.SetPosition(chunkPos - camPos);
-        eye1.rotation = Custom.VecToDeg(tail0Rot);
-        eye1.scale = 1f;
-        eye1.alpha = 1f;
-
-        eye2 = sLeaser.sprites[3];
-        eye2.SetPosition(chunkPos - camPos + eyesLookDirection * 1f);
-        eye2.rotation = Custom.VecToDeg(tail0Rot);
-        eye2.scale = 0.5f;
-        eye2.alpha = 1f;
-        #endregion
-
-        #region Fins
-        Vector2 finPos = tail4Pos - camPos;
-
-        tailFinMesh1 = sLeaser.sprites[4] as TriangleMesh;
-        tailFinMesh1.MoveVertice(0, bodyPos9);
-        tailFinMesh1.MoveVertice(1, bodyPos10);
-        tailFinMesh1.MoveVertice(2, bodyPos10 + Custom.rotateVectorDeg(tail4Rot, 90f) * 5f);
-        tailFinMesh1.MoveVertice(3, finPos + Custom.rotateVectorDeg(tail4Rot, 90f) * 5f);
-        tailFinMesh1.alpha = 1f;
-
-        tailFinMesh2 = sLeaser.sprites[5] as TriangleMesh;
-        tailFinMesh2.MoveVertice(0, bodyPos8);
-        tailFinMesh2.MoveVertice(1, bodyPos10);
-        tailFinMesh2.MoveVertice(2, bodyPos10 + Custom.rotateVectorDeg(tail4Rot, -90f) * 5f);
-        tailFinMesh2.MoveVertice(3, finPos + Custom.rotateVectorDeg(tail4Rot, -90f) * 5f);
-        tailFinMesh2.alpha = 1f;
-
-        bodyFinMesh1 = sLeaser.sprites[6] as TriangleMesh;
-        bodyFinMesh1.MoveVertice(0, bodyPos3);
-        bodyFinMesh1.MoveVertice(1, bodyPos5);
-        bodyFinMesh1.MoveVertice(2, bodyPos5 + Custom.rotateVectorDeg(tail0Rot, 90f) * 5f);
-        bodyFinMesh1.MoveVertice(3, bodyPos7 + Custom.rotateVectorDeg(tail0Rot, 90f) * 5f);
-        bodyFinMesh1.alpha = 1f;
-
-        bodyFinMesh2 = sLeaser.sprites[7] as TriangleMesh;
-        bodyFinMesh2.MoveVertice(0, bodyPos2);
-        bodyFinMesh2.MoveVertice(1, bodyPos4);
-        bodyFinMesh2.MoveVertice(2, bodyPos4 + Custom.rotateVectorDeg(tail0Rot, -90f) * 5f);
-        bodyFinMesh2.MoveVertice(3, bodyPos6 + Custom.rotateVectorDeg(tail0Rot, -90f) * 5f);
-        bodyFinMesh2.alpha = 1f;
-        #endregion
-
-        if (cloudFish.bites <= 3)
-        {
-            tailFinMesh1.alpha = 0f;
-            tailFinMesh2.alpha = 0f;
-        }
-
-        if (cloudFish.slatedForDeletetion || cloudFish.room != rCam.room)
-        {
-            sLeaser.CleanSpritesAndRemove();
-        }
-        else
-        {
-            //cloudFish.room.AddObject(new Objects.ColoredShapes.Text(cloudFish.room, chunkPos + new Vector2(0f, 10f), randomInt.ToString(), "Red", 0));
-            //cloudFish.room.AddObject(new Objects.ColoredShapes.Rectangle(cloudFish.room, eyes1.GetPosition(), 1f, 1f, 45f, "Red", 0));
-            //cloudFish.room.AddObject(new Objects.ColoredShapes.Rectangle(cloudFish.room, eyes2.GetPosition(), 1f, 1f, 45f, "Red", 0));
+            Methods.Methods.Log_Exception(e, "DRAWSPRITES", section);
         }
     }
     public override void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
@@ -659,31 +1038,68 @@ public class CloudFishGraphics : GraphicsModule
     {
         base.ApplyPalette(sLeaser, rCam, palette);
 
-        bodyMech = sLeaser.sprites[0] as TriangleMesh;
-        shineMesh = sLeaser.sprites[1] as TriangleMesh;
-        eye1 = sLeaser.sprites[2];
-        eye2 = sLeaser.sprites[3];
-        tailFinMesh1 = sLeaser.sprites[4] as TriangleMesh;
-        tailFinMesh2 = sLeaser.sprites[5] as TriangleMesh;
-        bodyFinMesh1 = sLeaser.sprites[6] as TriangleMesh;
-        bodyFinMesh2 = sLeaser.sprites[7] as TriangleMesh;
+        blackColor = palette.blackColor;
+    }
 
-        float darkness = (rCam.room.Darkness(cloudFish.mainBodyChunk.pos) * (1f - rCam.room.LightSourceExposure(cloudFish.mainBodyChunk.pos)) - 0.5f) * 2f;
+    public class Whisker
+    {
+        public Vector2 endPos;
+        public GenericBodyPart bodyPart;
+        public TriangleMesh triMesh;
+        public BodyChunk connectedChunk;
+        public float lengthA;
+        public float lengthB;
+        public float width;
 
-        Vector3 vecBodyColor = Custom.RGB2HSL(color);
-        Color bodyColor = Color.Lerp(Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, vecBodyColor.z), palette.blackColor, darkness);
-        Color shineColor = Color.Lerp(Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z + 0.2f, 0f, 1f)), palette.blackColor, darkness);
-        Color finColor = Color.Lerp(Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z - 0.1f, 0f, 1f)), palette.blackColor, darkness);
+        public Whisker(GraphicsModule module, Vector2 dir, float pointDistLength, float actualLength, float width, BodyChunk connectedChunk)
+        {
+            this.connectedChunk = connectedChunk;
+            this.width = width;
 
-        bodyMech.color = bodyColor;
-        shineMesh.color = Color.Lerp(shineColor, bodyColor, darkness * 0.5f);
-        tailFinMesh1.color = finColor;
-        tailFinMesh2.color = finColor;
-        bodyFinMesh1.color = finColor;
-        bodyFinMesh2.color = finColor;
+            lengthA = pointDistLength;
+            lengthB = actualLength;
 
-        eye1.color = palette.blackColor;
-        eye2.color = new(0f, 1f, 1f);
+            endPos = connectedChunk.pos + dir * lengthA;
+            bodyPart = new(module, 1f, 0.6f, 0.9f, connectedChunk);
+            triMesh = TriangleMesh.MakeLongMesh(4, true, false);
+        }
+
+        public void Update(Vector2 newDir)
+        {
+            endPos = connectedChunk.pos + newDir * lengthA;
+            bodyPart.Update();
+            bodyPart.ConnectToPoint(endPos, 0f, false, 0f, connectedChunk.vel, 0f, 0f);
+        }
+
+        public void DrawSprite(Vector2 camPos, float timeStacker, Vector2 startPos, Vector2 bodyRot, bool flip)
+        {
+            Vector2 endPos = Vector2.Lerp(bodyPart.lastPos, bodyPart.pos, timeStacker) - camPos;
+            float width = flip ? -this.width : this.width;
+
+            Vector2 rot = Custom.DirVec(startPos, endPos);
+            for (int j = 0; j < 13; j += 2)
+            {
+                Vector2 perpRot = Custom.RotateAroundOrigo(rot, 90);
+                if (j == 0)
+                {
+                    triMesh.MoveVertice(j, startPos);
+                    triMesh.MoveVertice(j + 1, startPos - bodyRot * 2f);
+                }
+                else if ((j / 14f * lengthA) > lengthB)
+                {
+                    float bendFac = (-Mathf.Pow(j - 7f, 2f) + 36f) / 20f * (flip ? -1 : 1);
+                    triMesh.MoveVertice(j, Vector2.Lerp(startPos, endPos, j / 14f) + perpRot * bendFac);
+                    triMesh.MoveVertice(j + 1, Vector2.Lerp(startPos, endPos, j / 14f) + perpRot * bendFac);
+                }
+                else
+                {
+                    float bendFac = (-Mathf.Pow(j - 7f, 2f) + 36f) / 20f * (flip ? -1 : 1);
+                    triMesh.MoveVertice(j, Vector2.Lerp(startPos, endPos, j / 14f) + perpRot * width + perpRot * bendFac);
+                    triMesh.MoveVertice(j + 1, Vector2.Lerp(startPos, endPos, j / 14f) - perpRot * width + perpRot * bendFac);
+                }
+            }
+            triMesh.MoveVertice(14, endPos);
+        }
     }
 }
 
@@ -691,6 +1107,8 @@ public class CloudFishGraphics : GraphicsModule
 
 public class CloudFishAI : ArtificialIntelligence
 {
+    public bool exception = false;
+
     public CloudFish cloudfish;
     public CloudFishAbstractAI abstractAI;
     public Behavior behavior;
@@ -699,6 +1117,7 @@ public class CloudFishAI : ArtificialIntelligence
     public List<TrackedObject> trackedObjects;
     public AbstractCreature myLeader;
     public AbstractCreature flockLeader;
+    public int lastLastRoom;
     public Vector2 moveDir;
     public float speed;
 
@@ -720,7 +1139,7 @@ public class CloudFishAI : ArtificialIntelligence
 
     public Vector2 goToPoint;
 
-    public Vector2? DangerPos
+    public Vector2? AverageDangerPos
     {
         get
         {
@@ -770,12 +1189,45 @@ public class CloudFishAI : ArtificialIntelligence
     public Vector2 lastDangerPos;
     public Room lastDangerRoom;
 
+    public List<BodyChunk> nearbyChunks;
+    public Vector2 AverageChunkPos
+    {
+        get
+        {
+            float averageX = 0;
+            float averageY = 0;
+            float highestRad = 0;
+
+            foreach (BodyChunk chunk in nearbyChunks)
+            {
+                averageX += chunk.pos.x;
+                averageY += chunk.pos.y;
+                if (chunk.rad > highestRad)
+                { highestRad = chunk.rad; }
+            }
+
+            Vector2 averageChunkPos = new(averageX / nearbyChunks.Count, averageY / nearbyChunks.Count);
+
+            return averageChunkPos;
+        }
+    }
+
+    public CosmeticInsect nearestInsect;
+    public int huntTimer;
+    public int foodEaten;
+    public int maxFood;
+
     public int minCircleTime = 100;
     public int maxCircleTime = 500;
     public int minRoomTime = 300;
     public int maxRoomTime = 1000;
     public int minFleeTime = 100;
     public int maxFleeTime = 500;
+
+    public bool shakeTail;
+    public int shakeTailTimer;
+
+    public int whistleTimer;
 
     public CloudFishAI(AbstractCreature creature, World world) : base(creature, world)
     {
@@ -794,16 +1246,21 @@ public class CloudFishAI : ArtificialIntelligence
         speed = 1f;
         moveDir = new Vector2(1f, 0f);
         lastDangerPos = new Vector2(0, 0);
+        lastLastRoom = -1;
 
         behavior = abstractAI.behavior;
         circleCounter = Random.Range(minCircleTime, maxCircleTime);
         stayInRoomDesire = Random.Range(minRoomTime, maxRoomTime);
+        huntTimer = Random.Range(10, 200);
+        maxFood = 5;
 
         movementType = MovementType.StandStill;
 
         trackedCreatures = [];
         trackedObjects = [];
     }
+
+
     public override void Update()
     {
         //Debug.Log("------------------------------");
@@ -813,7 +1270,7 @@ public class CloudFishAI : ArtificialIntelligence
             try
             { base.Update(); }
             catch (Exception e)
-            { Debug.Log("EXCEPTION OCCURED IN BASEUPDATE METHOD!"); }
+            { Methods.Methods.Log_Exception(e, "CLOUDFISH AI BASEUPDATE", 0); }
 
             if (cloudfish != null)
             {
@@ -825,23 +1282,43 @@ public class CloudFishAI : ArtificialIntelligence
                     try
                     { UpdateBehavior(); }
                     catch (Exception e)
-                    { Debug.Log("EXCEPTION OCCURED IN UPDATEBEHAVIOR METHOD!"); }
+                    { Methods.Methods.Log_Exception(e, "CLOUDFISH AI UPDATEBEHAVIOR", 0); }
 
                     try
                     { UpdateMovement(); }
                     catch (Exception e)
-                    { Debug.Log("EXCEPTION OCCURED IN UPDATEMOVEMENT METHOD - SECTION ONE"); }
+                    { Methods.Methods.Log_Exception(e, "CLOUDFISH AI UPDATEMOVEMENT", 0); }
+
+                    
+                    //Room room = cloudfish.room;
+                    //Vector2 pos = cloudfish.firstChunk.pos;
+                    //Create_Text(room, pos, behavior.value, "Yellow", 0);
+                    //Create_Text(room, pos + new Vector2(0f, 20f), movementType.value, "Yellow", 0);
+                    
                 }
             }
         }
         catch (Exception e)
-        { Debug.Log("EXCEPTION OCCURED IN UPDATE METHOD!"); }
-        //Debug.Log("------------------------------");
+        { Methods.Methods.Log_Exception(e, "CLOUDFISH AI UPDATE", 0); }
     }
     public override void NewRoom(Room room)
     {
+        lastLastRoom = lastRoom;
         base.NewRoom(room);
     }
+    public override bool WantToStayInDenUntilEndOfCycle()
+    {
+        if (behavior == Behavior.GoToDen || (behavior == Behavior.Follow && myLeader != null && myLeader.abstractAI.WantToStayInDenUntilEndOfCycle()))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+
     public void UpdateTrackedObjects()
     {
         for (int i = 0; i < 3; i++)
@@ -924,12 +1401,15 @@ public class CloudFishAI : ArtificialIntelligence
             }
         }
     }
+
+
     public void UpdateBehavior()
     {
         float section = 1;
         try
         {
             Vector2 pos = cloudfish.mainBodyChunk.pos;
+            Room room = cloudfish.room;
             AbstractCreature newLeader = abstractAI.leader;
             Behavior newBehavior = abstractAI.behavior;
             cloudfish.dominance = abstractAI.dominance;
@@ -937,6 +1417,8 @@ public class CloudFishAI : ArtificialIntelligence
             section = 2;
             if (Random.value < 0.5)
             {
+                nearbyChunks = [];
+
                 foreach (TrackedObject obj in trackedCreatures)
                 {
                     if (obj.obj.room == cloudfish.room)
@@ -946,30 +1428,39 @@ public class CloudFishAI : ArtificialIntelligence
                         {
                             if (obj.obj.VisibilityBonus > -0.6)
                             {
-                                fleeCounter = 0;
                                 newBehavior = Behavior.Flee;
-                                lastDangerRoom = cloudfish.room;
+                                Flee();
                             }
                         }
                         section = 31;
-                        if (abstractAI.flock.count < abstractAI.flock.maxCount)
+                        if (obj.obj is CloudFish otherCloudFish && newBehavior != Behavior.Flee && otherCloudFish.Consious && otherCloudFish.AI.behavior != Behavior.Hunt)
                         {
-                            if (obj.obj is CloudFish otherCloudFish && newBehavior != Behavior.Flee)
+                            Vector2 otherPos = otherCloudFish.mainBodyChunk.pos;
+                            if (Custom.DistLess(pos, otherPos, 400) && cloudfish.room.VisualContact(pos, otherPos))
                             {
-                                Vector2 otherPos = otherCloudFish.mainBodyChunk.pos;
-                                if (Custom.DistLess(pos, otherPos, 400) && cloudfish.room.VisualContact(pos, otherPos))
+                                CloudFishAbstractAI otherAI = otherCloudFish.AI.abstractAI;
+                                if (otherAI.dominance > cloudfish.dominance)
                                 {
-                                    CloudFishAbstractAI otherAI = otherCloudFish.AI.abstractAI;
-                                    if (otherAI.dominance > cloudfish.dominance && otherAI.flock.count + abstractAI.flock.count <= otherAI.flock.maxCount)
+                                    CloudFishAbstractAI.CloudFishFlock myFlock = abstractAI.flock;
+                                    CloudFishAbstractAI.CloudFishFlock otherFlock = otherAI.flock;
+                                    if ((myFlock.count < myFlock.maxCount && otherFlock.count < otherFlock.maxCount && otherFlock.count + myFlock.count <= otherFlock.maxCount) || abstractAI.flock.list.Contains(otherCloudFish.abstractCreature))
                                     {
                                         section = 32;
-                                        if (newLeader == null || ((CloudFishAbstractAI)newLeader.abstractAI).dominance > otherAI.dominance)
+                                        if (newLeader == null || ((CloudFishAbstractAI)newLeader.abstractAI).dominance > otherAI.dominance || (newLeader.realizedCreature != null && (newLeader.realizedCreature as CloudFish).AI.behavior == Behavior.Hunt))
                                         {
                                             newLeader = otherCloudFish.abstractCreature;
                                             otherAI.flock.AddNewMember(cloudfish.abstractCreature);
                                         }
                                     }
                                 }
+                            }
+                        }
+
+                        foreach (BodyChunk chunk in obj.obj.bodyChunks)
+                        {
+                            if (Custom.DistLess(pos, chunk.pos, chunk.rad + 100f))
+                            {
+                                nearbyChunks.Add(chunk);
                             }
                         }
                     }
@@ -981,12 +1472,39 @@ public class CloudFishAI : ArtificialIntelligence
                     {
                         if (obj.obj is Weapon weapon && weapon.mode == Weapon.Mode.Thrown && Custom.DistLess(cloudfish.firstChunk.pos, weapon.firstChunk.pos, 100))
                         {
-                            fleeCounter = 0;
                             newBehavior = Behavior.Flee;
-                            lastDangerRoom = cloudfish.room;
+                            Flee();
                         }
                     }
                 }
+
+                if (foodEaten < maxFood)
+                {
+                    if (room.insectCoordinator != null)
+                    {
+                        foreach (CosmeticInsect insect in room.insectCoordinator.allInsects)
+                        {
+                            if (room.VisualContact(pos, insect.pos) && insect.alive)
+                            {
+                                //Create_Square(room, insect.pos, 5f, 5f, Vector2.up, "Red", 0);
+                                if (nearestInsect == null || nearestInsect.room != room || Custom.Dist(pos, insect.pos) < Custom.Dist(pos, nearestInsect.pos))
+                                {
+                                    nearestInsect = insect;
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            if (newBehavior != Behavior.Flee && Random.value < 0.001f)
+            {
+                room.PlaySound(Enums.NewSoundID.RandomCloudFishWhistle(), cloudfish.firstChunk.pos, Random.Range(0.9f, 1.1f), Random.Range(0.8f, 1.2f));
+            }
+            else if (newBehavior == Behavior.Flee && Random.value < 0.01f)
+            {
+                room.PlaySound(Enums.NewSoundID.AA_CloudFishScream, cloudfish.firstChunk.pos, Random.Range(0.9f, 1.1f), Random.Range(0.8f, 1.2f));
             }
 
             section = 4;
@@ -1003,9 +1521,9 @@ public class CloudFishAI : ArtificialIntelligence
                 {
                     newBehavior = Behavior.Wander;
                 }
-                if (DangerPos.HasValue && DangerPos.Value != null)
+                if (AverageDangerPos.HasValue && AverageDangerPos.Value != null)
                 {
-                    lastDangerPos = DangerPos.Value;
+                    lastDangerPos = AverageDangerPos.Value;
                 }
             }
             else
@@ -1013,53 +1531,99 @@ public class CloudFishAI : ArtificialIntelligence
                 abstractAI.flock.Update();
             }
 
-            section = 4;
+            section = 5;
+            float timeUntilRain = rainTracker.rainCycle.TimeUntilRain;
+
             if (newBehavior == Behavior.Wander || newBehavior == Behavior.GoToDen)
             {
                 if (newLeader != null)
                 {
                     newBehavior = Behavior.Follow;
                 }
-                else if (rainTracker.rainCycle.TimeUntilRain < 2000)
+                else if (timeUntilRain < 2000)
                 {
                     newBehavior = Behavior.GoToDen;
                 }
+                else if (Random.value < 0.0001f && foodEaten < maxFood && nearestInsect != null && Custom.DistLess(pos, nearestInsect.pos, 400) && room.VisualContact(pos, nearestInsect.pos))
+                {
+                    newBehavior = Behavior.Hunt;
+                }
             }
 
-            section = 5;
+            section = 6;
             if (newBehavior == Behavior.Follow)
             {
-                section = 5.1f;
-                if (newLeader == null)
+                section = 6.1f;
+                if (timeUntilRain > 2000 && Random.value < 0.0001f && foodEaten < maxFood && nearestInsect != null && Custom.DistLess(pos, nearestInsect.pos, 400))
                 {
-                    Create_Text(cloudfish.room, cloudfish.firstChunk.pos + new Vector2(0, 60), "?", "Red", 0);
+                    newBehavior = Behavior.Hunt;
                 }
                 else if (newLeader != null)
                 {
                     CloudFishAbstractAI leaderAI = newLeader.abstractAI as CloudFishAbstractAI;
                     leaderAI.flock.AddNewMember(cloudfish.abstractCreature);
+
+                    if (leaderAI.denPosition.HasValue)
+                    {
+                        abstractAI.denPosition = leaderAI.denPosition.Value;
+                    }
+
+                    if (newLeader.realizedCreature != null && newLeader.realizedCreature.room == room)
+                    {
+                        CloudFish leader = newLeader.realizedCreature as CloudFish;
+
+                        if (!leader.Consious)
+                        {
+                            newBehavior = Behavior.Flee;
+                            Flee();
+                        }
+                        else if (leader.AI.behavior == Behavior.Hunt)
+                        {
+                            newLeader = null;
+                            newBehavior = Behavior.Wander;
+                        }
+                    }
                 }
             }
 
-            section = 6;
-
-            if (abstractAI.flock != null)
+            if (newBehavior == Behavior.Hunt)
             {
-                Create_Text(cloudfish.room, pos + new Vector2(0, 40), abstractAI.flock.ID.ToString(), abstractAI.flock.color, 0);
-                Create_Text(cloudfish.room, pos + new Vector2(0, 20), "COUNT: " + abstractAI.flock.count.ToString(), abstractAI.flock.color, 0);
+                if (huntTimer <= 0)
+                {
+                    huntTimer = Random.Range(100, 1000);
+                }
 
-                section = 7;
+                if (Custom.DistLess(pos, nearestInsect.pos, 10))
+                {
+                    room.PlaySound(SoundID.Slugcat_Bite_Fly, pos, 1f, 1f);
+                    nearestInsect.alive = false;
+                    nearestInsect.Destroy();
+                    nearestInsect = null;
+                    foodEaten++;
+                }
 
-                if (newLeader != null && newLeader.realizedCreature != null && newLeader.realizedCreature.room == cloudfish.room)
-                { Create_LineBetweenTwoPoints(cloudfish.room, pos, newLeader.realizedCreature.mainBodyChunk.pos, abstractAI.flock.color, 0); }
+                if (rainTracker.rainCycle.TimeUntilRain < 2000 || nearestInsect == null || Custom.Dist(pos, nearestInsect.pos) > 500 || !room.VisualContact(pos, nearestInsect.pos))
+                {
+                    if (newLeader != null)
+                    {
+                        newBehavior = Behavior.Follow;
+                    }
+                    else if (rainTracker.rainCycle.TimeUntilRain < 2000)
+                    {
+                        newBehavior = Behavior.GoToDen;
+                    }
+                    else
+                    {
+                        newBehavior = Behavior.Wander;
+                    }
+                }
+            }
+            else if (huntTimer > 0)
+            {
+                huntTimer--;
             }
 
-            section = 8;
-
-            if (newBehavior != null)
-            {
-                Create_Text(cloudfish.room, pos + new Vector2(0, 60), newBehavior.value, "Yellow", 0);
-            }
+            section = 7;
 
             abstractAI.leader = newLeader;
             abstractAI.behavior = newBehavior;
@@ -1069,18 +1633,44 @@ public class CloudFishAI : ArtificialIntelligence
         }
         catch (Exception e)
         {
-            Debug.Log("EXCEPTION OCCURED IN UPDATEBEHAVIOR METHOD, SECTION " + section);
-            Debug.Log("EXCEPTION: " + e);
+            Methods.Methods.Log_Exception(e, "CLOUDFISH AI UPDATEBEHAVIOR", section);
         }
     }
-    public int leaderMissing = 0;
+    public void Flee()
+    {
+        Vector2 pos = cloudfish.firstChunk.pos;
+        fleeCounter = 0;
+        lastDangerRoom = cloudfish.room;
+
+        whistleTimer = 0;
+
+        foreach (TrackedObject obj in trackedCreatures)
+        {
+            if (obj.obj is CloudFish fish)
+            {
+                if (fish.room == cloudfish.room)
+                {
+                    Vector2 otherPos = fish.firstChunk.pos;
+                    if (Custom.DistLess(pos, otherPos, 1000) && fish.room.VisualContact(pos, otherPos))
+                    {
+                        fish.AI.fleeCounter = 0;
+                        fish.AI.lastDangerRoom = lastDangerRoom;
+                        fish.AI.abstractAI.behavior = Behavior.Flee;
+                    }
+                }
+            }
+        }
+    }
+
+
     public void UpdateMovement()
     {
-        int section = 0;
+        float section = 0;
 
         try
         {
             Room room = cloudfish.room;
+            World world = room.world;
             AImap map = room.aimap;
             CreatureTemplate template = cloudfish.Template;
             Player player = cloudfish.room.game.RealizedPlayerOfPlayerNumber(0);
@@ -1150,7 +1740,6 @@ public class CloudFishAI : ArtificialIntelligence
                     }
                     else
                     {
-                        //section = "Wander - 1";
                         if (Custom.DistLess(pos, destination, 100) && cloudfish.room.VisualContact(pos, destination))
                         {
                             circleCounter = Random.Range(minCircleTime, maxCircleTime);
@@ -1182,16 +1771,14 @@ public class CloudFishAI : ArtificialIntelligence
                         stayInRoomDesire -= 1;
                         if (stayInRoomDesire <= 0)
                         {
-                            //section = "Wander - 2";
                             stayInRoomDesire = Random.Range(minRoomTime, maxRoomTime);
-                            World world = cloudfish.room.world;
                             AbstractRoom mostAttractiveRoom = null;
                             WorldCoordinate? accessibleNode = null;
 
                             for (int i = 0; i < 20; i++)
                             {
                                 AbstractRoom checkRoom = world.abstractRooms[Random.Range(0, world.abstractRooms.Length)];
-                                if (checkRoom.AttractionValueForCreature(template.type) > 0.25)
+                                if (!checkRoom.offScreenDen && checkRoom.AttractionValueForCreature(template.type) > 0.25)
                                 {
                                     for (int j = 0; j < 5; j++)
                                     {
@@ -1243,21 +1830,102 @@ public class CloudFishAI : ArtificialIntelligence
                         section = 5;
                     }
 
-                    section = 100;
+                    section = 6;
                 }
                 else if (cell.generation == pathFinder.pathGeneration)
                 {
                     movementType = MovementType.FollowPath;
-                    section = 6;
+                    section = 7;
                 }
 
                 //Create_Text(room, pos + new Vector2(0f, 40f), "Circle Timer: " + circleCounter, "Purple", 0);
 
                 //Create_Text(room, pos + new Vector2(0f, 60f), "Leave Room Timer: " + stayInRoomDesire, "Red", 0);
             }
+            else if (behavior == Behavior.GoToDen)
+            {
+                section = 20;
+                speed = Mathf.Lerp(4f, 2.5f, rainTracker.rainCycle.TimeUntilRain / 2000);
+
+                circleCounter = 0;
+
+                if (!abstractAI.denPosition.HasValue)
+                {
+                    AbstractRoom abstractRoom = room.abstractRoom;
+                    for (int i = 0; i < abstractRoom.nodes.Length - 1; i++)
+                    {
+                        AbstractRoomNode node = abstractRoom.nodes[i];
+                        if (node.type == AbstractRoomNode.Type.Den)
+                        {
+                            abstractAI.denPosition = room.LocalCoordinateOfNode(i);
+                            goto End;
+                        }
+                    }
+                    if (!migrateDestination.HasValue || migrateDestination.Value.room == room.abstractRoom.index)
+                    {
+                        for (int i = 0; i < 5; i++)
+                        {
+                            AbstractRoom otherRoom = world.GetAbstractRoom(abstractRoom.connections[Random.Range(0, abstractRoom.connections.Length)]);
+                            if (otherRoom.index != lastLastRoom || room.abstractRoom.connections.Length < 2)
+                            {
+                                migrateDestination = new(otherRoom.index, -1, -1, otherRoom.RandomRelevantNode(template));
+                                break;
+                            }
+                        }
+                    }
+                }
+                End:;
+
+                if (abstractAI.denPosition.HasValue && abstractAI.denPosition.Value.room == room.abstractRoom.index)
+                {
+                    Vector2 denPos = room.MiddleOfTile(abstractAI.denPosition.Value);
+                    //Create_Square(room, denPos, 10f, 10f, Custom.DegToVec(45), "Red", 0);
+                    if (destination != denPos)
+                    {
+                        WorldCoordinate denCoord = room.GetWorldCoordinate(denPos);
+                        pathFinder.AssignNewDestination(denCoord);
+                    }
+                }
+
+                pathfinding = true;
+
+                PathFinder.PathingCell cell = pathFinder.PathingCellAtWorldCoordinate(coordPos);
+                if (cell.generation != pathFinder.pathGeneration)
+                {
+                    if (largeNarrowSpace)
+                    {
+                        movementType = MovementType.WanderThroughTunnel;
+                        section = 21;
+                    }
+                    else
+                    {
+                        movementType = MovementType.CircleInPlace;
+                        section = 22;
+                    }
+                }
+                else if (cloudfish.room.VisualContact(pos, destination))
+                {
+                    goToPoint = destination;
+                    movementType = MovementType.GoStraightToPoint;
+                    section = 23;
+
+                    if (cell.generation == pathFinder.pathGeneration && map.getTerrainProximity(pos) < 3)
+                    {
+                        movementType = MovementType.FollowPath;
+                        section = 24;
+                    }
+
+                    section = 25;
+                }
+                else if (cell.generation == pathFinder.pathGeneration)
+                {
+                    movementType = MovementType.FollowPath;
+                    section = 26;
+                }
+            }
             else if (behavior == Behavior.Follow)
             {
-                section = 10;
+                section = 30;
                 circleCounter = 1000;
 
                 if (movementType != MovementType.CircleInPlace)
@@ -1267,15 +1935,16 @@ public class CloudFishAI : ArtificialIntelligence
 
                 if (myLeader != null)
                 {
-                    abstractAI.destination = myLeader.pos;
-                    if (myLeader.realizedCreature != null)
+                    if (myLeader.realizedCreature != null || abstractAI.flock.leader.realizedCreature != null)
                     {
-                        CloudFish realizedLeader = myLeader.realizedCreature as CloudFish;
+                        CloudFish realizedLeader = myLeader.realizedCreature != null ? myLeader.realizedCreature as CloudFish : abstractAI.flock.leader.realizedCreature as CloudFish;
+                        abstractAI.destination = realizedLeader.coord;
+
                         if (realizedLeader.room != null)
                         {
                             if (realizedLeader.room == cloudfish.room)
                             {
-                                section = 5;
+                                section = 31;
 
                                 migrateDestination = null;
 
@@ -1292,17 +1961,27 @@ public class CloudFishAI : ArtificialIntelligence
                                         }
                                     }
                                 }
+                                if (!relativeSwarmPos.HasValue)
+                                {
+                                    relativeSwarmPos = Vector2.zero;
+                                }
+
+                                section = 32;
+
                                 Vector2 actualSwarmPos = realizedLeader.firstChunk.pos + relativeSwarmPos.Value;
                                 if (cloudfish.room.VisualContact(pos, actualSwarmPos))
                                 {
+                                    section = 32.1f;
                                     //Create_LineAndDot(room, pos, realizedLeader.mainBodyChunk.pos, "Green", 0);
 
-                                    speed = Mathf.Clamp(Custom.Dist(pos, actualSwarmPos) / 20, 1f, 2f);
+                                    speed = Mathf.Clamp(Custom.Dist(pos, actualSwarmPos) / 50, 2f, 4f);
                                     if (Custom.DistLess(pos, actualSwarmPos, 20))
                                     { speed = 1f; }
 
                                     goToPoint = actualSwarmPos;
                                     movementType = MovementType.GoStraightToPoint;
+
+                                    section = 32.2f;
 
                                     if (pathFinder.CoordinateReachable(realizedLeader.coord))
                                     {
@@ -1311,6 +1990,8 @@ public class CloudFishAI : ArtificialIntelligence
                                 }
                                 else
                                 {
+                                    section = 32.3f;
+
                                     speed = 3f;
 
                                     //Create_LineAndDot(room, pos, realizedLeader.mainBodyChunk.pos, "Red", 0);
@@ -1322,6 +2003,8 @@ public class CloudFishAI : ArtificialIntelligence
                                             pathFinder.AssignNewDestination(realizedLeader.coord);
                                         }
                                     }
+
+                                    section = 32.4f;
 
                                     pathfinding = true;
                                     PathFinder.PathingCell cell = pathFinder.PathingCellAtWorldCoordinate(coordPos);
@@ -1341,7 +2024,7 @@ public class CloudFishAI : ArtificialIntelligence
                             }
                             else
                             {
-                                section = 4;
+                                section = 33;
 
                                 migrateDestination = realizedLeader.coord;
 
@@ -1371,7 +2054,7 @@ public class CloudFishAI : ArtificialIntelligence
                         }
                         else if (realizedLeader.inShortcut)
                         {
-                            section = 3;
+                            section = 34;
 
                             if (realizedLeader.NPCTransportationDestination.room == room.abstractRoom.index)
                             {
@@ -1414,7 +2097,17 @@ public class CloudFishAI : ArtificialIntelligence
                     }
                     else
                     {
-                        section = 2;
+                        section = 35;
+                        abstractAI.destination = myLeader.pos;
+
+                        if (myLeader.InDen && myLeader.abstractAI.denPosition.HasValue)
+                        {
+                            WorldCoordinate denPos = myLeader.abstractAI.denPosition.Value;
+                            if (pathFinder.destination != denPos)
+                            {
+                                pathFinder.AssignNewDestination(pathFinder.destination);
+                            }
+                        }
 
                         migrateDestination = myLeader.pos;
 
@@ -1442,10 +2135,23 @@ public class CloudFishAI : ArtificialIntelligence
                         }
                     }
                 }
+                else if (map.getTerrainProximity(pos) > 2)
+                {
+                    movementType = MovementType.CircleInPlace;
+                }
+                else
+                {
+                    movementType = MovementType.WanderThroughTunnel;
+                }
+
+                if (rainTracker.rainCycle.TimeUntilRain < 2000)
+                {
+                    speed = Mathf.Max(speed, Mathf.Lerp(4f, 2.5f, rainTracker.rainCycle.TimeUntilRain / 2000));
+                }
             }
             else if (behavior == Behavior.Flee)
             {
-                section = 20;
+                section = 36;
                 stayInRoomDesire = minRoomTime;
                 circleCounter = Random.Range(minCircleTime, maxCircleTime);
 
@@ -1567,39 +2273,29 @@ public class CloudFishAI : ArtificialIntelligence
                     }
                 }
             }
+            else if (behavior == Behavior.Hunt)
+            {
+                goToPoint = nearestInsect.pos;
+                speed = Mathf.Clamp(4f / Custom.Dist(pos, goToPoint), 2f, 4f);
+                movementType = MovementType.GoStraightToPoint;
+            }
             #endregion
 
-            section = 30;
-
-            switch (behavior.value)
-            {
-                case "Wander":
-                    //Create_Text(room, pos + new Vector2(0f, 50f), section.ToString(), "Cyan", 0);
-                    break;
-                case "Flee":
-                    //Create_Text(room, pos + new Vector2(0f, 50f), section.ToString(), "Red", 0);
-                    break;
-                case "Follow":
-                    //Create_Text(room, pos + new Vector2(0f, 50f), section.ToString(), "Yellow", 0);
-                    break;
-                case "GoToDen":
-                    //Create_Text(room, pos + new Vector2(0f, 50f), section.ToString(), "Green", 0);
-                    break;
-            }
+            section = 40;
 
             #region Migration Control
             if (migrateDestination.HasValue && behavior != Behavior.Flee && migrateDestination.Value.room != -1)
             {
-                section = 31;
+                section = 41;
                 pathfinding = true;
 
                 int cloudFishRoomIndex = cloudfish.room.abstractRoom.index;
                 int destRoomIndex = migrateDestination.Value.room;
+                AbstractRoom migrateRoom = world.GetAbstractRoom(destRoomIndex);
 
                 if (destRoomIndex == cloudFishRoomIndex)
                 {
-                    section = 32;
-                    AbstractRoom migrateRoom = cloudfish.abstractCreature.Room.world.GetAbstractRoom(destRoomIndex);
+                    section = 42;
                     if (migrateRoom.realizedRoom != null)
                     {
                         migrateDestination = null;
@@ -1607,14 +2303,9 @@ public class CloudFishAI : ArtificialIntelligence
                 }
                 else
                 {
-                    section = 33;
+                    section = 43;
                     abstractAI.destination = migrateDestination.Value;
-                    //section = "Pathfinding 2";
-                    World world = pathFinder.world;
                     AbstractRoom startRoom = cloudfish.abstractCreature.Room;
-                    AbstractRoom endRoom = world.GetAbstractRoom(migrateDestination.Value.room);
-
-                    //section = "Pathfinding 3";
 
                     bool resetPath = false;
                     if (pathToDestination != null)
@@ -1640,72 +2331,74 @@ public class CloudFishAI : ArtificialIntelligence
                             }
                         }
                     }
-                    section = 34;
+                    section = 44;
                     if (pathToDestination == null || resetPath)
                     {
-                        WorldCoordinate startCoord = QuickConnectivity.DefineNodeOfLocalCoordinate(cloudfish.abstractCreature.pos, world, cloudfish.Template);
-                        WorldCoordinate destCoord = QuickConnectivity.DefineNodeOfLocalCoordinate(migrateDestination.Value, world, cloudfish.Template);
+                        WorldCoordinate absPos = cloudfish.abstractCreature.pos;
+
+                        AbstractRoom absRoom = room.abstractRoom;
                         for (int i = 0; i < 5; i++)
                         {
+                            WorldCoordinate randomNode = room.LocalCoordinateOfNode(absRoom.RandomRelevantNode(template));
+
+                            WorldCoordinate startCoord = QuickConnectivity.DefineNodeOfLocalCoordinate(randomNode, world, cloudfish.Template);
+                            WorldCoordinate destCoord = QuickConnectivity.DefineNodeOfLocalCoordinate(migrateDestination.Value, world, cloudfish.Template);
+
                             List<WorldCoordinate> path = AbstractSpacePathFinder.Path(world, startCoord, destCoord, template, null);
                             if (path != null)
                             {
-                                pathToDestination = path;
-                                break;
+                                foreach (WorldCoordinate coord in path)
+                                {
+                                    if (coord.room == startCoord.room)
+                                    {
+                                        pathToDestination = path;
+                                        goto End;
+                                    }
+                                }
                             }
                         }
+                        End:;
                     }
 
-                    //section = "Pathfinding 4";
-
-                    section = 35;
+                    section = 45;
                     if (pathToDestination != null)
                     {
-                        //section = "Pathfinding 5";
-
-                        //Debug.Log("");
-                        //Debug.Log("CALCULATING PATH TO DESTINATION. LENGTH: " + pathToDestination.Count);
-
                         WorldCoordinate? travelNode = null;
                         foreach (WorldCoordinate node in pathToDestination)
                         {
                             if (node != null)
                             {
                                 AbstractRoom roomOfNode = world.GetAbstractRoom(node.room);
-                                section = 36;
-                                //Debug.Log(roomOfNode.name + " - " + node.abstractNode);
-                                if (roomOfNode.realizedRoom != null)
+                                if (roomOfNode.realizedRoom != null && roomOfNode.realizedRoom.shortcuts != null)
                                 {
-                                    section = 37;
                                     WorldCoordinate actualCoordOfNode = roomOfNode.realizedRoom.LocalCoordinateOfNode(node.abstractNode);
+                                    //Create_Dot(roomOfNode.realizedRoom, roomOfNode.realizedRoom.MiddleOfTile(actualCoordOfNode), "Green", 0);
                                     if (roomOfNode == cloudfish.room.abstractRoom && travelNode == null)
                                     {
-                                        section = 38;
                                         travelNode = actualCoordOfNode;
-                                        //Create_LineAndDot(roomOfNode.realizedRoom, pos, roomOfNode.realizedRoom.MiddleOfTile(actualCoordOfNode), "Yellow", 0);
                                         if (pathFinder.destination != actualCoordOfNode)
                                         {
                                             pathFinder.AssignNewDestination(actualCoordOfNode);
+                                            //Create_Square(room, pos, 10f, 10f, Vector2.up, "Red", 100);
                                         }
-                                    }
-                                    else
-                                    {
-                                        //Create_Dot(roomOfNode.realizedRoom, roomOfNode.realizedRoom.MiddleOfTile(actualCoordOfNode), "Red", 0);
                                     }
                                 }
                             }
                         }
-                        //Debug.Log("");
                     }
                 }
             }
             #endregion
 
-            section = 40;
+            section = 50;
 
             #region Movement Control
             if (movementType == MovementType.StandStill)
             {
+                section = 51;
+
+                shakeTail = false;
+
                 if (temporaryWanderDestination == null || Custom.Dist(pos, room.MiddleOfTile(temporaryWanderDestination)) > 200)
                 {
                     temporaryWanderDestination = coordPos;
@@ -1716,6 +2409,10 @@ public class CloudFishAI : ArtificialIntelligence
             }
             else if (movementType == MovementType.FollowPath)
             {
+                section = 52;
+
+                shakeTail = true;
+
                 MovementConnection connection1 = (pathFinder as CicadaPather).FollowPath(coordPos, false);
                 MovementConnection connection2 = (pathFinder as CicadaPather).FollowPath(connection1.destinationCoord, false);
                 MovementConnection connection3 = (pathFinder as CicadaPather).FollowPath(connection2.destinationCoord, false);
@@ -1747,13 +2444,13 @@ public class CloudFishAI : ArtificialIntelligence
                 Vector2 wantMoveDir;
                 if (cloudfish.room.VisualContact(pos, cloudfish.room.MiddleOfTile(connection3.destinationCoord)) && !map.getAItile(pos).narrowSpace && !map.getAItile(connection1.destinationCoord).narrowSpace && !map.getAItile(connection2.destinationCoord).narrowSpace)
                 {
-                    wantMoveDir = Custom.DirVec(pos, cloudfish.room.MiddleOfTile(connection3.destinationCoord));
+                    wantMoveDir = AvoidChunks(Custom.DirVec(pos, cloudfish.room.MiddleOfTile(connection3.destinationCoord)));
                     moveDir = Vector2.Lerp(moveDir, wantMoveDir, 0.1f);
                 }
                 else
                 {
                     speed = 2f;
-                    wantMoveDir = Custom.DirVec(pos, cloudfish.room.MiddleOfTile(connection1.destinationCoord));
+                    wantMoveDir = AvoidChunks(Custom.DirVec(pos, cloudfish.room.MiddleOfTile(connection1.destinationCoord)));
                     moveDir = Vector2.Lerp(moveDir, wantMoveDir, 0.8f);
                 }
 
@@ -1764,39 +2461,68 @@ public class CloudFishAI : ArtificialIntelligence
                     cloudfish.lastExitUsed = connection1.destinationCoord;
                 }
 
+                /*
                 if (connection1 != default && connection2 != default && connection3 != default)
                 {
                     Vector2 pos1 = cloudfish.room.MiddleOfTile(connection1.StartTile);
                     Vector2 pos2 = cloudfish.room.MiddleOfTile(connection1.DestTile);
                     Vector2 pos3 = cloudfish.room.MiddleOfTile(connection2.DestTile);
                     Vector2 pos4 = cloudfish.room.MiddleOfTile(connection3.DestTile);
-                    //Create_Square(cloudfish.room, Vector2.Lerp(pos1, pos2, 0.5f), 1f, Custom.Dist(pos1, pos2), Custom.DirVec(pos1, pos2), "White", 0);
-                    //Create_Square(cloudfish.room, Vector2.Lerp(pos2, pos3, 0.5f), 1f, Custom.Dist(pos2, pos3), Custom.DirVec(pos2, pos3), "White", 0);
-                    //Create_Square(cloudfish.room, Vector2.Lerp(pos3, pos4, 0.5f), 1f, Custom.Dist(pos3, pos4), Custom.DirVec(pos3, pos4), "White", 0);
-                }
+                    Create_Square(cloudfish.room, Vector2.Lerp(pos1, pos2, 0.5f), 1f, Custom.Dist(pos1, pos2), Custom.DirVec(pos1, pos2), "White", 0);
+                    Create_Square(cloudfish.room, Vector2.Lerp(pos2, pos3, 0.5f), 1f, Custom.Dist(pos2, pos3), Custom.DirVec(pos2, pos3), "White", 0);
+                    Create_Square(cloudfish.room, Vector2.Lerp(pos3, pos4, 0.5f), 1f, Custom.Dist(pos3, pos4), Custom.DirVec(pos3, pos4), "White", 0);
+                }*/
 
                 //Create_LineAndDot(room, pos, destination, "Green", 0);
             }
             else if (movementType == MovementType.CircleInPlace)
             {
+                section = 53;
+
+                shakeTail = true;
+
                 if (circleCounter > 0)
                 { circleCounter--; }
 
-                if (temporaryWanderDestination == null ||
-                        Custom.Dist(pos, cloudfish.room.MiddleOfTile(temporaryWanderDestination)) > 200 ||
-                        !cloudfish.room.VisualContact(pos, cloudfish.room.MiddleOfTile(temporaryWanderDestination)) ||
-                        map.getTerrainProximity(cloudfish.room.MiddleOfTile(temporaryWanderDestination)) < 6
-                        )
+                //List<BodyChunk> nearbyChunks = [];
+                bool findNewDest = false;
+
+                if (temporaryWanderDestination == null)
+                {
+                    findNewDest = true;
+                }
+                else
+                {
+                    Vector2 wanderPos = room.MiddleOfTile(temporaryWanderDestination);
+                    if (Custom.Dist(pos, wanderPos) > 200 || !room.VisualContact(pos, wanderPos) || map.getTerrainProximity(wanderPos) < 6)
+                    {
+                        findNewDest = true;
+                    }
+                    else
+                    {
+                        findNewDest = PointTooCloseToChunk(wanderPos, 10f, 100f);
+                    }
+                }
+
+                section = 53.1f;
+
+                if (findNewDest)
                 {
                     bool foundDestination = false;
                     for (int i = 0; i < 10; i++)
                     {
-                        IntVector2 testPos = new(intPos.x + Random.Range(-5, 6), intPos.y + Random.Range(-5, 6));
-                        if (map.getAItile(testPos).acc != AItile.Accessibility.Solid && cloudfish.room.VisualContact(pos, cloudfish.room.MiddleOfTile(testPos)) && map.getTerrainProximity(testPos) >= 6)
+                        IntVector2 testPosInt = new(intPos.x + Random.Range(-5, 6), intPos.y + Random.Range(-5, 6));
+                        Vector2 testPos = room.MiddleOfTile(testPosInt);
+                        if (map.getAItile(testPos).acc != AItile.Accessibility.Solid && room.VisualContact(pos, testPos) && map.getTerrainProximity(testPos) >= 6)
                         {
-                            temporaryWanderDestination = cloudfish.room.GetWorldCoordinate(testPos);
-                            foundDestination = true;
-                            break;
+                            bool tooCloseToChunk = PointTooCloseToChunk(testPos, 10f, 100f);
+
+                            if (!tooCloseToChunk)
+                            {
+                                temporaryWanderDestination = cloudfish.room.GetWorldCoordinate(testPosInt);
+                                foundDestination = true;
+                                break;
+                            }
                         }
                     }
                     if (!foundDestination)
@@ -1804,6 +2530,8 @@ public class CloudFishAI : ArtificialIntelligence
                         temporaryWanderDestination = cloudfish.coord;
                     }
                 }
+
+                section = 53.2f;
 
                 if (map.getTerrainProximity(temporaryWanderDestination.Tile) < 10)
                 {
@@ -1821,21 +2549,26 @@ public class CloudFishAI : ArtificialIntelligence
                 Vector2 rotationPos = cloudfish.room.MiddleOfTile(temporaryWanderDestination);
                 if (Custom.DistLess(pos, rotationPos, 100))
                 {
-                    moveDir = Vector2.Lerp(moveDir, Custom.rotateVectorDeg(Custom.DirVec(pos, rotationPos), 60f), 0.8f);
+                    Vector2 dirVec = AvoidChunks(Custom.rotateVectorDeg(Custom.DirVec(pos, rotationPos), 60f));
+                    moveDir = Vector2.Lerp(moveDir, dirVec, 0.8f);
                 }
                 else
                 {
-                    moveDir = Vector2.Lerp(moveDir, Custom.DirVec(pos, rotationPos), 0.8f);
+                    Vector2 dirVec = AvoidChunks(Custom.DirVec(pos, rotationPos));
+                    moveDir = Vector2.Lerp(moveDir, dirVec, 0.8f);
                 }
 
-                AvoidChunks();
-
                 Vector2 destPos = cloudfish.room.MiddleOfTile(temporaryWanderDestination);
-                //Create_LineAndDot(cloudfish.room, pos, destPos, "Purple", 0);
+
+                section = 53.3f;
+
+                //Create_LineAndDot(room, pos, destPos, "Purple", 0);
             }
             else if (movementType == MovementType.AvoidWalls)
             {
-                //Create_LineAndDot(room, pos, pos + moveDir * 60, "Red", 0);
+                section = 54;
+
+                shakeTail = true;
 
                 bool fleeFromEnemy = Custom.DistLess(pos, lastDangerPos, 200) && room.VisualContact(pos, lastDangerPos);
                 if (fleeFromEnemy)
@@ -1877,7 +2610,8 @@ public class CloudFishAI : ArtificialIntelligence
                             for (int i = 0; i < 3; i++)
                             {
                                 Vector2 testDir2 = Custom.rotateVectorDeg(Custom.DirVec(pos, lastDangerPos), i == 3 ? 0 : (i == 0 ? 30 : -30));
-                                if (map.getAItile(pos + testDir2 * 40).acc != AItile.Accessibility.Solid && pathFinder.coveredArea.Includes(room.GetTilePosition(pos + testDir2 * 40)))
+                                Vector2 testPos2 = pos + testDir2 * 40;
+                                if (map.getAItile(testPos2).acc != AItile.Accessibility.Solid && pathFinder.coveredArea.Includes(room.GetTilePosition(testPos2)))
                                 {
                                     escapeDir = testDir2;
                                     break;
@@ -1891,8 +2625,10 @@ public class CloudFishAI : ArtificialIntelligence
                     moveDir = Custom.rotateVectorDeg(moveDir, Random.value > 0.5 ? -2 : 2);
                 }
 
+
                 Vector2 checkPos = pos + moveDir * 40f;
-                if (room.GetTilePosition(checkPos) == null || room.GetTilePosition(pos) == null || map.getTerrainProximity(checkPos) < 3 || map.getTerrainProximity(pos) < 3)
+                bool nearbyChunk = PointTooCloseToChunk(checkPos, 10f, 100f);
+                if (nearbyChunk || room.GetTilePosition(checkPos) == null || room.GetTilePosition(pos) == null || map.getTerrainProximity(checkPos) < 3 || map.getTerrainProximity(pos) < 3)
                 {
                     Vector2 bestDir = moveDir;
                     Vector2 testDir = moveDir;
@@ -1901,12 +2637,12 @@ public class CloudFishAI : ArtificialIntelligence
                         Vector2 testPos = pos + testDir * 40;
                         if (room.VisualContact(pos, testPos))
                         {
-                            if (map.getTerrainProximity(testPos) >= 3)
+                            if (map.getTerrainProximity(testPos) >= 3 && !PointTooCloseToChunk(testPos, 10f, 100f))
                             {
                                 bestDir = testDir;
                                 break;
                             }
-                            else if (map.getTerrainProximity(testPos) > map.getTerrainProximity(pos + bestDir * 40))
+                            else if (map.getTerrainProximity(testPos) > map.getTerrainProximity(pos + bestDir * 40) || (nearbyChunk && Custom.Dist(testPos, AverageChunkPos) > Custom.Dist(checkPos, AverageChunkPos)))
                             {
                                 bestDir = testDir;
                             }
@@ -1919,29 +2655,37 @@ public class CloudFishAI : ArtificialIntelligence
                 {
                     moveDir = Custom.rotateVectorDeg(moveDir, Random.value > 0.5 ? 1 : -1);
                 }
-
-                AvoidChunks();
             }
             else if (movementType == MovementType.GoStraightToPoint)
             {
-                moveDir = Vector2.Lerp(moveDir, Custom.DirVec(pos, goToPoint), 0.8f);
+                section = 55;
+
+                shakeTail = true;
+                Vector2 dirVec = AvoidChunks(Custom.DirVec(pos, goToPoint));
+
                 if (Custom.Dist(pos, goToPoint) > 50)
                 {
-                    moveDir = Custom.rotateVectorDeg(moveDir, Random.value > 0.5 ? -1 : 1);
+                    moveDir = Vector2.Lerp(moveDir, dirVec, 0.5f);
                 }
-                if (behavior != Behavior.Follow)
+                else
                 {
-                    //Create_LineAndDot(room, pos, goToPoint, "Green", 0);
+                    moveDir = Vector2.Lerp(moveDir, dirVec, 0.1f);
                 }
-
-                AvoidChunks();
             }
             else if (movementType == MovementType.WanderThroughTunnel)
             {
+                section = 56;
+
+                shakeTail = false;
+
                 IntVector2 forwardsDir = new(Mathf.RoundToInt(moveDir.x), Mathf.RoundToInt(moveDir.y));
                 if (Mathf.Abs(forwardsDir.x) > 0 && Mathf.Abs(forwardsDir.y) > 0)
                 {
                     forwardsDir.y = 0;
+                }
+                else if (forwardsDir.x == 0 && forwardsDir.y == 0)
+                {
+                    forwardsDir.y = 1;
                 }
 
                 IntVector2 backwardsDir = new(-forwardsDir.x, -forwardsDir.y);
@@ -1952,6 +2696,8 @@ public class CloudFishAI : ArtificialIntelligence
                     Vector2 dangerDir = Custom.DirVec(lastDangerPos, pos);
                     forwardsDir = new(Mathf.RoundToInt(dangerDir.x), Mathf.RoundToInt(dangerDir.y));
                 }
+
+                //Create_Square(room, room.MiddleOfTile(intPos), 5f, 5f, Custom.DegToVec(45), "Cyan", 0);
 
                 bool foundNewDirection = false;
                 IntVector2 testDir = Random.value > 0.1f ? forwardsDir : Custom.PerpIntVec(forwardsDir) * (Random.value > 0.5f ? 1 : -1);
@@ -1990,8 +2736,8 @@ public class CloudFishAI : ArtificialIntelligence
                         //Create_Square(room, room.MiddleOfTile(intPos + testDir), 5f, 5f, Custom.DegToVec(45), "Green", 0);
                         break;
                     }
-                //Create_Square(room, room.MiddleOfTile(intPos + testDir), 5f, 5f, Custom.DegToVec(45), "Red", 0);
-                Skip:;
+                    Skip:;
+                    //Create_Square(room, room.MiddleOfTile(intPos + testDir), 5f, 5f, Custom.DegToVec(45), "Red", 0);
                     testDir = Custom.PerpIntVec(testDir);
                 }
 
@@ -2009,79 +2755,88 @@ public class CloudFishAI : ArtificialIntelligence
                 float angle = Custom.Angle(velDir, contactDir);
                 Vector2 bounceDir = Custom.rotateVectorDeg(contactDir, -angle);
 
-                //CreateLineBetweenTwoPoints(room, pos, pos + velDir * 20, "Green", 100);
-                //CreateLineBetweenTwoPoints(room, pos, pos + contactDir * 20, "Yellow", 100);
-                //CreateLineBetweenTwoPoints(room, pos, pos + bounceDir * 20, "Red", 100);
-
                 cloudfish.firstChunk.vel += velDir * 2 - contactDir * 2;
             }
 
-            cloudfish.firstChunk.vel *= 0.8f;
-            cloudfish.firstChunk.vel += moveDir * speed;
+
+            Vector2 shakeTailDir = Vector2.zero;
+            if (shakeTail)
+            {
+                Vector2 normalMoveDir = moveDir;
+                //Create_LineBetweenTwoPoints(room, pos, pos + normalMoveDir * 20f, "Red", 0);
+
+                if (shakeTailTimer > 80)
+                { shakeTailTimer = 1; }
+                else
+                { shakeTailTimer++; }
+
+                float shakeTailAmount = (Mathf.PingPong(shakeTailTimer, 20) - 10) * 10f;
+                shakeTailDir = Custom.rotateVectorDeg(normalMoveDir, shakeTailAmount / 2f);
+            }
+
+            if (cloudfish.grabbedBy.Count == 0)
+            {
+                cloudfish.firstChunk.vel *= 0.8f;
+                cloudfish.firstChunk.vel += (moveDir + shakeTailDir).normalized * speed;
+            }
+            else
+            {
+                cloudfish.firstChunk.vel *= 0.5f;
+                cloudfish.firstChunk.vel += (moveDir + shakeTailDir).normalized * speed * 0.5f;
+            }
         }
         catch (Exception e)
         {
-            Debug.Log("");
-            Debug.Log("EXCEPTION OCCURED IN UPDATEMOVEMENT METHOD, SECTION: " + section);
-            Debug.Log("EXCEPTION: " + e);
-            Debug.Log("");
+            Methods.Methods.Log_Exception(e, "CLOUDFISH AI UPDATEBEHAVIOR", section);
         }
     }
-    public void AvoidChunks()
+    public bool PointTooCloseToChunk(Vector2 pos, float minRad, float extraRad)
+    {
+        if (nearbyChunks == null || cloudfish.room == null)
+        {
+            return false;
+        }
+
+        foreach (BodyChunk chunk in nearbyChunks)
+        {
+            if (chunk.rad > minRad && Custom.DistLess(pos, chunk.pos, chunk.rad + extraRad))
+            {
+                Room room = cloudfish.room;
+                //Create_Square(room, chunk.pos, chunk.rad * 2f, chunk.rad * 2f, Vector2.up, "Green", 0);
+                return true;
+            }
+        }
+
+        return false;
+    }
+    public Vector2 AvoidChunks(Vector2 startDir)
     {
         Vector2 pos = cloudfish.firstChunk.pos;
         Room room = cloudfish.room;
 
-        Vector2? nearestChunkPos = null;
-        float chunkRadius = 0;
-        foreach (TrackedObject obj in trackedCreatures)
+        Vector2 bestDir = startDir;
+        Vector2 testDir = startDir;
+        for (int i = 0; i < 30; i++)
         {
-            foreach (BodyChunk chunk in obj.obj.bodyChunks)
+            Vector2 testPos = pos + testDir * 40;
+            if (room.VisualContact(pos, testPos))
             {
-                if (Custom.DistLess(pos, chunk.pos, chunk.rad + 5f))
+                if (!PointTooCloseToChunk(testPos, 10f, 100f))
                 {
-                    nearestChunkPos = chunk.pos;
-                    chunkRadius = chunk.rad;
-                    goto End;
+                    bestDir = testDir;
+                    break;
+                }
+                else if (Custom.Dist(testPos, AverageChunkPos) > Custom.Dist(pos + bestDir * 40, AverageChunkPos))
+                {
+                    bestDir = testDir;
                 }
             }
+            testDir = Custom.rotateVectorDeg(testDir, Random.value > 0.5 ? 12 : -12);
         }
-        End:;
-        if (nearestChunkPos.HasValue)
-        {
-            Vector2 bestDir = moveDir;
-            Vector2 testDir = moveDir;
-            for (int i = 0; i < 30; i++)
-            {
-                Vector2 testPos = pos + testDir * 20;
-                if (room.VisualContact(pos, testPos))
-                {
-                    if (Custom.Dist(testPos, nearestChunkPos.Value) > chunkRadius + 5f)
-                    {
-                        bestDir = testDir;
-                        break;
-                    }
-                    else if (Custom.Dist(testPos, nearestChunkPos.Value) > Custom.Dist(pos + bestDir * 20, nearestChunkPos.Value))
-                    {
-                        bestDir = testDir;
-                    }
-                }
-                testDir = Custom.rotateVectorDeg(testDir, Random.value > 0.5 ? 12 : -12);
-            }
-            moveDir = bestDir;
-        }
+
+        return bestDir;
     }
-    public override bool WantToStayInDenUntilEndOfCycle()
-    {
-        if (behavior == Behavior.GoToDen || (behavior == Behavior.Follow && myLeader != null && myLeader.abstractAI.WantToStayInDenUntilEndOfCycle()))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
+
 
     public class Behavior : ExtEnum<Behavior>
     {
@@ -2093,6 +2848,7 @@ public class CloudFishAI : ArtificialIntelligence
         public static Behavior Flee = new ("Flee", true);
         public static Behavior Follow = new("Follow", true);
         public static Behavior GoToDen = new("GoToDen", true);
+        public static Behavior Hunt = new("Hunt", true);
     }
     public class MovementType : ExtEnum<MovementType>
     {
@@ -2127,7 +2883,9 @@ public class CloudFishAI : ArtificialIntelligence
 public class CloudFishAbstractAI : AbstractCreatureAI
 {
     public WorldCoordinate? migrateDestination = null;
+    public AbstractCreature color;
     public AbstractCreature leader;
+    public AbstractCreature follower;
     public CloudFishAI.Behavior behavior;
     public int wanderTimer = 0;
     public float dominance;
@@ -2141,74 +2899,136 @@ public class CloudFishAbstractAI : AbstractCreatureAI
 
         behavior = CloudFishAI.Behavior.Wander;
         leader = null;
-        dominance = Random.Range(0f, 20f);
+        dominance = parent.personality.dominance;
 
         flock = new CloudFishFlock(parent);
     }
 
     public override void Update(int time)
     {
-        int section = 1;
-        try
+        base.Update(time);
+
+        #region Update_Behavior;
+
+        if (leader != null || flock.leader != parent)
         {
-            base.Update(time);
-
-            #region Update_Behavior;
-
-            if (leader != null || flock.leader != parent)
+            behavior = CloudFishAI.Behavior.Follow;
+        }
+        else
+        {
+            if (world.rainCycle.TimeUntilRain < 2000)
             {
-                behavior = CloudFishAI.Behavior.Follow;
+                behavior = CloudFishAI.Behavior.GoToDen;
             }
             else
             {
                 behavior = CloudFishAI.Behavior.Wander;
             }
+        }
 
-            #endregion;
+        #endregion;
 
-            #region Update_Movement
+        #region Update_Movement
             
-            if (behavior == CloudFishAI.Behavior.Follow)
+        if (behavior == CloudFishAI.Behavior.Follow)
+        {
+            AbstractCreature newLeader = leader;
+            foreach (AbstractCreature creature in flock.list)
             {
-                flock.Update();
-                SetDestination(flock.leader.pos);
-                if (parent.realizedCreature == null && flock.leader.realizedCreature == null)
+                CloudFishAbstractAI AI = creature.abstractAI as CloudFishAbstractAI;
+                if (AI.dominance > dominance)
                 {
-                    parent.Move(flock.leader.pos);
+                    if (newLeader == null || ((CloudFishAbstractAI)newLeader.abstractAI).dominance > AI.dominance)
+                    {
+                        newLeader = creature;
+                    }
                 }
             }
-            else if (behavior == CloudFishAI.Behavior.Wander)
+            leader = newLeader;
+
+            flock.Update();
+
+            if (flock.leader.realizedCreature != null)
             {
-                if (flock.count < flock.maxCount)
+                SetDestination(leader.pos);
+                destination = leader.pos;
+            }
+            else
+            {
+                SetDestination(flock.leader.pos);
+                destination = flock.leader.pos;
+            }
+
+            if (parent.realizedCreature == null && flock.leader.realizedCreature == null)
+            {
+                parent.Move(flock.leader.pos);
+            }
+        }
+        else if (behavior == CloudFishAI.Behavior.Wander || behavior == CloudFishAI.Behavior.GoToDen)
+        {
+            if (flock.count < flock.maxCount)
+            {
+                AssembleFlock();
+            }
+            else
+            {
+                flock.Update();
+            }
+
+            if (behavior == CloudFishAI.Behavior.GoToDen)
+            {
+                if (!denPosition.HasValue)
                 {
-                    AssembleFlock();
-                }
-                else
-                {
-                    flock.Update();
+                    for (int i = 0; i < parent.Room.nodes.Count(); i++)
+                    {
+                        AbstractRoomNode node = parent.Room.nodes[i];
+                        if (node.type == AbstractRoomNode.Type.Den)
+                        {
+                            denPosition = new(parent.Room.index, -1, -1, i);
+                            break;
+                        }
+                    }
                 }
 
-                foreach (AbstractCreature creature in flock.list)
+                if (denPosition.HasValue)
                 {
-                    CloudFishAbstractAI AI = creature.abstractAI as CloudFishAbstractAI;
-                    if (AI.behavior == CloudFishAI.Behavior.Follow)
+                    SetDestination(denPosition.Value);
+                }
+                else if (destination.room == parent.Room.index)
+                {
+                    for (int i = 0; i < 5; i++)
                     {
-                        AI.flock.Update();
-                        AI.SetDestination(flock.leader.pos);
-                        if (creature.realizedCreature == null && flock.leader.realizedCreature == null)
+                        AbstractRoom otherRoom = world.GetAbstractRoom(parent.Room.connections[Random.Range(0, parent.Room.connections.Length)]);
+                        if (otherRoom.index != lastRoom || parent.Room.connections.Length < 2)
                         {
-                            creature.Move(flock.leader.pos);
+                            SetDestination(new WorldCoordinate(otherRoom.index, -1, -1, otherRoom.RandomRelevantNode(parent.creatureTemplate)));
+                            break;
                         }
                     }
                 }
             }
 
-            #endregion
+            foreach (AbstractCreature creature in flock.list)
+            {
+                CloudFishAbstractAI AI = creature.abstractAI as CloudFishAbstractAI;
+                if (AI.dominance > dominance)
+                {
+                    behavior = CloudFishAI.Behavior.Follow;
+                }
+                else if (AI.behavior == CloudFishAI.Behavior.Follow)
+                {
+                    AI.flock.Update();
+                    AI.SetDestination(flock.leader.pos);
+                    AI.destination = flock.leader.pos;
+                    if (creature.realizedCreature == null && flock.leader.realizedCreature == null)
+                    {
+                        creature.Move(flock.leader.pos);
+                    }
+                }
+            }
         }
-        catch (Exception e)
-        {
-            Debug.Log("CLOUDFISH ABSTRACT UPDATE METHOD EXPERIENCED AN ERROR AT: " + section);
-        }
+
+        #endregion
     }
 
     public void ResetFlock()

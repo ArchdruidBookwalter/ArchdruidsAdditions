@@ -48,4 +48,16 @@ public static class CreatureHooks
         }*/
         orig(self);
     }
+
+    internal static void VultureGraphics_ctor(On.VultureGraphics.orig_ctor orig, VultureGraphics self, Vulture vulture)
+    {
+        orig(self, vulture);
+        //self.albino = true;
+    }
+
+    internal static void Vulture_Snap(On.Vulture.orig_Snap orig, Vulture self, BodyChunk snapAtChunk)
+    {
+        orig(self, snapAtChunk);
+        Methods.Methods.Create_Square(self.room, self.Head().pos, 10f, 10f, Vector2.up, "Red", 500);
+    }
 }

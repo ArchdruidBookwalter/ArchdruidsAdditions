@@ -67,10 +67,12 @@ public sealed class Plugin : BaseUnityPlugin
         On.AImap.TileCostForCreature_WorldCoordinate_CreatureTemplate += Hooks.AIHooks.AImap_TileCostForCreature;
         #endregion
 
-        #region Creature
+        #region Creature Hooks
         On.Creature.Update += Hooks.CreatureHooks.Creature_Update;
         On.TailSegment.ctor += Hooks.CreatureHooks.TailSegment_ctor;
         On.TailSegment.Update += Hooks.CreatureHooks.TailSegment_Update;
+        On.VultureGraphics.ctor += Hooks.CreatureHooks.VultureGraphics_ctor;
+        On.Vulture.Snap += Hooks.CreatureHooks.Vulture_Snap;
         #endregion
 
         #region Devtools Hooks
@@ -103,6 +105,12 @@ public sealed class Plugin : BaseUnityPlugin
         On.SLOracleBehavior.Update += Hooks.IteratorHooks.On_SLOracleBehavior_Update;
         #endregion
 
+        #region Light Hooks
+        On.Redlight.Update += Hooks.LightHooks.Redlight_Update;
+        On.LightSource.Update += Hooks.LightHooks.LightSource_Update;
+        On.LightSource.DrawSprites += Hooks.LightHooks.LightSource_DrawSprites;
+        #endregion
+
         #region Main Hooks
         On.RainWorld.OnModsInit += Hooks.MainHooks.RainWorld_OnModsInit;
         On.RainWorld.UnloadResources += Hooks.MainHooks.RainWorld_UnloadResources;
@@ -114,6 +122,10 @@ public sealed class Plugin : BaseUnityPlugin
         #region Menu Hooks
         On.Menu.MouseCursor.GrafUpdate += Hooks.MenuHooks.MouseCursor_GrafUpdate;
         On.MainLoopProcess.GrafUpdate += Hooks.MenuHooks.MainLoopProcess_GrafUpdate;
+        #endregion
+
+        #region Overseer Hooks
+        On.OverseerTutorialBehavior.Update += Hooks.OverseerHooks.OverseerTutorialBehavior_Update;
         #endregion
 
         #region OverWorld Hooks

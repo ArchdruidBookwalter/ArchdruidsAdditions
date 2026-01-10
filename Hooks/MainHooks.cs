@@ -1,15 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.ComponentModel.Composition;
 using MonoMod.RuntimeDetour;
 using UnityEngine;
-using System.ComponentModel.Composition.Hosting;
-using System.Runtime.CompilerServices;
-using Unity.Mathematics;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -71,7 +63,7 @@ public static class MainHooks
 
         MachineConnector.SetRegisteredOI(Plugin.PLUGIN_GUID, Plugin.Options);
 
-        Debug.Log("\"Archdruid's Additions\" HAS SUCCESSFULY HOOKED, \"OnModsInit\" METHOD. =============================================");
+        Debug.Log("ARCHDRUID'S ADDITIONS LOADED METHOD: ON_MODS_INIT");
 
         Enums.AAEnums.RegisterAllEnums();
 
@@ -115,6 +107,9 @@ public static class MainHooks
     internal static void RainWorld_OnModsEnabled(On.RainWorld.orig_OnModsEnabled orig, RainWorld self, ModManager.Mod[] newlyEnabledMods)
     {
         orig(self, newlyEnabledMods);
+
+        Debug.Log("ARCHDRUID'S ADDITIONS LOADED METHOD: ON_MODS_ENABLED");
+
         foreach (var mod in newlyEnabledMods)
         {
             if (mod.id == "archdruidbookwalter.archdruidsadditions")
@@ -137,6 +132,9 @@ public static class MainHooks
     internal static void RainWorld_OnModsDisabled(On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
     {
         orig(self, newlyDisabledMods);
+
+        Debug.Log("ARCHDRUID'S ADDITIONS LOADED METHOD: ON_MODS_DISABLED");
+
         foreach (var mod in newlyDisabledMods)
         {
             if (mod.id == "archdruidbookwalter.archdruidsadditions")
@@ -164,20 +162,17 @@ public static class MainHooks
     }
     internal static void RainWorld_PostModsInIt(On.RainWorld.orig_PostModsInit orig, RainWorld self)
     {
+        Debug.Log("ARCHDRUID'S ADDITIONS TRIED TO LOAD METHOD: POST_MODS_INIT");
+
         orig(self);
+
+        Debug.Log("ARCHDRUID'S ADDITIONS SUCCESSFULLY LOADED METHOD: POST_MODS_INIT");
 
         foreach (var mod in ModManager.ActiveMods)
         {
             if (mod.id == "fyre.BeastMaster")
             {
-                try { new Hook(typeof(BeastMaster.BeastMaster).GetMethod("RainWorldOnUpdate", ALL_FLAGS), BeastmasterHooks.BeastMaster_OnRainWorldUpdate); }
-                catch (Exception ex)
-                {
-                    Debug.Log("");
-                    Debug.Log("Couldn't find Beastmaster Update Method?");
-                    Debug.Log("");
-                    Debug.LogException(ex);
-                }
+                BeastmasterHooks.CreateBeastmasterHooks();
                 beastMasterActive = true;
             }
             if (mod.id == "maxi-mol.mousedrag")

@@ -14,6 +14,7 @@ using RWCustom;
 using Steamworks;
 using Unity.Mathematics;
 using UnityEngine;
+using static System.Collections.Specialized.BitVector32;
 
 namespace ArchdruidsAdditions.Methods
 {
@@ -142,7 +143,7 @@ namespace ArchdruidsAdditions.Methods
         }
 
         #region Debug Shapes
-        public static bool DebugShapes = true;
+        public static bool DebugShapes = false;
         public static void Create_LineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, string color, int maxLife)
         {
             if (!DebugShapes)
@@ -237,6 +238,17 @@ namespace ArchdruidsAdditions.Methods
         }
         #endregion
 
+        public static void Log_Exception(Exception e, string methodName, float section)
+        {
+            Debug.Log("");
+            Debug.Log("EXCEPTION OCCURED IN METHOD: " + methodName + " IN CODE SECTION: " + section);
+            Debug.Log("");
+            Debug.LogException(e);
+        }
+        public static void Log_Coordinate(World world, WorldCoordinate coord)
+        {
+            Debug.Log(world.GetAbstractRoom(coord).name + ", " + coord.x + ", " + coord.y + ", " + coord.abstractNode);
+        }
 
         public static T Check<T>(Expression<Func<T>> expression)
         {

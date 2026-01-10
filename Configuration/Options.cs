@@ -31,9 +31,17 @@ namespace ArchdruidsAdditions.Configuration
                     "Enable this to make bows spawn in all regions."
                 )
             );
+            useDefaultMouseCursor = config.Bind<bool>
+            ("UseDefaultMouseCursor", false,
+                new ConfigurableInfo
+                (
+                    "Enabling this might help if the mouse cursor bugs out and becomes invisible or unusable. The game should be restarted after changing this setting."
+                )
+            );
         }
         public readonly Configurable<string> aimBowControls;
         public readonly Configurable<bool> spawnBowsEverywhere;
+        public readonly Configurable<bool> useDefaultMouseCursor;
 
         public override void Initialize()
         {
@@ -69,6 +77,17 @@ namespace ArchdruidsAdditions.Configuration
                         description = spawnBowsEverywhere.info.description,
                     },
                     new OpCheckBox(spawnBowsEverywhere, startPos + new Vector2(5f, -80f))
+                    {
+                    }
+                ]);
+                optionsTab.AddItems(
+                [
+                    new OpLabel(startPos + new Vector2(-305f, -112f), new Vector2(300f, 30f), "Use Default Mouse Cursor:", FLabelAlignment.Right, false)
+                    {
+                        verticalAlignment = OpLabel.LabelVAlignment.Center,
+                        description = useDefaultMouseCursor.info.description,
+                    },
+                    new OpCheckBox(useDefaultMouseCursor, startPos + new Vector2(5f, -110f))
                     {
                     }
                 ]);

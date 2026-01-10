@@ -119,7 +119,7 @@ public static class DevtoolsHooks
     {
         if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
         {
-            return "H";
+            return "h";
         }
         return orig(creature);
     }
@@ -127,12 +127,26 @@ public static class DevtoolsHooks
     {
         if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
         {
+            return Custom.HSL2RGB(0.52f, 1f, 0.5f);
+            /*
             CloudFishAbstractAI AI = creature.abstractAI as CloudFishAbstractAI;
+            if (creature.realizedCreature != null)
+            {
+                CloudFish fish = creature.realizedCreature as CloudFish;
+                if (fish.AI.exception)
+                {
+                    return new(0.01f, 0.01f, 0.01f);
+                }
+            }
             if (AI.behavior == CloudFishAI.Behavior.Flee)
             {
                 return new(0.8f, 0.2f, 0.2f);
             }
-            return AI.flock.color;
+            if (AI.flock.leader == creature)
+            {
+                return Color.Lerp(AI.flock.color, Color.white, 0.2f);
+            }
+            return AI.flock.color;*/
         }
         return orig(creature);
     }

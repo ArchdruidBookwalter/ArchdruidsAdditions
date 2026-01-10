@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.IO;
 using ArchdruidsAdditions.Creatures;
 using ArchdruidsAdditions.Objects;
-using ArchdruidsAdditions.Methods;
+using static ArchdruidsAdditions.Methods.Methods;
 using IL.Smoke;
 using RWCustom;
 using Unity.Mathematics;
@@ -155,11 +155,17 @@ public static class PlayerHooks
         }
         orig(self, grasp, eu);
     }
+
     static int clearConsoleCooldown = 0;
+    static bool playingSounds = false;
+    static int soundIndex = 0;
+    static int soundTimer = 0;
+    static List<string> soundIDs;
     internal static void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
     {
         orig(self, eu);
 
+        /*
         if (clearConsoleCooldown > 0)
         { clearConsoleCooldown--; }
 
@@ -172,50 +178,61 @@ public static class PlayerHooks
                     File.Delete("consoleLog.txt");
                 }
                 clearConsoleCooldown = 100;
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Cleared Console!", "Red", "White", 50));
+                Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Cleared Console!", "Red", 50);
             }
             else if (self.input[0].spec && self.input[0].pckp && clearConsoleCooldown == 0)
             {
-                clearConsoleCooldown = 100;
+                if (!playingSounds)
+                {
+                    clearConsoleCooldown = 100;
+                    soundIndex = 0;
+                    soundTimer = 0;
+                    playingSounds = true;
 
-                /*
-                Debug.Log("");
-                RoomCamera camera = self.room.game.cameras[0];
-                for (int i = 0; i < camera.spriteLeasers.Count; i++)
-                {
-                    RoomCamera.SpriteLeaser spriteLeaser = camera.spriteLeasers[i];
-                    if (spriteLeaser.drawableObject is UpdatableAndDeletable updel)
-                    {
-                        Debug.Log("Sprite Leaser " + i + ": " + updel.GetType().Name);
-                        foreach (FSprite sprite in spriteLeaser.sprites)
-                        {
-                            Debug.Log(sprite.element.name);
-                        }
-                    }
-                }
-                self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Checked Every Sprite!", "Green", "White", 50));*/
+                    ExtEnumType type = ExtEnum<SoundID>.values;
+                    soundIDs = type.entries;
 
-                if (Methods.Methods.DebugShapes == true)
-                {
-                    Methods.Methods.DebugShapes = false;
-                    self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Turned Off Debug Sprites!", "Green", "White", 50));
+                    Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Playing all sounds...", "Red", 50);
                 }
-                else
+                else if (soundIndex <= soundIDs.Count)
                 {
-                    Methods.Methods.DebugShapes = true;
-                    self.room.AddObject(new ColoredShapes.Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Turned On Debug Sprites!", "Green", "White", 50));
+                    clearConsoleCooldown = 5;
+                    soundTimer = 30;
+
+                    Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Skipped Sound: " + soundIDs[soundIndex], "Red", 50);
+                    soundIndex++;
                 }
             }
-            Vector2 mousePos = new Vector2(Futile.mousePosition.x, Futile.mousePosition.y);
-            Vector2 camPos = self.room.game.cameras[0].pos;
-            Vector2 tagPos = self.room.MiddleOfTile(self.room.GetTilePosition(mousePos + camPos));
-            //Methods.Methods.Create_Square(self.room, tagPos, 20f, 20f, new(0, 1), "Red", 0);
-            AItile AItile = self.room.aimap.getAItile(mousePos + camPos);
-            Room.Tile tile = self.room.GetTile(mousePos + camPos);
-            //Methods.Methods.Create_Text(self.room, tagPos + new Vector2(0f, 20f), tile.Terrain.ToString(), "Red", 0);
-            //Methods.Methods.Create_Text(self.room, tagPos + new Vector2(0f, 30f), AItile.acc.ToString(), "Red", 0);
+
+            float roomDarkness = Mathf.Clamp((self.room.Darkness(self.mainBodyChunk.pos) - 0.3f) * 1.5f, 0f, 1f);
+            Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), roomDarkness.ToString(), "White", 0);
         }
+
+        if (self.room != null && playingSounds)
+        {
+            if (soundIndex > soundIDs.Count)
+            {
+                soundIndex = 0;
+                soundTimer = 0;
+                playingSounds = false;
+
+                Methods.Methods.Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), "Reached end of Dictionary.", "Red", 50);
+            }
+            else if (soundTimer > 30)
+            {
+                soundTimer = 0;
+                self.room.game.cameras[0].virtualMicrophone.AllQuiet();
+                SoundID soundId = new SoundID(soundIDs[soundIndex], false);
+                self.room.PlaySound(soundId);
+                soundIndex++;
+            }
+            else
+            {
+                soundTimer++;
+            }
+        }*/
     }
+
     internal static Vector2 Player_GetHeldItemDirection(On.Player.orig_GetHeldItemDirection orig, Player self, int hand)
     {
         Vector2 spearVec1 = Custom.DirVec(self.mainBodyChunk.pos, self.grasps[hand].grabbed.bodyChunks[0].pos) * ((hand == 0) ? (-1f) : 1f);
@@ -283,50 +300,6 @@ public static class PlayerHooks
             return true;
         }
         return orig(self, grabbedCreature);
-    }
-    public static Color GetColor(int index)
-    {
-        if (index == 0)
-        {
-            return new Color(1f, 0f, 0f);
-        }
-        else if (index == 1)
-        {
-            return new Color(1f, 0.5f, 0f);
-        }
-        else if (index == 2)
-        {
-            return new Color(1f, 1f, 0f);
-        }
-        else if (index == 3)
-        {
-            return new Color(0.5f, 1f, 0f);
-        }
-        else if (index == 4)
-        {
-            return new Color(0f, 1f, 0f);
-        }
-        else if (index == 5)
-        {
-            return new Color(0f, 1f, 0.5f);
-        }
-        else if (index == 6)
-        {
-            return new Color(0f, 1f, 1f);
-        }
-        else if (index == 7)
-        {
-            return new Color(0f, 0.5f, 1f);
-        }
-        else if (index == 8)
-        {
-            return new Color(0f, 0f, 1f);
-        }
-        else
-        {
-            int newIndex = index - 9;
-            return GetColor(newIndex);
-        }
     }
     #endregion
 

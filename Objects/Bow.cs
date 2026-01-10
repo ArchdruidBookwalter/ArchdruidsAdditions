@@ -23,6 +23,7 @@ public class Bow : Weapon, IDrawable
     public string lastLayer;
 
     public Spear loadedSpear;
+
     public Vector2 stringPos, lastStringPos;
     public Vector2 spearPos, lastSpearPos;
     public Vector2 aimDirection = new(0, 1);
@@ -238,7 +239,10 @@ public class Bow : Weapon, IDrawable
                 bowWidth = 10f + aimCharge / 20f;
                 bowLength = 60f - aimCharge / 5f;
 
-                graphics.LookAtPoint(aimPos.Value, 10f);
+                if (aimCharge > 1)
+                {
+                    graphics.LookAtPoint(aimPos.Value, 10f);
+                }
             }
             else
             {
@@ -279,6 +283,9 @@ public class Bow : Weapon, IDrawable
                     loadedSpear.AllGraspsLetGoOfThisObject(true);
                     loadedSpear.firstChunk.vel = loadedSpear.firstChunk.vel.normalized * force;
                     loadedSpear.setPosAndTail(player.mainBodyChunk.pos);
+
+                    graphics.LookAtNothing();
+                    graphics.LookAtObject(loadedSpear);
                 }
                 loadedSpear = null;
                 aimCharge = 0f;

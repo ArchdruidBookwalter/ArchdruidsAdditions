@@ -17,6 +17,7 @@ public static class AbstractCreatureHooks
     {
         if (self.Room != null && self.realizedCreature == null)
         {
+            //Debug.Log("CREATURE \'" + self.creatureTemplate.name + "\' REALIZED IN ROOM.");
             if (self.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
             {
                 self.realizedCreature = new CloudFish(self, self.world);

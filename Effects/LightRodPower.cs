@@ -14,7 +14,7 @@ public static class LightRodPowerEffect
     public static void EffectSpawner(Room room, EffectExtraData data, bool firstTimeRealized)
     {
         room.AddObject(new LightRodPower(room, data));
-        UnityEngine.Debug.Log("Effect Loaded!");
+        //UnityEngine.Debug.Log("Effect Loaded!");
     }
 
     public class LightRodPower : UpdatableAndDeletable
@@ -71,7 +71,7 @@ public static class LightRodPowerEffect
 
             currentPower = Mathf.Lerp(currentPower, goalPower, 0.1f);
 
-            UnityEngine.Debug.Log("Effect Updated.");
+            //UnityEngine.Debug.Log("Effect Updated.");
         }
     }
 

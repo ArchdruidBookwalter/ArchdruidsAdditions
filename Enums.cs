@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ArchdruidsAdditions.Creatures;
 using ArchdruidsAdditions.Objects;
 using DevInterface;
 using static ArchdruidsAdditions.Effects.LightRodPowerEffect;
@@ -20,6 +21,7 @@ public class AAEnums
         SandboxUnlockID.RegisterValues();
         ScavengerAnimationID.RegisterValues();
         CreatureTemplateType.RegisterValues();
+        NewSoundID.RegisterValues();
     }
     public static void UnregisterAllEnums()
     {
@@ -30,6 +32,7 @@ public class AAEnums
         SandboxUnlockID.UnregisterValues();
         ScavengerAnimationID.UnregisterValues();
         CreatureTemplateType.UnregisterValues();
+        NewSoundID.UnregisterValues();
     }
 }
 
@@ -247,6 +250,69 @@ public class CreatureTemplateType
         {
             CloudFish.Unregister();
             CloudFish = null;
+        }
+    }
+}
+public class NewSoundID
+{
+    public static SoundID AA_CloudFishWhistle1;
+    public static SoundID AA_CloudFishWhistle2;
+    public static SoundID AA_CloudFishWhistle3;
+    public static SoundID AA_CloudFishScream;
+    public static SoundID AA_CloudFishDeath;
+
+    public static void RegisterValues()
+    {
+        AA_CloudFishWhistle1 = new("AA_CloudFishWhistle1", true);
+        AA_CloudFishWhistle2 = new("AA_CloudFishWhistle2", true);
+        AA_CloudFishWhistle3 = new("AA_CloudFishWhistle3", true);
+        AA_CloudFishScream = new("AA_CloudFishScream", true);
+        AA_CloudFishDeath = new("AA_CloudFishDeath", true);
+    }
+
+    public static SoundID RandomCloudFishWhistle()
+    {
+        float random = UnityEngine.Random.value;
+        if (random < 0.33)
+        {
+            return AA_CloudFishWhistle1;
+        }
+        else if (random < 0.66)
+        {
+            return AA_CloudFishWhistle2;
+        }
+        else
+        {
+            return AA_CloudFishWhistle3;
+        }
+    }
+
+    public static void UnregisterValues()
+    {
+        if (AA_CloudFishWhistle1 != null)
+        {
+            AA_CloudFishWhistle1.Unregister();
+            AA_CloudFishWhistle1 = null;
+        }
+        if (AA_CloudFishWhistle2 != null)
+        {
+            AA_CloudFishWhistle2.Unregister();
+            AA_CloudFishWhistle2 = null;
+        }
+        if (AA_CloudFishWhistle3 != null)
+        {
+            AA_CloudFishWhistle3.Unregister();
+            AA_CloudFishWhistle3 = null;
+        }
+        if (AA_CloudFishScream != null)
+        {
+            AA_CloudFishScream.Unregister();
+            AA_CloudFishScream = null;
+        }
+        if (AA_CloudFishDeath != null)
+        {
+            AA_CloudFishDeath.Unregister();
+            AA_CloudFishDeath = null;
         }
     }
 }
