@@ -5,7 +5,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using Random = UnityEngine.Random;
 using RWCustom;
+
+using ArchdruidsAdditions.Objects;
+using ArchdruidsAdditions.Enums;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -16,36 +20,72 @@ public static class AbstractPhysicalObjectHooks
         orig.Invoke(self);
         if (self.realizedObject is null)
         {
-            if (self.type == Enums.AbstractObjectType.Bow)
+            if (self.type == AbstractObjectType.Bow)
             {
-                self.realizedObject = new Objects.Bow(self, self.world);
+                self.realizedObject = new Bow(self, self.world);
             }
-            if (self.type == Enums.AbstractObjectType.ScarletFlowerBulb)
+            else if (self.type == AbstractObjectType.ScarletFlowerBulb)
             {
-                self.realizedObject = new Objects.ScarletFlowerBulb(self, self.world, false, Custom.RNV(), new(1f, 0f, 0f));
+                self.realizedObject = new ScarletFlowerBulb(self, self.world, false, Custom.RNV(), new(1f, 0f, 0f));
             }
-            if (self.type == Enums.AbstractObjectType.ParrySword)
+            else if (self.type == AbstractObjectType.ParrySword)
             {
-                self.realizedObject = new Objects.ParrySword(self, self.world, new(1f, 0.79f, 0.3f));
+                self.realizedObject = new ParrySword(self, self.world, new(1f, 0.79f, 0.3f));
             }
-            if (self.type == Enums.AbstractObjectType.Potato)
+            else if (self.type == AbstractObjectType.Potato)
             {
-                float hue = UnityEngine.Random.Range(0f, 1f);
-                float sat = UnityEngine.Random.Range(0f, 1f);
-                float val = UnityEngine.Random.Range(0.05f, 1f);
-                self.realizedObject = new Objects.Potato(self, false, new(0f, 1f), Color.HSVToRGB(hue, sat, val), true);
-                (self.realizedObject as Objects.Potato).bodyChunks[1].vel += Custom.RNV();
+                float hue = Random.Range(0f, 1f);
+                float sat = Random.Range(0f, 1f);
+                float val = Random.Range(0.05f, 1f);
+                self.realizedObject = new Potato(self, false, new(0f, 1f), Color.HSVToRGB(hue, sat, val), true);
+                (self.realizedObject as Potato).bodyChunks[1].vel += Custom.RNV();
+            }
+            else if (self.type == AbstractObjectType.LightningFruit)
+            {
+                int charge;
+                int power;
+
+                if (self.unrecognizedAttributes != null && self.unrecognizedAttributes.Count() > 0)
+                {
+                    charge = int.Parse(self.unrecognizedAttributes[0]);
+                    power = int.Parse(self.unrecognizedAttributes[1]);
+                }
+                else
+                {
+                    charge = Random.value > 0.5f ? 1 : -1;
+                    power = 1000;
+                }
+
+                self.realizedObject = new LightningFruit(self, charge)
+                { power = power };
+            }
+            else if (self.type == AbstractObjectType.FirePepper)
+            {
+                self.realizedObject = new FirePepper(self);
             }
         }
     }
 
+    internal static void AbstractPhysicalObject_Abstractize(On.AbstractPhysicalObject.orig_Abstractize orig, AbstractPhysicalObject self, WorldCoordinate coord)
+    {
+        if (self.realizedObject is LightningFruit fruit)
+        {
+            if (self.unrecognizedAttributes == null)
+            {
+                self.unrecognizedAttributes = new string[2];
+            }
+            self.unrecognizedAttributes[0] = fruit.charge.ToString();
+            self.unrecognizedAttributes[1] = fruit.power.ToString();
+        }
+        orig(self, coord);
+    }
+
     internal static bool AbstractConsumable_IsTypeConsumable(On.AbstractConsumable.orig_IsTypeConsumable orig, AbstractPhysicalObject.AbstractObjectType type)
     {
-        if (type == Enums.AbstractObjectType.ScarletFlowerBulb)
-        {
-            return true;
-        }
-        if (type == Enums.AbstractObjectType.Potato)
+        if (type == AbstractObjectType.ScarletFlowerBulb ||
+            type == AbstractObjectType.Potato ||
+            type == AbstractObjectType.LightningFruit ||
+            type == AbstractObjectType.FirePepper)
         {
             return true;
         }

@@ -10,11 +10,6 @@ namespace ArchdruidsAdditions.Hooks;
 
 public static class CreatureHooks
 {
-    internal static void Creature_Update(On.Creature.orig_Update orig, Creature self, bool eu)
-    {
-        //Methods.Methods.Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, 40f), self.VisibilityBonus.ToString(), "Yellow", 0);
-        orig(self, eu);
-    }
     internal static void TailSegment_ctor(On.TailSegment.orig_ctor orig, TailSegment self,
         GraphicsModule module, float radius, float connectionRadius, TailSegment connectedSegment, float surfaceFriction, float airFriction, float affectPrevious, bool pullInPreviousPos)
     {
@@ -37,27 +32,15 @@ public static class CreatureHooks
         }
     }
 
-    internal static void TailSegment_Update(On.TailSegment.orig_Update orig, TailSegment self)
+    internal static void CreatureState_LoadFromString(On.CreatureState.orig_LoadFromString orig, CreatureState self, string[] s)
     {
-        /*
-        if (self.owner is CloudFishGraphics)
+        orig(self, s);
+        Debug.Log("------------------------");
+        Debug.Log("CREATURE: " + self.creature.creatureTemplate.name);
+        foreach (string st in s)
         {
-            Debug.Log("Connected Segment Null: " + self.connectedSegment == null);
-            Debug.Log("Connected Point Null: " + self.connectedPoint == null);
-            Debug.Log("");
-        }*/
-        orig(self);
-    }
-
-    internal static void VultureGraphics_ctor(On.VultureGraphics.orig_ctor orig, VultureGraphics self, Vulture vulture)
-    {
-        orig(self, vulture);
-        //self.albino = true;
-    }
-
-    internal static void Vulture_Snap(On.Vulture.orig_Snap orig, Vulture self, BodyChunk snapAtChunk)
-    {
-        orig(self, snapAtChunk);
-        Methods.Methods.Create_Square(self.room, self.Head().pos, 10f, 10f, Vector2.up, "Red", 500);
+            Debug.Log(st);
+        }
+        Debug.Log("------------------------");
     }
 }

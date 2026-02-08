@@ -32,6 +32,10 @@ public static class MainHooks
         {
             MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.Potato);
         }
+        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.LightningFruit))
+        {
+            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.LightningFruit);
+        }
         #endregion
 
         #region Atlases
@@ -59,6 +63,18 @@ public static class MainHooks
         {
             Futile.atlasManager.LoadAtlas("atlases/CloudFish");
         }
+        if (!Futile.atlasManager.DoesContainAtlas("SphericalFruit"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/SphericalFruit");
+        }
+        if (!Futile.atlasManager.DoesContainAtlas("FirePepper"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/FirePepper");
+        }
+        if (!Futile.atlasManager.DoesContainAtlas("Arc"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/Arc");
+        }
         #endregion
 
         MachineConnector.SetRegisteredOI(Plugin.PLUGIN_GUID, Plugin.Options);
@@ -75,6 +91,14 @@ public static class MainHooks
         { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions"); }
         catch
         { Debug.Log("Potato has already been placed in correct Devtools category."); }
+        try
+        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.LightningFruit, "Archdruid's Additions"); }
+        catch
+        { Debug.Log("LightningFruit has already been placed in correct Devtools category."); }
+        try
+        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.DecoLightningVine, "Archdruid's Additions"); }
+        catch
+        { Debug.Log("LightningVine has already been placed in correct Devtools category."); }
     }
     internal static void RainWorld_UnloadResources(On.RainWorld.orig_UnloadResources orig, RainWorld self)
     {
@@ -103,6 +127,18 @@ public static class MainHooks
         {
             Futile.atlasManager.UnloadAtlas("CloudFish");
         }
+        if (Futile.atlasManager.DoesContainAtlas("SphericalFruit"))
+        {
+            Futile.atlasManager.UnloadAtlas("SphericalFruit");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("FirePepper"))
+        {
+            Futile.atlasManager.UnloadAtlas("FirePepper");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("Arc"))
+        {
+            Futile.atlasManager.UnloadAtlas("Arc");
+        }
     }
     internal static void RainWorld_OnModsEnabled(On.RainWorld.orig_OnModsEnabled orig, RainWorld self, ModManager.Mod[] newlyEnabledMods)
     {
@@ -124,6 +160,14 @@ public static class MainHooks
                 { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions"); }
                 catch
                 { Debug.Log("Potato has already been placed in correct Devtools category."); }
+                try
+                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.LightningFruit, "Archdruid's Additions"); }
+                catch
+                { Debug.Log("LightningFruit has already been placed in correct Devtools category."); }
+                try
+                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.DecoLightningVine, "Archdruid's Additions"); }
+                catch
+                { Debug.Log("LightningVine has already been placed in correct Devtools category."); }
 
                 break;
             }
@@ -154,6 +198,10 @@ public static class MainHooks
                 if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.Potato))
                 {
                     MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.Potato);
+                }
+                if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.LightningFruit))
+                {
+                    MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.LightningFruit);
                 }
                 Enums.AAEnums.UnregisterAllEnums();
                 break;

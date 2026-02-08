@@ -42,6 +42,8 @@ public class AbstractObjectType
     public static AbstractPhysicalObject.AbstractObjectType ScarletFlowerBulb;
     public static AbstractPhysicalObject.AbstractObjectType ParrySword;
     public static AbstractPhysicalObject.AbstractObjectType Potato;
+    public static AbstractPhysicalObject.AbstractObjectType LightningFruit;
+    public static AbstractPhysicalObject.AbstractObjectType FirePepper;
 
     public static void RegisterValues()
     {
@@ -49,6 +51,8 @@ public class AbstractObjectType
         ScarletFlowerBulb = new("ScarletFlowerBulb", true);
         ParrySword = new("ParrySword", true);
         Potato = new("Potato", true);
+        LightningFruit = new("LightningFruit", true);
+        FirePepper = new("FirePepper", true);
     }
 
     public static void UnregisterValues()
@@ -72,6 +76,16 @@ public class AbstractObjectType
         {
             Potato.Unregister();
             Potato = null;
+        }
+        if (LightningFruit != null)
+        {
+            LightningFruit.Unregister();
+            LightningFruit = null;
+        }
+        if (FirePepper != null)
+        {
+            FirePepper.Unregister();
+            FirePepper = null;
         }
     }
 }
@@ -81,6 +95,8 @@ public class MiscItemType
     public static SLOracleBehaviorHasMark.MiscItemType ScarletFlowerBulb;
     public static SLOracleBehaviorHasMark.MiscItemType ParrySword;
     public static SLOracleBehaviorHasMark.MiscItemType Potato;
+    public static SLOracleBehaviorHasMark.MiscItemType LightningFruit;
+    public static SLOracleBehaviorHasMark.MiscItemType FirePepper;
 
     public static void RegisterValues()
     {
@@ -88,6 +104,8 @@ public class MiscItemType
         ScarletFlowerBulb = new("ScarletFlowerBulb", true);
         ParrySword = new("ParrySword", true);
         Potato = new("Potato", true);
+        LightningFruit = new("LightningFruit", true);
+        FirePepper = new("FirePepper", true);
     }
 
     public static void UnregisterValues()
@@ -111,6 +129,16 @@ public class MiscItemType
         {
             Potato.Unregister();
             Potato = null;
+        }
+        if (LightningFruit != null)
+        {
+            LightningFruit.Unregister();
+            LightningFruit = null;
+        }
+        if (FirePepper != null)
+        {
+            FirePepper.Unregister();
+            FirePepper = null;
         }
     }
 }
@@ -120,6 +148,8 @@ public class MultiplayerItemType
     public static PlacedObject.MultiplayerItemData.Type ScarletFlowerBulb;
     public static PlacedObject.MultiplayerItemData.Type ParrySword;
     public static PlacedObject.MultiplayerItemData.Type Potato;
+    public static PlacedObject.MultiplayerItemData.Type LightningFruit;
+    public static PlacedObject.MultiplayerItemData.Type FirePepper;
 
     public static void RegisterValues()
     {
@@ -127,6 +157,8 @@ public class MultiplayerItemType
         ScarletFlowerBulb = new("ScarletFlowerBulb", true);
         ParrySword = new("ParrySword", true);
         Potato = new("Potato", true);
+        LightningFruit = new("LightningFruit", true);
+        FirePepper = new("FirePepper", true);
     }
 
     public static void UnregisterValues()
@@ -151,17 +183,31 @@ public class MultiplayerItemType
             Potato.Unregister();
             Potato = null;
         }
+        if (LightningFruit != null)
+        {
+            LightningFruit.Unregister();
+            LightningFruit = null;
+        }
+        if (FirePepper != null)
+        {
+            FirePepper.Unregister();
+            FirePepper = null;
+        }
     }
 }
 public class PlacedObjectType
 {
     public static PlacedObject.Type ScarletFlower;
     public static PlacedObject.Type Potato;
+    public static PlacedObject.Type LightningFruit;
+    public static PlacedObject.Type DecoLightningVine;
 
     public static void RegisterValues()
     {
         ScarletFlower = new("ScarletFlower", true);
         Potato = new("Potato", true);
+        LightningFruit = new("LightningFruit", true);
+        DecoLightningVine = new("DecoLightningVine", true);
     }
 
     public static void UnregisterValues()
@@ -176,6 +222,16 @@ public class PlacedObjectType
             Potato.Unregister();
             Potato = null;
         }
+        if (LightningFruit != null)
+        {
+            LightningFruit.Unregister();
+            LightningFruit = null;
+        }
+        if (DecoLightningVine != null)
+        {
+            DecoLightningVine.Unregister();
+            DecoLightningVine = null;
+        }
     }
 }
 public class SandboxUnlockID
@@ -184,6 +240,8 @@ public class SandboxUnlockID
     public static MultiplayerUnlocks.SandboxUnlockID ScarletFlowerBulb;
     public static MultiplayerUnlocks.SandboxUnlockID ParrySword;
     public static MultiplayerUnlocks.SandboxUnlockID Potato;
+    public static MultiplayerUnlocks.SandboxUnlockID LightningFruit;
+    public static MultiplayerUnlocks.SandboxUnlockID FirePepper;
 
     public static void RegisterValues()
     {
@@ -191,6 +249,8 @@ public class SandboxUnlockID
         ScarletFlowerBulb = new("ScarletFlowerBulb", true);
         ParrySword = new("ParrySword", true);
         Potato = new("Potato", true);
+        LightningFruit = new("LightningFruit", true);
+        FirePepper = new("FirePepper", true);
     }
 
     public static void UnregisterValues()
@@ -214,6 +274,16 @@ public class SandboxUnlockID
         {
             Potato.Unregister();
             Potato = null;
+        }
+        if (LightningFruit != null)
+        {
+            LightningFruit.Unregister();
+            LightningFruit = null;
+        }
+        if (FirePepper != null)
+        {
+            FirePepper.Unregister();
+            FirePepper = null;
         }
     }
 }

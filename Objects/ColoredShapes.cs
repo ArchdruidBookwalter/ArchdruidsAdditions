@@ -365,21 +365,12 @@ public class ColoredShapes
 
         public Color color2;
 
-        public Text(Room room, Vector2 pos, String text, string color, string color2, int maxLife)
+        public Text(Room room, Vector2 pos, String text, string color, int maxLife)
         {
-            Player player = room.game.FirstRealizedPlayer;
-            if (player.room == null)
-            {
-                return;
-            }
-
             this.room = room;
             this.pos = pos;
+            this.text = text;
             this.maxLife = maxLife;
-
-            label = new FLabel(Custom.GetFont(), "TEST");
-            label.alignment = FLabelAlignment.Center;
-            label.text = text;
 
             if (color == "Red")
             {
@@ -413,31 +404,13 @@ public class ColoredShapes
             {
                 this.color = new(0.1f, 0.1f, 0.1f);
             }
-
-            if (color == "Red")
-            {
-                this.color2 = new(1f, 0f, 0f);
-            }
-            else if (color == "White")
-            {
-                this.color2 = new(1f, 1f, 1f);
-            }
         }
-        public Text(Room room, Vector2 pos, String text, Color color, string color2, int maxLife)
+        public Text(Room room, Vector2 pos, String text, Color color, int maxLife)
         {
-            Player player = room.game.FirstRealizedPlayer;
-            if (player.room == null)
-            {
-                return;
-            }
-
             this.room = room;
             this.pos = pos;
+            this.text = text;
             this.maxLife = maxLife;
-
-            label = new FLabel(Custom.GetFont(), "TEST");
-            label.alignment = FLabelAlignment.Center;
-            label.text = text;
             this.color = color;
         }
 
@@ -454,21 +427,21 @@ public class ColoredShapes
 
         public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
-            sLeaser.sprites = new FSprite[1];
-            sLeaser.sprites[0] = new FSprite("pixel", true);
+            label = new FLabel(Custom.GetFont(), "TEST")
+            {
+                alignment = FLabelAlignment.Center,
+                text = text,
+                color = color
+            };
+            label.SetPosition(pos - rCam.pos);
 
+            sLeaser.sprites = [];
             AddToContainer(sLeaser, rCam, null);
         }
         public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
-            //Debug.Log("DrawSprites       Method was called!");
             label.color = color;
             label.SetPosition(pos - camPos);
-
-            sLeaser.sprites[0].SetPosition(pos - camPos);
-            sLeaser.sprites[0].color = color;
-            sLeaser.sprites[0].scale = 10f;
-            sLeaser.sprites[0].alpha = 0;
 
             if (slatedForDeletetion || room != rCam.room)
             {

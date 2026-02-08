@@ -28,6 +28,14 @@ public static class SymbolHooks
         {
             text = "Icon_Bow";
         }
+        else if (itemType == Enums.AbstractObjectType.LightningFruit)
+        {
+            text = "Icon_LightningFruit";
+        }
+        else if (itemType == Enums.AbstractObjectType.FirePepper)
+        {
+            text = "Icon_FirePepper";
+        }
         else
         {
             text = orig.Invoke(itemType, intData);
@@ -53,6 +61,14 @@ public static class SymbolHooks
         else if (itemType == Enums.AbstractObjectType.Bow)
         {
             color = new Color(0.5f, 0.5f, 0.5f);
+        }
+        else if (itemType == Enums.AbstractObjectType.LightningFruit)
+        {
+            color = new Color(0f, 0f, 1f);
+        }
+        else if (itemType == Enums.AbstractObjectType.FirePepper)
+        {
+            color = new Color(1f, 0f, 0f);
         }
         else
         {

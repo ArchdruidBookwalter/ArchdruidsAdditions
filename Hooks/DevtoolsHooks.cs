@@ -23,10 +23,10 @@ public static class DevtoolsHooks
             {
                 self.RoomSettings.placedObjects.Add(pobj = new(type, null)
                 {
-                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683f, 384f), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
                 });
             }
-            var pobjRep = new Objects.ScarletFlowerRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            var pobjRep = new ScarletFlowerRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
@@ -39,7 +39,33 @@ public static class DevtoolsHooks
                     pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
                 });
             }
-            var pobjRep = new Objects.PotatoRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            var pobjRep = new PotatoRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
+        else if (type == Enums.PlacedObjectType.LightningFruit)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new LightningFruitRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
+        else if (type == Enums.PlacedObjectType.DecoLightningVine)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new DecoVineRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
@@ -52,11 +78,23 @@ public static class DevtoolsHooks
     {
         if (self.type == Enums.PlacedObjectType.ScarletFlower)
         {
-            self.data = new Objects.ScarletFlowerData(self);
+            self.data = new ScarletFlowerData(self);
+            return;
         }
         if (self.type == Enums.PlacedObjectType.Potato)
         {
-            self.data = new Objects.PotatoData(self);
+            self.data = new PotatoData(self);
+            return;
+        }
+        if (self.type == Enums.PlacedObjectType.LightningFruit)
+        {
+            self.data = new LightningFruitData(self);
+            return;
+        }
+        if (self.type == Enums.PlacedObjectType.DecoLightningVine)
+        {
+            self.data = new DecoVineData(self);
+            return;
         }
         else
         {
@@ -77,9 +115,6 @@ public static class DevtoolsHooks
                 PotatoRepresentation rep = panel.parentNode as PotatoRepresentation;
                 PotatoData data = rep.pObj.data as PotatoData;
                 data.FromString(GUIUtility.systemCopyBuffer);
-                Debug.Log(GUIUtility.systemCopyBuffer);
-                Debug.Log(data.minRegen);
-                Debug.Log(data.maxRegen);
                 foreach (DevUINode node in panel.subNodes)
                 {
                     if (node is ConsumableRepresentation.ConsumableControlPanel.ConsumableSlider slider)
@@ -96,9 +131,6 @@ public static class DevtoolsHooks
                 {
                     PlacedObject.ConsumableObjectData data = new((panel.parentNode as ConsumableRepresentation).pObj);
                     data.FromString(GUIUtility.systemCopyBuffer);
-                    Debug.Log(GUIUtility.systemCopyBuffer);
-                    Debug.Log(data.minRegen);
-                    Debug.Log(data.maxRegen);
                     foreach (DevUINode node in panel.subNodes)
                     {
                         if (node is ConsumableRepresentation.ConsumableControlPanel.ConsumableSlider slider)
@@ -128,25 +160,6 @@ public static class DevtoolsHooks
         if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
         {
             return Custom.HSL2RGB(0.52f, 1f, 0.5f);
-            /*
-            CloudFishAbstractAI AI = creature.abstractAI as CloudFishAbstractAI;
-            if (creature.realizedCreature != null)
-            {
-                CloudFish fish = creature.realizedCreature as CloudFish;
-                if (fish.AI.exception)
-                {
-                    return new(0.01f, 0.01f, 0.01f);
-                }
-            }
-            if (AI.behavior == CloudFishAI.Behavior.Flee)
-            {
-                return new(0.8f, 0.2f, 0.2f);
-            }
-            if (AI.flock.leader == creature)
-            {
-                return Color.Lerp(AI.flock.color, Color.white, 0.2f);
-            }
-            return AI.flock.color;*/
         }
         return orig(creature);
     }

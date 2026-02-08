@@ -440,7 +440,7 @@ public class CloudFishGraphics : GraphicsModule
             }
             catch (Exception e)
             {
-                Debug.LogWarning("Exception occured when trying to get the region color data for a Cloudfish! Is the region properties file formatted correctly? Check the Steam Workshop page for more information.");
+                Debug.Log("---CREATURE \'CLOUDFISH\' EXPERIENCED AN EXCEPTION WHILE TRYING TO GET REGION PROPERTIES DATA. IS THE FILE FORMATTED CORRECTLY?---");
                 Debug.LogException(e);
             }
 
@@ -1415,10 +1415,8 @@ public class CloudFishAI : ArtificialIntelligence
             cloudfish.dominance = abstractAI.dominance;
 
             section = 2;
-            if (Random.value < 0.5)
+            if (Random.value < 0.3)
             {
-                nearbyChunks = [];
-
                 foreach (TrackedObject obj in trackedCreatures)
                 {
                     if (obj.obj.room == cloudfish.room)
@@ -1458,10 +1456,23 @@ public class CloudFishAI : ArtificialIntelligence
 
                         foreach (BodyChunk chunk in obj.obj.bodyChunks)
                         {
-                            if (Custom.DistLess(pos, chunk.pos, chunk.rad + 100f))
+                            if (!nearbyChunks.Contains(chunk) && Custom.DistLess(pos, chunk.pos, chunk.rad + 100f))
                             {
                                 nearbyChunks.Add(chunk);
                             }
+                        }
+
+                        List<BodyChunk> removeChunks = [];
+                        foreach (BodyChunk chunk in nearbyChunks)
+                        {
+                            if (!Custom.DistLess(pos, chunk.pos, chunk.rad + 100f))
+                            {
+                                removeChunks.Add(chunk);
+                            }
+                        }
+                        foreach (BodyChunk chunk in removeChunks)
+                        {
+                            nearbyChunks.Remove(chunk);
                         }
                     }
                 }

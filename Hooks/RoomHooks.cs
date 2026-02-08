@@ -1,4 +1,6 @@
 ﻿using System;
+using ArchdruidsAdditions.Objects;
+using DevInterface;
 using UnityEngine;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -18,50 +20,76 @@ public static class RoomHooks
 
         foreach (var pobj in placedObjects)
         {
-            if (pobj.active && pobj.type == Enums.PlacedObjectType.ScarletFlower)
+            if (pobj.active)
             {
-                Objects.ScarletFlowerData data = pobj.data as Objects.ScarletFlowerData;
-
-                Objects.ScarletFlowerStem flower = new(pobj, data.rotation);
-                self.AddObject(flower);
-
-                if (firstTimeRealized && (session is not StoryGameSession || !(session as StoryGameSession).saveState.ItemConsumed(
-                    self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pobj))))
+                if (pobj.type == Enums.PlacedObjectType.ScarletFlower)
                 {
-                    var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.ScarletFlowerBulb, null, self.GetWorldCoordinate(pobj.pos),
-                        self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data as PlacedObject.ConsumableObjectData)
-                    { isConsumed = false };
+                    ScarletFlowerData data = pobj.data as ScarletFlowerData;
 
-                    abstractConsumable.realizedObject = new Objects.ScarletFlowerBulb(abstractConsumable, self.world, true, data.rotation, new(1f, 0f, 0f));
+                    ScarletFlowerStem flower = new(pobj, data.rotation);
+                    self.AddObject(flower);
 
-                    self.abstractRoom.AddEntity(abstractConsumable);
-                }
-            }
-            if (pobj.active && pobj.type == Enums.PlacedObjectType.Potato)
-            {
-                Objects.PotatoData data = pobj.data as Objects.PotatoData;
-
-                if (firstTimeRealized && (session is not StoryGameSession || !(session as StoryGameSession).saveState.ItemConsumed(
-                    self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pobj))))
-                {
-                    var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.Potato, null, self.GetWorldCoordinate(pobj.pos), 
-                        self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data as PlacedObject.ConsumableObjectData)
-                    { isConsumed = false };
-
-                    float hue = UnityEngine.Random.Range(data.minHue, data.maxHue);
-                    float sat = UnityEngine.Random.Range(data.minSat, data.maxSat);
-                    float val = UnityEngine.Random.Range(data.minVal, data.maxVal);
-
-                    if (val < 0.05f)
+                    if (firstTimeRealized && (session is not StoryGameSession || !(session as StoryGameSession).saveState.ItemConsumed(
+                        self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pobj))))
                     {
-                        val = 0.05f;
+                        var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.ScarletFlowerBulb, null, self.GetWorldCoordinate(pobj.pos),
+                            self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data)
+                        { isConsumed = false };
+
+                        abstractConsumable.realizedObject = new ScarletFlowerBulb(abstractConsumable, self.world, true, data.rotation, new(1f, 0f, 0f));
+
+                        self.abstractRoom.AddEntity(abstractConsumable);
                     }
+                }
+                if (pobj.type == Enums.PlacedObjectType.Potato)
+                {
+                    PotatoData data = pobj.data as PotatoData;
 
-                    Color newColor = Color.HSVToRGB(hue, sat, val);
+                    if (firstTimeRealized && (session is not StoryGameSession || !(session as StoryGameSession).saveState.ItemConsumed(
+                        self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pobj))))
+                    {
+                        var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.Potato, null, self.GetWorldCoordinate(pobj.pos),
+                            self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data)
+                        { isConsumed = false };
 
-                    abstractConsumable.realizedObject = new Objects.Potato(abstractConsumable, true, data.rotation, newColor, data.naturalColors);
+                        float hue = UnityEngine.Random.Range(data.minHue, data.maxHue);
+                        float sat = UnityEngine.Random.Range(data.minSat, data.maxSat);
+                        float val = UnityEngine.Random.Range(data.minVal, data.maxVal);
 
-                    self.abstractRoom.AddEntity(abstractConsumable);
+                        if (val < 0.05f)
+                        {
+                            val = 0.05f;
+                        }
+
+                        Color newColor = Color.HSVToRGB(hue, sat, val);
+
+                        abstractConsumable.realizedObject = new Potato(abstractConsumable, true, data.rotation, newColor, data.naturalColors);
+
+                        self.abstractRoom.AddEntity(abstractConsumable);
+                    }
+                }
+                if (pobj.type == Enums.PlacedObjectType.LightningFruit)
+                {
+                    LightningFruitData data = pobj.data as LightningFruitData;
+
+                    if (firstTimeRealized && (session is not StoryGameSession ||
+                        !(session as StoryGameSession).saveState.ItemConsumed(self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pobj))))
+                    {
+                        var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.LightningFruit, null, self.GetWorldCoordinate(pobj.pos),
+                            self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pobj), data)
+                        { isConsumed = false };
+
+                        abstractConsumable.realizedObject = new LightningFruit(abstractConsumable, data.charge);
+
+                        self.abstractRoom.AddEntity(abstractConsumable);
+                    }
+                }
+                if (pobj.type == Enums.PlacedObjectType.DecoLightningVine)
+                {
+                    DecoVineData data = pobj.data as DecoVineData;
+
+                    LightningFruitVine vine = new(self, pobj.pos, pobj.pos + data.handlePos, data.charge, data.elasticity, data.seed);
+                    self.AddObject(vine);
                 }
             }
         }
@@ -83,5 +111,19 @@ public static class RoomHooks
             }
         }
         return orig(self);
+    }
+
+
+
+    internal static void RoomSettings_LoadPlacedObjects(On.RoomSettings.orig_LoadPlacedObjects_StringArray_Timeline orig, RoomSettings self, string[] s, SlugcatStats.Timeline timeline)
+    {
+        try
+        {
+            orig(self, s, timeline);
+        }
+        catch (Exception e)
+        {
+            Debug.Log("---EXPERIENCED ONE OR MORE EXCEPTIONS WHILE LOADING PLACED OBJECTS IN ROOM: " + self.room.abstractRoom.name + "---");
+        }
     }
 }

@@ -141,12 +141,46 @@ namespace ArchdruidsAdditions.Methods
             }
             return null;
         }
+        public static (Color lightColor, float lightExposure, float colorExposure) TrueLightColorAndExposure(Room room, Vector2 pos, float addBrightness)
+        {
+            float roomDarkness = Mathf.Clamp((room.Darkness(pos) - 0.3f) * 1.6f, 0f, 1f);
+
+            float lightSourceExposure = 0;
+            float lightColorExposure = 0;
+            float r = 0;
+            float g = 0;
+            float b = 0;
+            foreach (LightSource light in room.lightSources)
+            {
+                CircularSprite newSprite = new(light.ElementName, 64);
+                float trueLightRad = light.rad * (newSprite.width / 2f) * 0.125f;
+
+                if (Custom.DistLess(pos, light.pos, trueLightRad))
+                {
+                    float thisLightExposure = Mathf.Lerp(1, 0, Custom.Dist(pos, light.pos) / trueLightRad) * 2;
+                    lightSourceExposure = Mathf.Max(lightSourceExposure, thisLightExposure);
+
+                    float thisColorExposure = Custom.RGB2HSL(light.color).y * thisLightExposure * 2;
+                    lightColorExposure = Mathf.Max(lightColorExposure, thisColorExposure);
+
+                    r = Mathf.Max(r, light.color.r * Mathf.Min(thisLightExposure, thisColorExposure));
+                    g = Mathf.Max(g, light.color.g * Mathf.Min(thisLightExposure, thisColorExposure));
+                    b = Mathf.Max(b, light.color.b * Mathf.Min(thisLightExposure, thisColorExposure));
+                }
+            }
+
+            Color lightColor = new(r, g, b);
+
+            float trueBrightness = Mathf.Clamp(1 - (roomDarkness - lightSourceExposure - addBrightness), 0f, 1f);
+
+            return (lightColor, trueBrightness, lightSourceExposure);
+        }
 
         #region Debug Shapes
-        public static bool DebugShapes = false;
+        public static bool DebugShapes = true;
         public static void Create_LineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, string color, int maxLife)
         {
-            if (!DebugShapes)
+            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
             { return; }
 
             Vector2 middlePos = Vector2.Lerp(point1, point2, 0.5f);
@@ -156,7 +190,7 @@ namespace ArchdruidsAdditions.Methods
         }
         public static void Create_LineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, Color color, int maxLife)
         {
-            if (!DebugShapes)
+            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
             { return; }
 
             Vector2 middlePos = Vector2.Lerp(point1, point2, 0.5f);
@@ -166,74 +200,76 @@ namespace ArchdruidsAdditions.Methods
         }
         public static void Create_Text(Room room, Vector2 pos, string text, string color, int maxLife)
         {
-            if (!DebugShapes)
+            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
             { return; }
 
             Player player = room.game.FirstRealizedPlayer;
-            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
-            {
-                return;
-            }
-            room.AddObject(new ColoredShapes.Text(room, pos, text, color, "White", maxLife));
+            if (player != null && player.room == null)
+            { return; }
+
+            room.AddObject(new ColoredShapes.Text(room, pos, text, color, maxLife));
         }
         public static void Create_Text(Room room, Vector2 pos, string text, Color color, int maxLife)
         {
-            if (!DebugShapes)
+            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
             { return; }
 
             Player player = room.game.FirstRealizedPlayer;
-            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
-            {
-                return;
-            }
-            room.AddObject(new ColoredShapes.Text(room, pos, text, color, "White", maxLife));
+            if (player != null && player.room == null)
+            { return; }
+
+            room.AddObject(new ColoredShapes.Text(room, pos, text, color, maxLife));
         }
+        public static void Create_TextBlock(Room room, Vector2 bottomPos, string[] lines, string color, int maxLife)
+        {
+            if (room == null || !DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
+            { return; }
+
+            Player player = room.game.FirstRealizedPlayer;
+            if (player != null && player.room == null)
+            { return; }
+
+            for (int i = 0; i < lines.Length - 1; i++)
+            {
+                string test = lines[lines.Length - 1 - i];
+                Create_Text(room, new Vector2(bottomPos.x, bottomPos.y + 20f * i), test, color, maxLife);
+            }
+        }
+
         public static void Create_Square(Room room, Vector2 pos, float width, float height, Vector2 rotation, string color, int maxLife)
         {
-            if (!DebugShapes)
+            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
             { return; }
 
             Player player = room.game.FirstRealizedPlayer;
-            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
-            {
-                return;
-            }
+            if (player != null && player.room == null)
+            { return; }
+
             room.AddObject(new ColoredShapes.Rectangle(room, pos, width, height, Custom.VecToDeg(rotation), color, maxLife));
         }
         public static void Create_Square(Room room, Vector2 pos, float width, float height, Vector2 rotation, Color color, int maxLife)
         {
-            if (!DebugShapes)
+            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
             { return; }
 
             Player player = room.game.FirstRealizedPlayer;
-            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
-            {
-                return;
-            }
+            if (player != null && player.room == null)
+            { return; }
+
             room.AddObject(new ColoredShapes.Rectangle(room, pos, width, height, Custom.VecToDeg(rotation), color, maxLife));
         }
         public static void Create_LineAndDot(Room room, Vector2 startPos, Vector2 endPos, string color, int maxLife)
         {
-            if (!DebugShapes)
+            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
             { return; }
 
-            Player player = room.game.FirstRealizedPlayer;
-            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
-            {
-                return;
-            }
             room.AddObject(new ColoredShapes.LineAndDot(room, startPos, endPos, color, maxLife));
         }
         public static void Create_Dot(Room room, Vector2 pos, string color, int maxLife)
         {
-            if (!DebugShapes)
+            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
             { return; }
 
-            Player player = room.game.FirstRealizedPlayer;
-            if (player.room == null || !room.BeingViewed || !room.game.devToolsActive)
-            {
-                return;
-            }
             room.AddObject(new ColoredShapes.Dot(room, pos, color, maxLife));
         }
         #endregion

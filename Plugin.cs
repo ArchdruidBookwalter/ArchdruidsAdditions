@@ -46,6 +46,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region AbstractPhysicalObject Hooks
         On.AbstractPhysicalObject.Realize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Realize;
+        On.AbstractPhysicalObject.Abstractize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Abstractize;
         On.AbstractConsumable.IsTypeConsumable += Hooks.AbstractPhysicalObjectHooks.AbstractConsumable_IsTypeConsumable;
         #endregion
 
@@ -68,11 +69,8 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         #region Creature Hooks
-        On.Creature.Update += Hooks.CreatureHooks.Creature_Update;
+        //On.CreatureState.LoadFromString += Hooks.CreatureHooks.CreatureState_LoadFromString;
         On.TailSegment.ctor += Hooks.CreatureHooks.TailSegment_ctor;
-        On.TailSegment.Update += Hooks.CreatureHooks.TailSegment_Update;
-        On.VultureGraphics.ctor += Hooks.CreatureHooks.VultureGraphics_ctor;
-        On.Vulture.Snap += Hooks.CreatureHooks.Vulture_Snap;
         #endregion
 
         #region Devtools Hooks
@@ -92,6 +90,10 @@ public sealed class Plugin : BaseUnityPlugin
         On.HUD.HUD.InitSinglePlayerHud += Hooks.HUDHooks.HUD_InitSinglePlayerHud;
         On.HUD.HUD.InitMultiplayerHud += Hooks.HUDHooks.HUD_InitMultiplayerHud;
         On.HUD.HUD.Update += Hooks.HUDHooks.HUD_Update;
+        On.HUD.FoodMeter.ctor += Hooks.HUDHooks.FoodMeter_ctor;
+        On.HUD.FoodMeter.Update += Hooks.HUDHooks.FoodMeter_Update;
+        On.HUD.FoodMeter.Draw += Hooks.HUDHooks.FoodMeter_Draw;
+        On.HUD.FoodMeter.MeterCircle.Draw += Hooks.HUDHooks.FoodMeter_MeterCircle_Draw;
         #endregion
 
         #region Insect Hooks
@@ -148,17 +150,22 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         #region Player
-        On.Player.GetHeldItemDirection += Hooks.PlayerHooks.Player_GetHeldItemDirection;
-        On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
-        On.Player.IsObjectThrowable += Hooks.PlayerHooks.Player_IsObjectThrowable;
-        On.Player.PickupCandidate += Hooks.PlayerHooks.Player_PickupCandidate;
-        On.Player.SlugcatGrab += Hooks.PlayerHooks.Player_SlugcatGrab;
-        On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
-        On.Player.MovementUpdate += Hooks.PlayerHooks.Player_MovementUpdate;
         On.Player.Update += Hooks.PlayerHooks.Player_Update;
+        On.Player.MovementUpdate += Hooks.PlayerHooks.Player_MovementUpdate;
+        On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
+        On.Player.PickupCandidate += Hooks.PlayerHooks.Player_PickupCandidate;
         On.Player.IsCreatureLegalToHoldWithoutStun += Hooks.PlayerHooks.Player_IsCreatureLegalToHoldWithoutStun;
+        On.Player.SlugcatGrab += Hooks.PlayerHooks.Player_SlugcatGrab;
+        On.Player.CanBeSwallowed += Hooks.PlayerHooks.Player_CanBeSwallowed;
+        On.Player.GetHeldItemDirection += Hooks.PlayerHooks.Player_GetHeldItemDirection;
+        On.Player.IsObjectThrowable += Hooks.PlayerHooks.Player_IsObjectThrowable;
+        On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
+        On.Player.ObjectEaten += Hooks.PlayerHooks.Player_ObjectEaten;
+        On.Player.AddFood += Hooks.PlayerHooks.Player_AddFood;
         On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
+        On.PlayerState.ctor += Hooks.PlayerHooks.PlayerState_ctor;
         On.SlugcatHand.Update += Hooks.PlayerHooks.SlugcatHand_Update;
+        On.SlugcatStats.NourishmentOfObjectEaten += Hooks.PlayerHooks.SlugcatStats_NourishmentOfObjectEaten;
         #endregion
 
         #region Process Hooks
@@ -168,6 +175,16 @@ public sealed class Plugin : BaseUnityPlugin
         #region Room Hooks
         On.Room.Loaded += Hooks.RoomHooks.Room_Loaded;
         new Hook(typeof(Room).GetMethod("get_ElectricPower"), Hooks.RoomHooks.Room_ElectricPower);
+        On.RoomSettings.LoadPlacedObjects_StringArray_Timeline += Hooks.RoomHooks.RoomSettings_LoadPlacedObjects;
+        #endregion
+
+        #region RoomSpecificScript Hooks
+        On.RoomSpecificScript.SU_C04StartUp.Update += Hooks.RoomScriptHooks.RoomSpecificScript_SU_CO4StartUp_Update;
+        #endregion
+
+        #region SaveState Hooks
+        On.SaveState.LoadGame += Hooks.SaveStateHooks.SaveState_LoadGame;
+        On.SaveState.SaveToString += Hooks.SaveStateHooks.SaveState_SaveToString;
         #endregion
 
         #region Scavenger Hooks
