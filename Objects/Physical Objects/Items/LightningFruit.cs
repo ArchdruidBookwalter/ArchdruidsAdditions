@@ -3,17 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnityEngine;
-using RWCustom;
-using Random = UnityEngine.Random;
-using static ArchdruidsAdditions.Methods.Methods;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using DevInterface;
-using ArchdruidsAdditions.Creatures;
 using System.Runtime.InteropServices;
 
-namespace ArchdruidsAdditions.Objects;
+using UnityEngine;
+using RWCustom;
+using DevInterface;
+
+using Random = UnityEngine.Random;
+using static ArchdruidsAdditions.Methods.Methods;
+
+namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
 {
@@ -38,7 +39,7 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
     {
         get
         {
-            return this.abstractPhysicalObject as AbstractConsumable;
+            return abstractPhysicalObject as AbstractConsumable;
         }
     }
 
@@ -379,7 +380,7 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
 
             Vector3 vecBodyColor = Custom.RGB2HSL(baseColor);
             Color bodyColor = Color.Lerp(blackColor, baseColor, lightExposure);
-            Color shineColor = Color.Lerp(blackColor, Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z + (0.1f * (1 - vecBodyColor.z)), 0f, 1f)), lightExposure);
+            Color shineColor = Color.Lerp(blackColor, Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z + 0.1f * (1 - vecBodyColor.z), 0f, 1f)), lightExposure);
 
             body.color = bodyColor;
             shine.color = shineColor;
@@ -921,7 +922,7 @@ public class LightningFruitData : PlacedObject.ConsumableObjectData
 
     public override string ToString()
     {
-        string text = this.BaseSaveString();
+        string text = BaseSaveString();
         text = SaveState.SetCustomData(this, text);
         return SaveUtils.AppendUnrecognizedStringAttrs(text, "~", unrecognizedAttributes);
     }
@@ -1084,7 +1085,7 @@ public class DecoVineData : PlacedObject.ResizableObjectData
 
     public override string ToString()
     {
-        string text = this.BaseSaveString();
+        string text = BaseSaveString();
         text = SaveState.SetCustomData(this, text);
         return SaveUtils.AppendUnrecognizedStringAttrs(text, "~", unrecognizedAttributes);
     }

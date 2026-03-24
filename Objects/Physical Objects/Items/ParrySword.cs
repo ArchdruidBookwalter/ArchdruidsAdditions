@@ -12,8 +12,9 @@ using On;
 using MoreSlugcats;
 using System.IO.Ports;
 using Smoke;
+using ArchdruidsAdditions.Objects.DevObjects;
 
-namespace ArchdruidsAdditions.Objects;
+namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 public class ParrySword : Weapon, IDrawable
 {
@@ -30,18 +31,18 @@ public class ParrySword : Weapon, IDrawable
     public LightSource lightSource1;
     public LightSource lightSource2;
 
-    public bool 
+    public bool
         useBool,
-        charged, 
+        charged,
         spinning;
     public float
-        rejectTime, 
-        cooldown, 
-        charge, 
+        rejectTime,
+        cooldown,
+        charge,
         spinSpeed,
         lightPulse = 0f;
-    public int 
-        usedNum, 
+    public int
+        usedNum,
         useTime = 1, maxUseTime = 10,
         parryNum;
 
@@ -71,7 +72,7 @@ public class ParrySword : Weapon, IDrawable
         aimDirection = new(0f, 1f);
         faceDirection = "left";
         lastDirection = 0f;
-        soundLoop = new ChunkDynamicSoundLoop(this.firstChunk);
+        soundLoop = new ChunkDynamicSoundLoop(firstChunk);
         soundLoop.sound = SoundID.Vulture_Grub_Laser_LOOP;
         soundLoop.Volume = 0f;
         rejectTime = 0f;
@@ -309,7 +310,7 @@ public class ParrySword : Weapon, IDrawable
 
             if (input.x != 0 || input.y != 0)
             {
-                aimDirection = Custom.DirVec(this.grabbedBy[0].grabber.mainBodyChunk.pos, this.grabbedBy[0].grabber.mainBodyChunk.pos + new Vector2(input.x, input.y));
+                aimDirection = Custom.DirVec(grabbedBy[0].grabber.mainBodyChunk.pos, grabbedBy[0].grabber.mainBodyChunk.pos + new Vector2(input.x, input.y));
                 if (aimDirection.x != 0f)
                 {
                     lastDirection = aimDirection.x;
@@ -419,7 +420,7 @@ public class ParrySword : Weapon, IDrawable
                     useBool = false;
                 }
             }
-            
+
             #endregion
         }
         else
@@ -491,7 +492,7 @@ public class ParrySword : Weapon, IDrawable
             alpha = 1f * (charge / (1000 / playerMaxKarma));
         }
 
-        
+
         if (lightSource1 == null)
         {
             lightSource1 = new LightSource(firstChunk.pos, true, swordColor, this);
@@ -534,7 +535,7 @@ public class ParrySword : Weapon, IDrawable
                 room.PlaySound(SoundID.Spear_Stick_In_Ground, firstChunk.pos, 1f, 1.2f);
             }
 
-            if ( spinSpeed > 80f)
+            if (spinSpeed > 80f)
             { spinSpeed = 80f; }
             else if (spinSpeed < -80f)
             { spinSpeed = -80f; }
@@ -764,7 +765,7 @@ public class ParrySword : Weapon, IDrawable
             mesh2.MoveVertice(2, tipPos - camPos);
             mesh2.MoveVertice(3, bladePos + Custom.rotateVectorDeg(rotVec, 90 * -scale) * 3f - camPos);
 
-            if ((playerHeldBy != null && playerHeldBy.animation == Player.AnimationIndex.Flip) || spinSpeed > 10f || spinSpeed < -10f || (usedNum == 0 && useTime > 6) || (usedNum > 0 && useTime > 6))
+            if (playerHeldBy != null && playerHeldBy.animation == Player.AnimationIndex.Flip || spinSpeed > 10f || spinSpeed < -10f || usedNum == 0 && useTime > 6 || usedNum > 0 && useTime > 6)
             {
                 mesh.isVisible = true;
                 mesh2.isVisible = true;
@@ -802,7 +803,7 @@ public class ParrySword : Weapon, IDrawable
         public ParryHitbox(ParrySword sword, Vector2 position, Vector2 rotation, float scaleX, float scaleY)
         {
             this.sword = sword;
-            this.position = position + (rotation * 30);
+            this.position = position + rotation * 30;
             this.rotation = rotation;
             this.scaleX = scaleX;
             this.scaleY = scaleY;
@@ -914,7 +915,7 @@ public class ParrySword : Weapon, IDrawable
                             if (noodlefly.swishDir != null || noodlefly.chargingAttack > 0.8f)
                             {
                                 Vector2 aimDir = Custom.DirVec(noodlefly.bodyChunks[1].pos, noodlefly.bodyChunks[0].pos);
-                                Vector2 fangPos = noodlefly.bodyChunks[0].pos + (noodlefly.fangLength * aimDir * 1f);
+                                Vector2 fangPos = noodlefly.bodyChunks[0].pos + noodlefly.fangLength * aimDir * 1f;
                                 if (Custom.VectorRectDistance(fangPos + aimDir * 2, collisionRect) < 50f ||
                                     Custom.VectorRectDistance(fangPos, collisionRect) < 50f)
                                 {
@@ -985,7 +986,7 @@ public class ParrySword : Weapon, IDrawable
                                 var objVel = obj.firstChunk.vel / 10;
                                 (obj as Weapon).Thrown(sword.playerHeldBy, sword.playerHeldBy.mainBodyChunk.pos,
                                     sword.playerHeldBy.mainBodyChunk.pos - objVel, new(-(int)objVel.x, -(int)objVel.y), 1f, eu);
-                                (obj as Weapon).ChangeMode(Weapon.Mode.Thrown);
+                                (obj as Weapon).ChangeMode(Mode.Thrown);
                                 entityDetected = true;
                             }
                         }

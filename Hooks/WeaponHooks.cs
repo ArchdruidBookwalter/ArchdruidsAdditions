@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using RWCustom;
 using Steamworks;
-using ArchdruidsAdditions.Objects;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 namespace ArchdruidsAdditions.Hooks;
 

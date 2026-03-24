@@ -7,7 +7,7 @@ using EffExt;
 using MoreSlugcats;
 using UnityEngine;
 
-namespace ArchdruidsAdditions.Effects;
+namespace ArchdruidsAdditions.Objects.RoomEffects;
 
 public static class LightRodPowerEffect
 {

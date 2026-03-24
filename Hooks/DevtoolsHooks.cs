@@ -8,8 +8,8 @@ using UnityEngine;
 using RWCustom;
 using MonoMod.Cil;
 using Mono.Cecil.Cil;
-using ArchdruidsAdditions.Objects;
-using ArchdruidsAdditions.Creatures;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 namespace ArchdruidsAdditions.Hooks;
 

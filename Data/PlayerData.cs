@@ -7,8 +7,9 @@ using System.Windows.Forms;
 using ArchdruidsAdditions.Objects;
 using HUD;
 using UnityEngine;
+using ArchdruidsAdditions.Objects.HUDObjects;
 
-namespace ArchdruidsAdditions.PlayerData;
+namespace ArchdruidsAdditions.Data;
 
 public static class PlayerData
 {
@@ -24,31 +25,27 @@ public static class PlayerData
 
         public int spicyReactTimer;
 
+        public bool infected;
+        public EntityID parasiteID;
+        public SaveState infectedSaveState;
+
         public AAPlayerState(AbstractCreature player, PlayerState basePlayerState, int playerIndex)
         {
-            this.player = player;
-            this.basePlayerState = basePlayerState;
             this.playerIndex = playerIndex;
 
-            spiceAmount = 0;
-            tooSpicy = false;
-            spicyReactTimer = 0;
-
-            SlugcatStats.Name name = basePlayerState.slugcatCharacter;
-            tolerance = Mathf.Max(Mathf.Min(SlugcatStats.SlugcatFoodMeter(name).x - 4, 4), 2);
-
-            if (ModManager.MSC && name == MoreSlugcats.MoreSlugcatsEnums.SlugcatStatsName.Saint)
-            { tolerance = 4; }
-
-            if (basePlayerState.isPup)
-            { tolerance = 1; }
+            if (player != null && basePlayerState != null)
+            {
+                RefreshPlayerState(player, basePlayerState);
+            }
         }
-        
+
         public Dictionary<string, string> GetCycleData()
         {
             Dictionary<string, string> saveStrings = [];
 
             saveStrings.Add("PLAYER", playerIndex.ToString());
+            saveStrings.Add("INFECTED", infected.ToString());
+            saveStrings.Add("PARASITE", parasiteID.ToString());
 
             return saveStrings;
         }
@@ -60,22 +57,39 @@ public static class PlayerData
             spicyReactTimer = 0;
         }
 
+        public void RefreshPlayerState(AbstractCreature newPlayer, PlayerState newPlayerState)
+        {
+            player = newPlayer;
+            basePlayerState = newPlayerState;
+
+            ResetCycleOnlyData();
+
+            SlugcatStats.Name name = basePlayerState.slugcatCharacter;
+            tolerance = Mathf.Max(Mathf.Min(SlugcatStats.SlugcatFoodMeter(name).x - 4, 4), 2);
+
+            if (ModManager.MSC && name == MoreSlugcats.MoreSlugcatsEnums.SlugcatStatsName.Saint)
+            { tolerance = 4; }
+
+            if (basePlayerState.isPup)
+            { tolerance = 1; }
+        }
+
         public void UpdateValue(string key, string value)
         {
             //Debug.Log("AAPLAYERDATA WAS UPDATED! KEY: " + key + ", VALUE: " + value);
         }
     }
 
-    public static AAPlayerState GetPlayerStateFromIndex(int playerIndex)
+    public static AAPlayerState GetPlayerStateFromAbstractCreature(AbstractCreature player)
     {
         foreach (AAPlayerState state in playerStates.Values)
         {
-            if (state.playerIndex == playerIndex)
+            if (state.player.ID == player.ID)
             { return state; }
         }
         return null;
     }
 
-    public static Dictionary<AbstractCreature, AAPlayerState> playerStates = [];
+    public static Dictionary<int, AAPlayerState> playerStates = [];
     public static Dictionary<HUD.HUD, SpiceMeter> spiceMeters = [];
 }

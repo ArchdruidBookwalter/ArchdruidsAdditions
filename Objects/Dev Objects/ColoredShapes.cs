@@ -11,7 +11,7 @@ using UnityEngine;
 using Color = UnityEngine.Color;
 using Random = UnityEngine.Random;
 
-namespace ArchdruidsAdditions.Objects;
+namespace ArchdruidsAdditions.Objects.DevObjects;
 
 public class ColoredShapes
 {
@@ -33,7 +33,7 @@ public class ColoredShapes
             this.rotation = rotation;
             this.room = room;
             this.maxLife = maxLife;
-            this.life = 0;
+            life = 0;
 
             if (color == "Red")
             {
@@ -85,7 +85,7 @@ public class ColoredShapes
             this.rotation = rotation;
             this.room = room;
             this.maxLife = maxLife;
-            this.life = 0;
+            life = 0;
             this.color = color;
         }
 
@@ -172,13 +172,13 @@ public class ColoredShapes
         public SmallRectangle(Room room, Vector2 center, string color, int maxLife)
         {
             this.center = center;
-            this.width = 5f;
-            this.height = 5f;
-            this.rotation = 45f;
+            width = 5f;
+            height = 5f;
+            rotation = 45f;
             this.color = new(1f, 1f, 0f);
             this.room = room;
             this.maxLife = maxLife;
-            this.life = 0;
+            life = 0;
 
             if (color == "Red")
             {
@@ -365,7 +365,7 @@ public class ColoredShapes
 
         public Color color2;
 
-        public Text(Room room, Vector2 pos, String text, string color, int maxLife)
+        public Text(Room room, Vector2 pos, string text, string color, int maxLife)
         {
             this.room = room;
             this.pos = pos;
@@ -405,7 +405,7 @@ public class ColoredShapes
                 this.color = new(0.1f, 0.1f, 0.1f);
             }
         }
-        public Text(Room room, Vector2 pos, String text, Color color, int maxLife)
+        public Text(Room room, Vector2 pos, string text, Color color, int maxLife)
         {
             this.room = room;
             this.pos = pos;
@@ -482,7 +482,7 @@ public class ColoredShapes
             this.startPos = startPos;
             this.endPos = endPos;
             this.maxLife = maxLife;
-            this.life = 0;
+            life = 0;
 
             if (color == "Red")
             {
@@ -587,7 +587,7 @@ public class ColoredShapes
             this.room = room;
             this.pos = pos;
             this.maxLife = maxLife;
-            this.life = 0;
+            life = 0;
 
             if (color == "Red")
             {

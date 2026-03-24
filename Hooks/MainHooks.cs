@@ -39,6 +39,8 @@ public static class MainHooks
         #endregion
 
         #region Atlases
+
+        #region Items
         if (!Futile.atlasManager.DoesContainAtlas("Bow"))
         {
             Futile.atlasManager.LoadAtlas("atlases/Bow");
@@ -59,10 +61,6 @@ public static class MainHooks
         {
             Futile.atlasManager.LoadAtlas("atlases/Potato");
         }
-        if (!Futile.atlasManager.DoesContainAtlas("CloudFish"))
-        {
-            Futile.atlasManager.LoadAtlas("atlases/CloudFish");
-        }
         if (!Futile.atlasManager.DoesContainAtlas("SphericalFruit"))
         {
             Futile.atlasManager.LoadAtlas("atlases/SphericalFruit");
@@ -71,10 +69,24 @@ public static class MainHooks
         {
             Futile.atlasManager.LoadAtlas("atlases/FirePepper");
         }
+        #endregion
+
+        #region Creatures
+        if (!Futile.atlasManager.DoesContainAtlas("CloudFish"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/CloudFish");
+        }
+        if (!Futile.atlasManager.DoesContainAtlas("Parasite"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/Parasite");
+        }
+        #endregion
+
         if (!Futile.atlasManager.DoesContainAtlas("Arc"))
         {
             Futile.atlasManager.LoadAtlas("atlases/Arc");
         }
+
         #endregion
 
         MachineConnector.SetRegisteredOI(Plugin.PLUGIN_GUID, Plugin.Options);
@@ -103,6 +115,8 @@ public static class MainHooks
     internal static void RainWorld_UnloadResources(On.RainWorld.orig_UnloadResources orig, RainWorld self)
     {
         orig(self);
+
+        #region Object Sprites
         if (Futile.atlasManager.DoesContainAtlas("Bow"))
         {
             Futile.atlasManager.UnloadAtlas("Bow");
@@ -123,10 +137,6 @@ public static class MainHooks
         {
             Futile.atlasManager.UnloadAtlas("Potato");
         }
-        if (Futile.atlasManager.DoesContainAtlas("CloudFish"))
-        {
-            Futile.atlasManager.UnloadAtlas("CloudFish");
-        }
         if (Futile.atlasManager.DoesContainAtlas("SphericalFruit"))
         {
             Futile.atlasManager.UnloadAtlas("SphericalFruit");
@@ -135,10 +145,25 @@ public static class MainHooks
         {
             Futile.atlasManager.UnloadAtlas("FirePepper");
         }
+        #endregion
+
+        #region Creature Sprites
+        if (Futile.atlasManager.DoesContainAtlas("CloudFish"))
+        {
+            Futile.atlasManager.UnloadAtlas("CloudFish");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("Parasite"))
+        {
+            Futile.atlasManager.UnloadAtlas("Parasite");
+        }
+        #endregion
+
+        #region Other Sprites
         if (Futile.atlasManager.DoesContainAtlas("Arc"))
         {
             Futile.atlasManager.UnloadAtlas("Arc");
         }
+        #endregion
     }
     internal static void RainWorld_OnModsEnabled(On.RainWorld.orig_OnModsEnabled orig, RainWorld self, ModManager.Mod[] newlyEnabledMods)
     {

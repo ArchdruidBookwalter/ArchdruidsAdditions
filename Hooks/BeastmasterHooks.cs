@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using ArchdruidsAdditions.Objects;
+using ArchdruidsAdditions.Objects.HUDObjects;
 using MonoMod.RuntimeDetour;
 using UnityEngine;
 

@@ -17,4 +17,12 @@ public static class RoomScriptHooks
             self.showControlsCounter = 0;
         }
     }
+    internal static void RoomSpecificScript_SU_A43SuperJumpOnly_Update(On.RoomSpecificScript.SU_A43SuperJumpOnly.orig_Update orig, RoomSpecificScript.SU_A43SuperJumpOnly self, bool eu)
+    {
+        orig(self, eu);
+        if (ModManager.MMF && MMF.cfgExtraTutorials.Value == false)
+        {
+            self.Destroy();
+        }
+    }
 }

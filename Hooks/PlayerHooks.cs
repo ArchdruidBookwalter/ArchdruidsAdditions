@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ArchdruidsAdditions.Creatures;
-using ArchdruidsAdditions.Objects;
-using static ArchdruidsAdditions.PlayerData.PlayerData;
+using static ArchdruidsAdditions.Data.PlayerData;
 using static ArchdruidsAdditions.Methods.Methods;
 using RWCustom;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using ArchdruidsAdditions.Data;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -24,7 +25,7 @@ public static class PlayerHooks
     {
         orig(self, eu);
 
-        AAPlayerState playerState = PlayerData.PlayerData.playerStates[self.abstractCreature];
+        AAPlayerState playerState = PlayerData.GetPlayerStateFromAbstractCreature(self.abstractCreature);
         if (playerState.spiceAmount > playerState.tolerance && playerState.tooSpicy == false)
         {
             self.Stun(playerState.spiceAmount * 50);
@@ -66,27 +67,6 @@ public static class PlayerHooks
             self.Blink(2);
             self.Hypothermia = Mathf.Lerp(self.Hypothermia, 0f, 0.01f * playerState.spiceAmount);
         }
-
-        /*
-        if (self.room != null)
-        {
-            string[] lines =
-            {
-                "-STATS-",
-                "BREATH: " + (self.graphicsModule as PlayerGraphics).breath.ToString(),
-                "AEROBIC LEVEL: " + self.aerobicLevel.ToString()
-            };
-            Create_TextBlock(self.room, self.firstChunk.pos + new Vector2(0f, 40f), lines, "Red", 0);
-
-            HUD.HUD hud = self.room.game.cameras[0].hud;
-            if (hud.owner is Player player && player == self)
-            {
-                SpiceMeter spiceMeter = PlayerData.PlayerData.spiceMeters[hud];
-                //Create_Text(self.room, self.firstChunk.pos + new Vector2(100f, 100f), "-HUD-", "Red", 0);
-                //Create_Text(self.room, self.firstChunk.pos + new Vector2(100f, 80f), "SPICE PIPS: " + spiceMeter.spicePips.ToString(), "Red", 0);
-            }
-        }
-        */
     }
     internal static void Player_MovementUpdate(On.Player.orig_MovementUpdate orig, Player self, bool eu)
     {
@@ -150,6 +130,14 @@ public static class PlayerHooks
             }
             return Player.ObjectGrabability.OneHand;
         }
+        if (obj is Parasite)
+        {
+            if ((obj as Parasite).dead)
+            {
+                return Player.ObjectGrabability.OneHand;
+            }
+            return Player.ObjectGrabability.CantGrab;
+        }
         if (obj is CloudFish || obj is LightningFruit || obj is FirePepper)
         {
             return Player.ObjectGrabability.OneHand;
@@ -204,6 +192,10 @@ public static class PlayerHooks
         else if (obj is CloudFish)
         {
             self.Grab(obj, graspUsed, 0, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
+        }
+        else if (obj is Parasite)
+        {
+            self.Grab(obj, graspUsed, 1, Creature.Grasp.Shareability.CanOnlyShareWithNonExclusive, 0.5f, true, false);
         }
         else
         {
@@ -300,7 +292,7 @@ public static class PlayerHooks
     {
         orig(self, edible);
 
-        AAPlayerState playerState = PlayerData.PlayerData.playerStates[self.abstractCreature];
+        AAPlayerState playerState = PlayerData.GetPlayerStateFromAbstractCreature(self.abstractCreature);
 
         if (edible is FirePepper)
         {
@@ -318,7 +310,7 @@ public static class PlayerHooks
             int baseValue = SlugcatStats.NourishmentOfObjectEaten(self.SlugCatClass, edible);
             int extraValue = baseValue * (playerState.spiceAmount - 1);
 
-            Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 20f), baseValue.ToString(), "Red", 100);
+            //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 20f), baseValue.ToString(), "Red", 100);
 
             while (extraValue > 0)
             {
@@ -341,27 +333,43 @@ public static class PlayerHooks
     internal static void Player_AddFood(On.Player.orig_AddFood orig, Player self, int add)
     {
         orig(self, add);
-
-        /*
-        AAPlayerState playerState = PlayerData.PlayerData.playerStates[self.abstractCreature];
-
-        if (playerState.spiceAmount > 0)
-        {
-            int newAdd = add * playerState.spiceAmount;
-            orig(self, newAdd);
-
-            playerState.spiceAmount -= newAdd;
-        }
-        else
-        {
-            orig(self, add);
-        }*/
     }
 
     #endregion
 
     #region PlayerGraphics Hooks
 
+    internal static void PlayerGraphics_Update(On.PlayerGraphics.orig_Update orig, PlayerGraphics self)
+    {
+        orig(self);
+
+        if (self.owner.room != null && self.objectLooker != null)
+        {
+            /*
+            List<UpdatableAndDeletable> checkUpdels = [];
+            foreach (UpdatableAndDeletable updel in self.owner.room.updateList)
+            {
+                checkUpdels.Add(updel);
+            }
+
+            foreach (UpdatableAndDeletable updel in checkUpdels)
+            {
+                if (updel is PhysicalObject obj)
+                {
+                    float interest = self.objectLooker.HowInterestingIsThisObject(obj);
+                    Create_Text(self.owner.room, obj.firstChunk.pos, interest.ToString(), "Red", 0);
+                }
+            }*/
+
+            /*
+            if (self.objectLooker.currentMostInteresting != null)
+            {
+                Create_LineBetweenTwoPoints(self.owner.room, self.owner.firstChunk.pos, self.objectLooker.currentMostInteresting.firstChunk.pos, "Green", 0);
+                Create_Square(self.owner.room, self.objectLooker.currentMostInteresting.firstChunk.pos, 10f, 10f, Vec(45), "Green", 0);
+            }*/
+
+        }
+    }
     internal static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
         Player.InputPackage package = self.player.input[0];
@@ -379,7 +387,7 @@ public static class PlayerHooks
 
         self.player.input[0] = package;
 
-        AAPlayerState AAPlayerState = PlayerData.PlayerData.playerStates[self.player.abstractCreature];
+        AAPlayerState AAPlayerState = PlayerData.GetPlayerStateFromAbstractCreature(self.player.abstractCreature);
         if (AAPlayerState.spicyReactTimer > 0 && sLeaser.sprites[9].element.name.Contains("0"))
         {
             sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
@@ -394,6 +402,18 @@ public static class PlayerHooks
         }
     }
     
+    internal static float PlayerObjectLooker_HowInterestingIsThisObject(On.PlayerGraphics.PlayerObjectLooker.orig_HowInterestingIsThisObject orig, PlayerGraphics.PlayerObjectLooker self, PhysicalObject obj)
+    {
+        float interest = orig(self, obj);
+
+        if (obj is Parasite parasite && parasite.buriedInChunk != null)
+        {
+            interest = -20;
+        }
+
+        return interest;
+    }
+
     #endregion
 
     #region PlayerState Hooks
@@ -401,15 +421,38 @@ public static class PlayerHooks
     internal static void PlayerState_ctor(On.PlayerState.orig_ctor orig, PlayerState self, AbstractCreature crit, int playerNumber, SlugcatStats.Name slugcatCharacter, bool isGhost)
     {
         orig(self, crit, playerNumber, slugcatCharacter, isGhost);
-        Debug.Log("PLAYERSTATE WAS CREATED!");
 
-        bool noPlayerData = !PlayerData.PlayerData.playerStates.ContainsKey(crit);
+        //Debug.Log("");
+        //Debug.Log("METHOD PLAYERSTATE_CTOR WAS CALLED!");
+        //Debug.Log("");
 
-        if (noPlayerData)
+        if (PlayerData.playerStates.Count == 0 || !PlayerData.playerStates.ContainsKey(playerNumber))
         {
             AAPlayerState newPlayerState = new(crit, self, playerNumber);
-            playerStates.Add(crit, newPlayerState);
+            playerStates.Add(playerNumber, newPlayerState);
+
+            //Debug.Log("COULDN'T FIND PLAYERSTATE FOR PLAYER: " + playerNumber + ", CREATED NEW ONE.");
         }
+        else
+        {
+            //Debug.Log("PLAYERSTATE WAS FOUND!");
+            playerStates[playerNumber].RefreshPlayerState(crit, self);
+
+            if (playerStates[playerNumber].infected)
+            {
+                foreach (AbstractCreature creature in crit.Room.creatures)
+                {
+                    if (creature.ID == playerStates[playerNumber].parasiteID && creature.stuckObjects.Count == 0)
+                    {
+                        //Debug.Log("PARASITE HAD NO STICK, CREATED A NEW ONE!");
+
+                        AbstractParasiteStick newStick = new(creature, crit, playerNumber, 0);
+                    }
+                }
+            }
+        }
+
+        //Debug.Log("");
     }
 
     #endregion
@@ -439,6 +482,10 @@ public static class PlayerHooks
     internal static int SlugcatStats_NourishmentOfObjectEaten(On.SlugcatStats.orig_NourishmentOfObjectEaten orig, SlugcatStats.Name name, IPlayerEdible edible)
     {
         if (edible is FirePepper)
+        {
+            return 1;
+        }
+        else if (edible is Parasite)
         {
             return 1;
         }

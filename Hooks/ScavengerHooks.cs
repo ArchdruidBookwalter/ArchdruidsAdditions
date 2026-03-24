@@ -6,6 +6,7 @@ using RWCustom;
 
 using Random = UnityEngine.Random;
 using System.Collections.Generic;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -169,19 +170,19 @@ public static class ScavengerHooks
     }
     internal static int ScavengerAI_CollectScore(On.ScavengerAI.orig_CollectScore_PhysicalObject_bool orig, ScavengerAI self, PhysicalObject obj, bool weaponFiltered)
     {
-        if (obj is Objects.ScarletFlowerBulb)
+        if (obj is ScarletFlowerBulb)
         {
             return 3;
         }
-        if (obj is Objects.Bow)
+        if (obj is Bow)
         {
             return 5;
         }
-        else if (obj is Objects.Potato)
+        else if (obj is Potato)
         {
             return 2;
         }
-        else if (obj is Objects.ParrySword)
+        else if (obj is ParrySword)
         {
             return 10;
         }
@@ -301,13 +302,21 @@ public static class ScavengerHooks
         orig(self);
 
         CreatureTemplate.Type type = self.parent.creatureTemplate.type;
-        bool wantToUseBow = true;
-        if (ModManager.Watcher && type == Watcher.WatcherEnums.CreatureTemplateType.ScavengerDisciple || type == Watcher.WatcherEnums.CreatureTemplateType.ScavengerTemplar)
-        { wantToUseBow = false; }
 
-        string thisRegionHasBows = Plugin.RegionData.ReadRegionData(self.world.region.name, "ScavsHaveBows");
-        if ((thisRegionHasBows is null || thisRegionHasBows.Contains("false")) && !Plugin.Options.spawnBowsEverywhere.Value)
-        { wantToUseBow = false; }
+        bool wantToUseBow = true;
+
+        if (ModManager.Watcher && type == Watcher.WatcherEnums.CreatureTemplateType.ScavengerDisciple || type == Watcher.WatcherEnums.CreatureTemplateType.ScavengerTemplar)
+        {
+            wantToUseBow = false;
+        }
+        else if (self.world != null && self.world.region != null && self.world.region.name != null)
+        {
+            string thisRegionHasBows = Plugin.RegionData.ReadRegionData(self.world.region.name, "ScavsHaveBows");
+            if ((thisRegionHasBows is null || thisRegionHasBows.Contains("false")) && !Plugin.Options.spawnBowsEverywhere.Value)
+            {
+                wantToUseBow = false;
+            }
+        }
 
         if (wantToUseBow && Random.value < 0.2f)
         {
@@ -431,10 +440,12 @@ public static class ScavengerHooks
     internal static void ScavengerHand_DrawSprites(Action<ScavengerGraphics.ScavengerHand, RoomCamera.SpriteLeaser, RoomCamera, float, float2> orig,
         ScavengerGraphics.ScavengerHand self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, float2 camPos)
     {
+        /*
         if (self.scavenger.room != null)
         {
             //self.scavenger.room.AddObject(new ColoredShapes.SmallRectangle(self.scavenger.room, self.absoluteHuntPos, self.retract ? "Green" : "Red", 10));
-        }
+        }*/
+
         orig(self, sLeaser, rCam, timeStacker, camPos);
     }
     #endregion
@@ -462,7 +473,7 @@ public static class ScavengerHooks
                         {
                             self.property.Add(newObj);
                             room.abstractRoom.entities.Add(newObj);
-                            Debug.Log("Naturally Spawned Bow!");
+                            //Debug.Log("Naturally Spawned Bow!");
                         }
                     }
                 }

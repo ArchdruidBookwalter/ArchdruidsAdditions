@@ -13,7 +13,7 @@ using System.Diagnostics.Eventing.Reader;
 using IL.Watcher;
 using IL.MoreSlugcats;
 
-namespace ArchdruidsAdditions.Objects;
+namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 public class Bow : Weapon, IDrawable
 {
@@ -72,7 +72,7 @@ public class Bow : Weapon, IDrawable
 
         lastLayer = "Items";
 
-        soundLoop = new ChunkDynamicSoundLoop(this.firstChunk);
+        soundLoop = new ChunkDynamicSoundLoop(firstChunk);
         soundLoop.sound = SoundID.Rock_Skidding_On_Ground_LOOP;
         soundLoop.Volume = 0f;
         soundLoop.Pitch = 0.5f;
@@ -386,9 +386,9 @@ public class Bow : Weapon, IDrawable
 
             Vector2 rotVec = Vector3.Slerp(lastRotation, rotation, timeStacker);
             Vector2 handlePos = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker);
-            Vector2 handleEnd1Pos = handlePos + (Custom.rotateVectorDeg(rotVec, 90) * (newBowLength / 2 - 2f)) - (rotVec * (bowWidth - 3f));
-            Vector2 handleEnd2Pos = handlePos + (Custom.rotateVectorDeg(rotVec, -90) * (newBowLength / 2 - 2f)) - (rotVec * (bowWidth - 3f));
-            Vector2 bowMiddlePos = handlePos - rotVec * ((bowWidth / 2) - 2f);
+            Vector2 handleEnd1Pos = handlePos + Custom.rotateVectorDeg(rotVec, 90) * (newBowLength / 2 - 2f) - rotVec * (bowWidth - 3f);
+            Vector2 handleEnd2Pos = handlePos + Custom.rotateVectorDeg(rotVec, -90) * (newBowLength / 2 - 2f) - rotVec * (bowWidth - 3f);
+            Vector2 bowMiddlePos = handlePos - rotVec * (bowWidth / 2 - 2f);
             Vector2 baseStringPos = Vector2.Lerp(handleEnd1Pos, handleEnd2Pos, 0.5f);
             Vector2 stringPos = baseStringPos - rotVec * aimCharge * 1.1f;
 

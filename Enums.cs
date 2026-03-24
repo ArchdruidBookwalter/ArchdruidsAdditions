@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ArchdruidsAdditions.Creatures;
-using ArchdruidsAdditions.Objects;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using DevInterface;
-using static ArchdruidsAdditions.Effects.LightRodPowerEffect;
+using static ArchdruidsAdditions.Objects.RoomEffects.LightRodPowerEffect;
 
 namespace ArchdruidsAdditions.Enums;
 
@@ -308,10 +308,12 @@ public class ScavengerAnimationID
 public class CreatureTemplateType
 {
     public static CreatureTemplate.Type CloudFish;
+    public static CreatureTemplate.Type Parasite;
 
     public static void RegisterValues()
     {
         CloudFish = new("CloudFish", true);
+        Parasite = new("Parasite", true);
     }
 
     public static void UnregisterValues()
@@ -320,6 +322,11 @@ public class CreatureTemplateType
         {
             CloudFish.Unregister();
             CloudFish = null;
+        }
+        if (Parasite != null)
+        {
+            Parasite.Unregister();
+            Parasite = null;
         }
     }
 }

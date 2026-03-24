@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
-using ArchdruidsAdditions.Creatures;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -23,6 +23,11 @@ public static class AbstractCreatureHooks
                 self.realizedCreature = new CloudFish(self, self.world);
                 self.InitiateAI();
             }
+            else if (self.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+            {
+                self.realizedCreature = new Parasite(self, self.world);
+                self.InitiateAI();
+            }
         }
 
         orig(self);
@@ -34,6 +39,11 @@ public static class AbstractCreatureHooks
             CloudFishAI newAI = new(self, self.world);
             self.abstractAI.RealAI = newAI;
         }
+        else if (self.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+        {
+            ParasiteAI newAI = new(self, self.world);
+            self.abstractAI.RealAI = newAI;
+        }
         orig(self);
     }
     internal static void AbstractCreature_ctor(On.AbstractCreature.orig_ctor orig, AbstractCreature self, World world, CreatureTemplate creatureTemplate, Creature realizedCreature, WorldCoordinate pos, EntityID ID)
@@ -43,33 +53,20 @@ public static class AbstractCreatureHooks
         if (creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
         {
             self.abstractAI = new CloudFishAbstractAI(world, self);
-            if (self.InDen)
-            {
-
-            }
+        }
+        else if (creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+        {
+            ParasiteState newState = new(self);
+            self.state = newState;
         }
     }
     internal static void AbstractCreature_Update(On.AbstractCreature.orig_Update orig, AbstractCreature self, int time)
     {
-        if (self.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
-        {
-            if (self.state.alive && self.Room != null && self.realizedCreature == null)
-            {
-                CloudFishAbstractAI abstractAI = self.abstractAI as CloudFishAbstractAI;
-            }
-        }
         orig(self, time);
     }
 
     internal static void AbstractCreature_InDenUpdate(On.AbstractCreature.orig_InDenUpdate orig, AbstractCreature self, int time)
     {
-        if (self.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
-        {
-            if (self.state.alive && self.Room != null && self.realizedCreature == null)
-            {
-                CloudFishAbstractAI abstractAI = self.abstractAI as CloudFishAbstractAI;
-            }
-        }
         orig(self, time);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
-using ArchdruidsAdditions.Objects;
+using ArchdruidsAdditions.Objects.RoomEffects;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using DevInterface;
 using UnityEngine;
 
@@ -26,7 +27,7 @@ public static class RoomHooks
                 {
                     ScarletFlowerData data = pobj.data as ScarletFlowerData;
 
-                    ScarletFlowerStem flower = new(pobj, data.rotation);
+                    ScarletFlower flower = new(pobj, data.rotation);
                     self.AddObject(flower);
 
                     if (firstTimeRealized && (session is not StoryGameSession || !(session as StoryGameSession).saveState.ItemConsumed(
@@ -103,7 +104,7 @@ public static class RoomHooks
             {
                 foreach (UpdatableAndDeletable updel in self.updateList)
                 {
-                    if (updel is Effects.LightRodPowerEffect.LightRodPower power)
+                    if (updel is LightRodPowerEffect.LightRodPower power)
                     {
                         return power.currentPower;
                     }

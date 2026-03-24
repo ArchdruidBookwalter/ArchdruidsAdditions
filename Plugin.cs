@@ -6,6 +6,9 @@ using System.Reflection;
 using Unity.Mathematics;
 using UnityEngine;
 using EffExt;
+using ArchdruidsAdditions.Data;
+using Menu;
+using ArchdruidsAdditions.Objects.RoomEffects;
 
 #pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -24,7 +27,7 @@ public sealed class Plugin : BaseUnityPlugin
     public const BindingFlags ALL_FLAGS = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic;
 
     public static Configuration.PluginOptions Options;
-    public static RegionData.RegionData RegionData;
+    public static RegionData RegionData;
 
     public Plugin()
     {
@@ -36,7 +39,7 @@ public sealed class Plugin : BaseUnityPlugin
     public void OnEnable()
     {
         EffectDefinitionBuilder builder = new EffectDefinitionBuilder("ForceRoomEnergy");
-        builder.SetEffectInitializer(Effects.LightRodPowerEffect.EffectSpawner);
+        builder.SetEffectInitializer(LightRodPowerEffect.EffectSpawner);
         builder.AddFloatField("DriftStrength", 0f, 0.1f, 0f, 0f, "DriftStrength");
         builder.AddIntField("DriftMode", 0, 2, 0, "DriftMode");
         builder.AddFloatField("ResetChance", 0f, 100f, 0f, 0f, "ResetChance");
@@ -47,6 +50,7 @@ public sealed class Plugin : BaseUnityPlugin
         #region AbstractPhysicalObject Hooks
         On.AbstractPhysicalObject.Realize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Realize;
         On.AbstractPhysicalObject.Abstractize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Abstractize;
+        On.AbstractPhysicalObject.AbstractObjectStick.FromString += Hooks.AbstractPhysicalObjectHooks.AbstractObjectStick_FromString;
         On.AbstractConsumable.IsTypeConsumable += Hooks.AbstractPhysicalObjectHooks.AbstractConsumable_IsTypeConsumable;
         #endregion
 
@@ -60,17 +64,21 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region AbstractRoom Hooks
         On.AbstractRoom.ConnectivityCost += Hooks.AbstractRoomHooks.AbstractRoom_ConnectivityCost;
+        On.AbstractRoomNode.ConnectionCost += Hooks.AbstractRoomHooks.AbstractRoomNode_ConnectionCost;
         #endregion
 
         #region AI Hooks
         On.ArtificialIntelligence.SetDestination += Hooks.AIHooks.ArtificialIntelligence_SetDestination;
         On.RoomPreprocessor.DecompressStringToAImaps += Hooks.AIHooks.RoomPreprocessor_DecompressStringToAImaps;
         On.AImap.TileCostForCreature_WorldCoordinate_CreatureTemplate += Hooks.AIHooks.AImap_TileCostForCreature;
+        On.LizardAI.Update += Hooks.AIHooks.LizardAI_Update;
         #endregion
 
         #region Creature Hooks
         //On.CreatureState.LoadFromString += Hooks.CreatureHooks.CreatureState_LoadFromString;
         On.TailSegment.ctor += Hooks.CreatureHooks.TailSegment_ctor;
+        On.Creature.ctor += Hooks.CreatureHooks.Creature_ctor;
+        On.Creature.Update += Hooks.CreatureHooks.Creature_Update;
         #endregion
 
         #region Devtools Hooks
@@ -86,9 +94,21 @@ public sealed class Plugin : BaseUnityPlugin
         On.FLabel.Redraw += Hooks.FLabelHooks.Redraw;
         #endregion
 
-        #region HUDHooks
+        #region Game Hooks
+        On.RainWorldGame.Update += Hooks.GameHooks.RainWorldGame_Update;
+        On.RainWorldGame.CommunicateWithUpcomingProcess += Hooks.GameHooks.RainWorldGame_CommunicateWithUpcomingProcess;
+        On.RainWorldGame.Win += Hooks.GameHooks.RainWorldGame_Win;
+        On.RainWorldGame.SpawnPlayers_bool_bool_bool_bool_WorldCoordinate += Hooks.GameHooks.RainWorldGame_SpawnPlayers;
+
+        On.PlayerProgression.GetOrInitiateSaveState += Hooks.GameHooks.PlayerProgression_GetOrInitiateSaveState;
+        On.PlayerProgression.SaveWorldStateAndProgression += Hooks.GameHooks.PlayerProgression_SaveWorldStateAndProgression;
+        On.PlayerProgression.ClearOutSaveStateFromMemory += Hooks.GameHooks.PlayerProgression_ClearOutSaveStateFromMemory;
+        #endregion
+
+        #region HUD Hooks
         On.HUD.HUD.InitSinglePlayerHud += Hooks.HUDHooks.HUD_InitSinglePlayerHud;
         On.HUD.HUD.InitMultiplayerHud += Hooks.HUDHooks.HUD_InitMultiplayerHud;
+        On.HUD.HUD.InitSleepHud += Hooks.HUDHooks.HUD_InitSleepHud;
         On.HUD.HUD.Update += Hooks.HUDHooks.HUD_Update;
         On.HUD.FoodMeter.ctor += Hooks.HUDHooks.FoodMeter_ctor;
         On.HUD.FoodMeter.Update += Hooks.HUDHooks.FoodMeter_Update;
@@ -124,6 +144,16 @@ public sealed class Plugin : BaseUnityPlugin
         #region Menu Hooks
         On.Menu.MouseCursor.GrafUpdate += Hooks.MenuHooks.MouseCursor_GrafUpdate;
         On.MainLoopProcess.GrafUpdate += Hooks.MenuHooks.MainLoopProcess_GrafUpdate;
+
+        On.Menu.MenuScene.BuildScene += Hooks.MenuHooks.MenuScene_BuildScene;
+        On.Menu.MenuScene.Update += Hooks.MenuHooks.MenuScene_Update;
+
+        On.Menu.SleepAndDeathScreen.GetDataFromGame += Hooks.MenuHooks.SleepAndDeathScreen_GetDataFromGame;
+        On.Menu.SleepAndDeathScreen.Update += Hooks.MenuHooks.SleepAndDeathScreen_Update;
+        On.Menu.SleepAndDeathScreen.GrafUpdate += Hooks.MenuHooks.SleepAndDeathScreen_GrafUpdate;
+        On.Menu.SleepAndDeathScreen.AddSubObjects += Hooks.MenuHooks.SleepAndDeathScreen_AddSubOjects;
+        new Hook(typeof(SleepAndDeathScreen).GetMethod("get_AllowFoodMeterTick"), Hooks.MenuHooks.SleepAndDeathScreen_AllowFoodMeterTick);
+        On.Menu.SleepAndDeathScreen.FoodCountDownDone += Hooks.MenuHooks.SleepAndDeathScreen_FoodCountDownDone;
         #endregion
 
         #region Overseer Hooks
@@ -136,6 +166,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region PathFinderHooks
         On.PathFinder.ctor += Hooks.PathFinderHooks.PathFinder_ctor;
+        On.PathFinder.Update += Hooks.PathFinderHooks.PathFinder_Update;
         On.PathFinder.CoordinateCost += Hooks.PathFinderHooks.PathFinder_CoordinateCost;
         On.PathFinder.CheckConnectionCost += Hooks.PathFinderHooks.PathFinder_CheckConnectionCost;
         On.PathFinder.CreatePathForAbstractreature += Hooks.PathFinderHooks.PathFinder_CreatePathForAbstractCreature;
@@ -147,6 +178,10 @@ public sealed class Plugin : BaseUnityPlugin
         On.FollowPathVisualizer.DrawSprites += Hooks.PathFinderHooks.FollowPathVisualizer_DrawSprites;
 
         On.QuickConnectivity.Check += Hooks.PathFinderHooks.QuickConnectivity_Check;
+        #endregion
+
+        #region PhysicalObject Hooks
+        On.PhysicalObject.Update += Hooks.PhysicalObjectHooks.PhysicalObject_Update;
         #endregion
 
         #region Player
@@ -162,7 +197,9 @@ public sealed class Plugin : BaseUnityPlugin
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
         On.Player.ObjectEaten += Hooks.PlayerHooks.Player_ObjectEaten;
         On.Player.AddFood += Hooks.PlayerHooks.Player_AddFood;
+        On.PlayerGraphics.Update += Hooks.PlayerHooks.PlayerGraphics_Update;
         On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
+        On.PlayerGraphics.PlayerObjectLooker.HowInterestingIsThisObject += Hooks.PlayerHooks.PlayerObjectLooker_HowInterestingIsThisObject;
         On.PlayerState.ctor += Hooks.PlayerHooks.PlayerState_ctor;
         On.SlugcatHand.Update += Hooks.PlayerHooks.SlugcatHand_Update;
         On.SlugcatStats.NourishmentOfObjectEaten += Hooks.PlayerHooks.SlugcatStats_NourishmentOfObjectEaten;
@@ -180,11 +217,13 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region RoomSpecificScript Hooks
         On.RoomSpecificScript.SU_C04StartUp.Update += Hooks.RoomScriptHooks.RoomSpecificScript_SU_CO4StartUp_Update;
+        On.RoomSpecificScript.SU_A43SuperJumpOnly.Update += Hooks.RoomScriptHooks.RoomSpecificScript_SU_A43SuperJumpOnly_Update;
         #endregion
 
         #region SaveState Hooks
         On.SaveState.LoadGame += Hooks.SaveStateHooks.SaveState_LoadGame;
         On.SaveState.SaveToString += Hooks.SaveStateHooks.SaveState_SaveToString;
+        On.SaveState.SessionEnded += Hooks.SaveStateHooks.SaveState_SessionEnded;
         #endregion
 
         #region Scavenger Hooks
@@ -216,6 +255,10 @@ public sealed class Plugin : BaseUnityPlugin
         On.ScavengerAbstractAI.UpdateMissionAppropriateGear += Hooks.ScavengerHooks.ScavengerabstractAI_UpdateMissionAppropriateGear;
         On.ScavengerAbstractAI.TradeItem += Hooks.ScavengerHooks.ScavengerAbstractAI_TradeItem;
         On.ScavengerTreasury.ctor += Hooks.ScavengerHooks.ScavengerTreasury_ctor;
+        #endregion
+
+        #region Shelter Hooks
+        On.ShelterDoor.DoorClosed += Hooks.ShelterHooks.ShelterDoor_DoorClosed;
         #endregion
 
         #region Slugpup Hooks

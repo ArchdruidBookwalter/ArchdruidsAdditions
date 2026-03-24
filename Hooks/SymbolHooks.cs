@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using RWCustom;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -83,6 +84,10 @@ public static class SymbolHooks
         {
             return "CloudFish";
         }
+        else if (iconData.critType == Enums.CreatureTemplateType.Parasite)
+        {
+            return "Parasite";
+        }
         return orig(iconData);
     }
 
@@ -90,7 +95,11 @@ public static class SymbolHooks
     {
         if (iconData.critType == Enums.CreatureTemplateType.CloudFish)
         {
-            return new Color(0.6f, 0.8f, 0.8f);
+            return Custom.HSL2RGB(0.5f, 0.8f, 0.8f);
+        }
+        if (iconData.critType == Enums.CreatureTemplateType.CloudFish)
+        {
+            return Custom.HSL2RGB(1f, 1f, 0.5f);
         }
         return orig(iconData);
     }

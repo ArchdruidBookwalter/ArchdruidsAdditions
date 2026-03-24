@@ -25,10 +25,11 @@ public static class LightHooks
     internal static void LightSource_DrawSprites(On.LightSource.orig_DrawSprites orig, LightSource self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
         orig(self, sLeaser, rCam, timeStacker, camPos);
+        /*
         if (self.room != null)
         {
             float rad = sLeaser.sprites[0].width;
             //Methods.Methods.Create_Square(self.room, self.pos, rad * 2f, rad * 2f, Vector2.up, self.color, 0);
-        }
+        }*/
     }
 }

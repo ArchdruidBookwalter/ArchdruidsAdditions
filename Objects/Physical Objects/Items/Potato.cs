@@ -14,7 +14,7 @@ using ArchdruidsAdditions.Methods;
 using System.Runtime.CompilerServices;
 using System.Net;
 
-namespace ArchdruidsAdditions.Objects;
+namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 {
@@ -40,7 +40,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     {
         get
         {
-            return this.abstractPhysicalObject as AbstractConsumable; 
+            return abstractPhysicalObject as AbstractConsumable;
         }
     }
 
@@ -234,13 +234,13 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
                 for (int i = 0; i < UnityEngine.Random.Range(3f, 6f); i++)
                 {
                     float speed = UnityEngine.Random.Range(5f, 10f);
-                    room.AddObject(new WaterDrip(bodyChunks[0].pos + startRotation * 10, startRotation * speed + Custom.RNV() * speed, false)); 
+                    room.AddObject(new WaterDrip(bodyChunks[0].pos + startRotation * 10, startRotation * speed + Custom.RNV() * speed, false));
                 }
             }
             else if (dist > stemLength + 20f)
             {
                 bodyChunkConnections[0].elasticity *= 0.99f;
-                soundLoop.Volume = dist/60f;
+                soundLoop.Volume = dist / 60f;
                 playerSquint = true;
             }
             else if (dist > stemLength + 10f)
@@ -255,7 +255,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
                 soundLoop.Volume = 0f;
                 playerSquint = false;
             }
-            
+
 
             if (grabbedBy.Count == 0)
             {
@@ -359,11 +359,11 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
     public bool Edible
     {
-        get 
-        { 
+        get
+        {
             if (buried)
-            {  return false; }
-            return true; 
+            { return false; }
+            return true;
         }
     }
 
@@ -578,7 +578,7 @@ public class PotatoData : PlacedObject.ConsumableObjectData
 
     public override string ToString()
     {
-        string text = this.BaseSaveString();
+        string text = BaseSaveString();
         text = SaveState.SetCustomData(this, text);
         return SaveUtils.AppendUnrecognizedStringAttrs(text, "~", unrecognizedAttributes);
     }
@@ -648,7 +648,7 @@ public class PotatoRepresentation : ConsumableRepresentation
             public override void Refresh()
             {
                 base.Refresh();
-               
+
                 MoveSprite(fSprites.Count - 1, pos + (parentNode as Panel).nonCollapsedAbsPos);
                 MoveSprite(fSprites.Count - 2, pos + (parentNode as Panel).nonCollapsedAbsPos + new Vector2(120f, 0f));
                 if ((parentNode as Panel).collapsed)
@@ -671,7 +671,7 @@ public class PotatoRepresentation : ConsumableRepresentation
             public float dataVariable;
             public float otherVariable;
             public bool isMax;
-            public ColorSlider(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string title) : 
+            public ColorSlider(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string title) :
                 base(owner, IDstring, parentNode, pos, title, false, 110f)
             {
                 data = (parentNode as ColorEditor).data;

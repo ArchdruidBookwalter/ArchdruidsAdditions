@@ -9,8 +9,9 @@ using RWCustom;
 using HUD;
 using ArchdruidsAdditions.Hooks;
 using System.Drawing;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
-namespace ArchdruidsAdditions.Objects;
+namespace ArchdruidsAdditions.Objects.HUDObjects;
 
 public static class Cursors
 {

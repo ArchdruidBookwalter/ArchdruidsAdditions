@@ -4,12 +4,14 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Globalization;
 using UnityEngine;
 using Random = UnityEngine.Random;
 using RWCustom;
 
-using ArchdruidsAdditions.Objects;
 using ArchdruidsAdditions.Enums;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -90,5 +92,46 @@ public static class AbstractPhysicalObjectHooks
             return true;
         }
         return orig(type);
+    }
+
+    internal static void AbstractObjectStick_FromString(On.AbstractPhysicalObject.AbstractObjectStick.orig_FromString orig, string[] splitString, AbstractRoom room)
+    {
+        if (splitString.Length > 1 && splitString[1] == "paraStk")
+        {
+            //Debug.Log("");
+            //Debug.Log("METHOD ABSTRACTOBJECTSTICK_FROMSTRING WAS CALLED FOR PARASITESTICK");
+            //Debug.Log("");
+
+            EntityID ID1 = EntityID.FromString(splitString[2]);
+            EntityID ID2 = EntityID.FromString(splitString[3]);
+            AbstractPhysicalObject obj1 = null;
+            AbstractPhysicalObject obj2 = null;
+
+            for (int i = 0; i < room.entities.Count; i++)
+            {
+                AbstractWorldEntity entity = room.entities[i];
+
+                if (entity is AbstractPhysicalObject obj)
+                {
+                    if (obj.ID == ID1)
+                    { obj1 = obj; }
+                    else if (obj.ID == ID2)
+                    { obj2 = obj; }
+                }
+            }
+
+            if (obj1 != null && obj2 != null)
+            {
+                int chunk = int.Parse(splitString[4], NumberStyles.Any, CultureInfo.InvariantCulture);
+                int growth = int.Parse(splitString[5], NumberStyles.Any, CultureInfo.InvariantCulture);
+
+                new AbstractParasiteStick(obj1, obj2, chunk, growth).unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(splitString, 6);
+                return;
+            }
+        }
+        else
+        {
+            orig(splitString, room);
+        }
     }
 }

@@ -13,7 +13,7 @@ public static class OverseerHooks
     {
         if (ModManager.MMF && MMF.cfgExtraTutorials.Value == false)
         {
-            self.pauseRain = false;
+            return;
         }
         orig(self);
     }

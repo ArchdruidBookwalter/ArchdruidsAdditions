@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Reflection;
-using ArchdruidsAdditions.Objects;
 using UnityEngine;
 using RWCustom;
 using HarmonyLib;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 using EffExt;
 using On;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 namespace ArchdruidsAdditions.Hooks;
 

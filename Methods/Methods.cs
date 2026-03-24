@@ -8,7 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using ArchdruidsAdditions.Hooks;
-using ArchdruidsAdditions.Objects;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+using ArchdruidsAdditions.Objects.DevObjects;
 using MonoMod.RuntimeDetour;
 using RWCustom;
 using Steamworks;
@@ -20,6 +21,35 @@ namespace ArchdruidsAdditions.Methods
 {
     public static class Methods
     {
+        public static int tab = 0;
+        public static void LogMethodStart(string methodName)
+        {
+            string divider = new(' ', tab * 5);
+
+            if (tab == 0)
+            { Debug.Log(""); }
+
+            Debug.Log(divider + "METHOD " + methodName.ToUpper() + " WAS CALLED!");
+            Debug.Log(divider + "{");
+
+            tab++;
+        }
+        public static void LogMessage(object message)
+        {
+            string divider = new(' ', tab * 5);
+
+            Debug.Log(divider + message);
+        }
+        public static void LogMethodEnd()
+        {
+            tab--;
+
+            string divider = new(' ', tab * 5);
+
+            Debug.Log(divider + "}");
+        }
+
+
         public static void CheckIfNull(object value, string valueName)
         {
             if (value is null)
@@ -220,7 +250,7 @@ namespace ArchdruidsAdditions.Methods
 
             room.AddObject(new ColoredShapes.Text(room, pos, text, color, maxLife));
         }
-        public static void Create_TextBlock(Room room, Vector2 bottomPos, string[] lines, string color, int maxLife)
+        public static void Create_TextBlock(Room room, Vector2 pos, int dir, string[] lines, string color, int maxLife)
         {
             if (room == null || !DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
             { return; }
@@ -229,10 +259,10 @@ namespace ArchdruidsAdditions.Methods
             if (player != null && player.room == null)
             { return; }
 
-            for (int i = 0; i < lines.Length - 1; i++)
+            for (int i = lines.Length - 1; i >= 0; i--)
             {
-                string test = lines[lines.Length - 1 - i];
-                Create_Text(room, new Vector2(bottomPos.x, bottomPos.y + 20f * i), test, color, maxLife);
+                string test = lines[i];
+                Create_Text(room, new Vector2(pos.x, pos.y + 20f * i * dir), test, color, maxLife);
             }
         }
 
@@ -302,6 +332,11 @@ namespace ArchdruidsAdditions.Methods
                 memberExp.Member.DeclaringType.Name,
                 memberExp.Member.Name);
             throw new NullReferenceException (message);
+        }
+
+        public static Vector2 Vec(float degree)
+        {
+            return Custom.DegToVec(degree);
         }
 
         public static bool forceDefaultMouseVisible = false;

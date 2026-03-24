@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ArchdruidsAdditions.Objects;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using RWCustom;
 using UnityEngine;
 
