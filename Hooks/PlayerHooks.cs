@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using static ArchdruidsAdditions.Data.PlayerData;
-using static ArchdruidsAdditions.Methods.Methods;
-using RWCustom;
-using UnityEngine;
-using Random = UnityEngine.Random;
 using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+using static System.Collections.Specialized.BitVector32;
+using static ArchdruidsAdditions.Data.PlayerData;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -25,84 +21,156 @@ public static class PlayerHooks
     {
         orig(self, eu);
 
-        AAPlayerState playerState = PlayerData.GetPlayerStateFromAbstractCreature(self.abstractCreature);
-        if (playerState.spiceAmount > playerState.tolerance && playerState.tooSpicy == false)
+        /*
+        List<string> strings = [];
+        foreach (PlayerData.SpearShotByBow spearData in PlayerData.spearsShotByBows.Values)
         {
-            self.Stun(playerState.spiceAmount * 50);
-            playerState.tooSpicy = true;
-
-            playerState.spicyReactTimer = 50;
+            strings.Add("SPEAR: " + spearData.spear.abstractPhysicalObject.ID.number);
         }
-        else if (playerState.spiceAmount == playerState.tolerance)
-        {
-            if (playerState.spicyReactTimer == 0 && Random.value < 0.05f)
-            {
-                playerState.spicyReactTimer = Random.Range(50, 500);
-            }
-            self.aerobicLevel = Mathf.Max(self.aerobicLevel, 0.9f);
-        }
+        Methods.Methods.Create_TextBlock(self.room, self.room.game.cameras[0].pos + new Vector2(100f, 100f), 1, [.. strings], "Red", 0);
+        */
 
-        if (playerState.tooSpicy)
+        AAPlayerState playerState = GetPlayerState(self.abstractCreature.ID.number);
+        if (playerState != null)
         {
+            #region Spice
+
             if (playerState.spiceAmount > 0)
             {
-                self.aerobicLevel = 1f;
+                int spiceTolerance = AAPlayerState.SlugcatSpiceTolerance(self.SlugCatClass, self.isSlugpup);
+                bool reactToSpice = AAPlayerState.SlugcatReactsToSpice(self.SlugCatClass);
 
-                if (playerState.spicyReactTimer == 0)
+                if (playerState.spiceAmount > spiceTolerance || playerState.tooSpicy)
                 {
-                    playerState.spicyReactTimer = 50;
+                    if (!playerState.tooSpicy)
+                    {
+                        self.Stun(playerState.spiceAmount * 50);
+                        playerState.tooSpicy = true;
 
-                    playerState.spiceAmount--;
+                        playerState.spicyReactTimer = 50;
+                    }
+                    else
+                    {
+                        if (playerState.spicyReactTimer <= 0)
+                        {
+                            playerState.spicyReactTimer = 50;
+                            playerState.spiceAmount--;
+                        }
+                    }
+
+                    self.aerobicLevel = 1f;
                 }
+                else if (self.FoodInStomach == self.MaxFoodInStomach)
+                {
+                    if (playerState.spicyReactTimer <= 0)
+                    {
+                        playerState.spicyReactTimer = 50;
+                        playerState.spiceAmount--;
+                    }
+                }
+                else if (reactToSpice && playerState.spiceAmount == spiceTolerance)
+                {
+                    if (playerState.spicyReactTimer == 0 && Random.value < 0.05f)
+                    {
+                        playerState.spicyReactTimer = Random.Range(50, 500);
+                    }
+                    self.aerobicLevel = Mathf.Max(self.aerobicLevel, 0.9f);
+                }
+
+                if (playerState.spicyReactTimer > 0)
+                {
+                    playerState.spicyReactTimer--;
+                    self.Blink(2);
+                    self.Hypothermia = Mathf.Lerp(self.Hypothermia, 0f, 0.01f * playerState.spiceAmount);
+                }
+
+                //Create_Text(self.room, self.firstChunk.pos, playerState.spiceAmount, "Red", 0);
+                //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 20f), playerState.spicyReactTimer, "Red", 0);
             }
             else
             {
+                playerState.spicyReactTimer = 0;
                 playerState.tooSpicy = false;
             }
-        }
 
-        if (playerState.spicyReactTimer > 0)
-        {
-            playerState.spicyReactTimer--;
-            self.Blink(2);
-            self.Hypothermia = Mathf.Lerp(self.Hypothermia, 0f, 0.01f * playerState.spiceAmount);
+            #endregion
+
+            if (playerState.parasiteStick != null)
+            {
+                if (!playerState.infected)
+                {
+                    playerState.infected = true;
+                    playerState.previousMalnourishment1 = self.slugcatStats.malnourished;
+                    playerState.previousMalnourishment2 = self.slugcatStats.malnourishedByCreature;
+                }
+
+                self.SetMalnourished(false, true);
+            }
+            else if (playerState.infected)
+            {
+                playerState.infected = false;
+                playerState.parasiteKillCounter = 0;
+            }
         }
     }
     internal static void Player_MovementUpdate(On.Player.orig_MovementUpdate orig, Player self, bool eu)
     {
-        bool aimingBow = false;
-
-        foreach (Creature.Grasp grasp in self.grasps)
-        {
-            if (grasp is not null && grasp.grabbed is not null && grasp.grabbed is Bow bow && bow.aiming)
-            {
-                aimingBow = true;
-            }
-        }
-
-        Player.InputPackage package = self.input[0];
-
-        if (aimingBow)
-        {
-            self.input[0].x = 0; self.input[0].analogueDir.x = 0;
-            if (self.bodyMode == Player.BodyModeIndex.Crawl)
-            {
-                if (self.input[0].y < 0 || self.input[0].analogueDir.y < 0)
-                { self.input[0].y = 0; self.input[0].analogueDir.y = 0; }
-            }
-            else
-            {
-                self.input[0].y = 0; self.input[0].analogueDir.y = 0;
-            }
-        }
-
         orig(self, eu);
+    }
+    internal static void Player_checkInput(On.Player.orig_checkInput orig, Player self)
+    {
+        orig(self);
 
-        self.input[0] = package;
+        if (TextBeingInputted)
+        {
+            self.input[0].jmp = false;
+            self.input[0].pckp = false;
+            self.input[0].thrw = false;
+            self.input[0].spec = false;
+            self.input[0].x = 0;
+            self.input[0].y = 0;
+            self.input[0].analogueDir *= 0f;
+        }
+        else
+        {
+            bool aimingBow = false;
+            foreach (Creature.Grasp grasp in self.grasps)
+            {
+                if (grasp is not null && grasp.grabbed is not null && grasp.grabbed is Bow bow)
+                {
+                    bow.basePackage = self.input[0];
+
+                    if (bow.aiming)
+                    {
+                        aimingBow = true;
+                    }
+                }
+            }
+
+            if (aimingBow)
+            {
+                self.input[0].x = 0; self.input[0].analogueDir.x = 0;
+                if (self.bodyMode == Player.BodyModeIndex.Crawl)
+                {
+                    if (self.input[0].y < 0 || self.input[0].analogueDir.y < 0)
+                    { self.input[0].y = 0; self.input[0].analogueDir.y = 0; }
+                }
+                else
+                {
+                    self.input[0].y = 0; self.input[0].analogueDir.y = 0;
+                }
+            }
+        }
+    }
+    internal static void Player_NewRoom(On.Player.orig_NewRoom orig, Player self, Room newRoom)
+    {
+        orig(self, newRoom);
     }
 
     internal static Player.ObjectGrabability Player_Grabability(On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
     {
+        Player.ObjectGrabability baseGrabability = orig(self, obj);
+
         if (obj is Potato)
         {
             if ((obj as Potato).buried)
@@ -138,18 +206,22 @@ public static class PlayerHooks
             }
             return Player.ObjectGrabability.CantGrab;
         }
-        if (obj is CloudFish || obj is LightningFruit || obj is FirePepper)
+        if (obj is CloudFish || obj is LightningFruit || obj is AshPepper)
         {
             return Player.ObjectGrabability.OneHand;
         }
-        return orig(self, obj);
+
+        return baseGrabability;
     }
     internal static PhysicalObject Player_PickupCandidate(On.Player.orig_PickupCandidate orig, Player self, float favorSpears)
     {
+        PhysicalObject baseCanidate = orig(self, favorSpears);
+
         if (favorSpears > 50)
         {
-            return orig(self, favorSpears);
+            return baseCanidate;
         }
+
         Potato closestPotato = null;
         float dist;
         float oldDist = float.MaxValue;
@@ -172,15 +244,19 @@ public static class PlayerHooks
         {
             return closestPotato;
         }
-        return orig(self, favorSpears);
+
+        return baseCanidate;
     }
     internal static bool Player_IsCreatureLegalToHoldWithoutStun(On.Player.orig_IsCreatureLegalToHoldWithoutStun orig, Player self, Creature grabbedCreature)
     {
+        bool baseLegality = orig(self, grabbedCreature);
+
         if (grabbedCreature is CloudFish)
         {
             return true;
         }
-        return orig(self, grabbedCreature);
+
+        return baseLegality;
     }
     internal static void Player_SlugcatGrab(On.Player.orig_SlugcatGrab orig, Player self, PhysicalObject obj, int graspUsed)
     {
@@ -205,19 +281,18 @@ public static class PlayerHooks
 
     internal static bool Player_CanBeSwallowed(On.Player.orig_CanBeSwallowed orig, Player self, PhysicalObject obj)
     {
+        bool baseSwallowability = orig(self, obj);
+
         if (obj is ScarletFlowerBulb)
         {
             return true;
         }
-        return orig(self, obj);
+
+        return baseSwallowability;
     }
     internal static Vector2 Player_GetHeldItemDirection(On.Player.orig_GetHeldItemDirection orig, Player self, int hand)
     {
-        Vector2 spearVec1 = Custom.DirVec(self.mainBodyChunk.pos, self.grasps[hand].grabbed.bodyChunks[0].pos) * ((hand == 0) ? (-1f) : 1f);
-        if (self.animation != Player.AnimationIndex.HangFromBeam)
-        { spearVec1 = Custom.PerpendicularVector(spearVec1); }
-        Vector2 spearVec2 = Custom.DegToVec((80f + Mathf.Cos((float)(self.animationFrame + (self.leftFoot ? 9 : 3)) / 12f * 2f * 3.1415927f) * 4f *
-            (self.graphicsModule as PlayerGraphics).spearDir) * (self.graphicsModule as PlayerGraphics).spearDir);
+        Vector2 baseItemDir = orig(self, hand);
 
         if (self.grasps[hand].grabbed is Bow bow)
         {
@@ -237,11 +312,14 @@ public static class PlayerHooks
             Vector2 bowVec1 = Custom.rotateVectorDeg(bowVec2, (60 + Math.Abs(3 * self.bodyChunks[0].vel.y)) * ((hand == 0) ? 1f : -1f));
             return Vector3.Slerp(bowVec1, bowVec2, Math.Abs((self.graphicsModule as PlayerGraphics).spearDir));
         }
-        return orig(self, hand);
+
+        return baseItemDir;
     }
 
     internal static bool Player_IsObjectThrowable(On.Player.orig_IsObjectThrowable orig,  Player self, PhysicalObject obj)
     {
+        bool baseThrowability = orig(self, obj);
+
         if (obj is ParrySword)
         {
             return true;
@@ -250,7 +328,8 @@ public static class PlayerHooks
         {
             return true;
         }
-        return orig(self, obj);
+
+        return baseThrowability;
     }
     internal static void Player_ThrowObject(On.Player.orig_ThrowObject orig, Player self, int grasp, bool eu)
     {
@@ -290,49 +369,92 @@ public static class PlayerHooks
 
     internal static void Player_ObjectEaten(On.Player.orig_ObjectEaten orig, Player self, IPlayerEdible edible)
     {
+        int foodPips = 0;
+        AAPlayerState playerState = GetPlayerState(self.abstractCreature.ID.number);
+        if (playerState != null)
+        {
+            playerState.recordFoodPips = true;
+            foodPips = playerState.foodPipsConsumed;
+        }
+
         orig(self, edible);
 
-        AAPlayerState playerState = PlayerData.GetPlayerStateFromAbstractCreature(self.abstractCreature);
-
-        if (edible is FirePepper)
+        if (playerState != null)
         {
-            playerState.spiceAmount++;
-            if (playerState.spiceAmount == 1)
+            playerState.recordFoodPips = false;
+            foodPips = playerState.foodPipsConsumed - foodPips;
+
+            if (edible is AshPepper)
             {
-                playerState.spiceAmount = 2;
-            }
-
-            playerState.spicyReactTimer += playerState.spiceAmount * 50;
-            self.aerobicLevel = Mathf.Min(1f, self.aerobicLevel + (float)playerState.spiceAmount / playerState.tolerance);
-        }
-        else if (playerState.spiceAmount > 0)
-        {
-            int baseValue = SlugcatStats.NourishmentOfObjectEaten(self.SlugCatClass, edible);
-            int extraValue = baseValue * (playerState.spiceAmount - 1);
-
-            //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 20f), baseValue.ToString(), "Red", 100);
-
-            while (extraValue > 0)
-            {
-                if (extraValue > 4)
+                playerState.spiceAmount++;
+                if (playerState.spiceAmount == 1)
                 {
-                    self.AddFood(1);
-                    extraValue -= 4;
+                    playerState.spiceAmount = 2;
                 }
-                else
+
+                int tolerance = AAPlayerState.SlugcatSpiceTolerance(self.SlugCatClass, self.isSlugpup);
+                if (AAPlayerState.SlugcatReactsToSpice(self.SlugCatClass) && playerState.spiceAmount > Math.Max(tolerance - 3, 0))
                 {
-                    self.AddQuarterFood();
-                    extraValue--;
+                    playerState.spicyReactTimer += playerState.spiceAmount * 50;
+                    self.aerobicLevel = Mathf.Min(1f, self.aerobicLevel + (float)playerState.spiceAmount / tolerance);
                 }
             }
+            else if (playerState.spiceAmount > 0)
+            {
+                int extraFood = foodPips * (playerState.spiceAmount - 1);
 
-            playerState.spiceAmount = 0;
-            playerState.spicyReactTimer = 0;
+                while (extraFood > 0)
+                {
+                    if (extraFood > 4)
+                    {
+                        self.AddFood(1);
+                        extraFood -= 4;
+                    }
+                    else
+                    {
+                        self.AddQuarterFood();
+                        extraFood--;
+                    }
+                }
+
+                playerState.spiceAmount = 0;
+                playerState.spicyReactTimer = 0;
+            }
         }
     }
     internal static void Player_AddFood(On.Player.orig_AddFood orig, Player self, int add)
     {
+        AAPlayerState playerState = PlayerData.GetPlayerState(self.abstractCreature.ID.number);
+        if (playerState != null && playerState.recordFoodPips)
+        {
+            playerState.foodPipsConsumed += 4 * add;
+
+            //Debug.Log("RECORDED FOOD PIPS: " + add);
+        }
+
         orig(self, add);
+    }
+    internal static void Player_AddQuarterFood(On.Player.orig_AddQuarterFood orig, Player self)
+    {
+        bool recordFoodPips = false;
+
+        AAPlayerState playerState = PlayerData.GetPlayerState(self.abstractCreature.ID.number);
+        if (playerState != null && playerState.recordFoodPips && self.redsIllness == null && self.FoodInStomach < self.MaxFoodInStomach)
+        {
+            playerState.foodPipsConsumed += 1;
+
+            recordFoodPips = true;
+            playerState.recordFoodPips = false;
+
+            //Debug.Log("RECORDED QUAD FOOD PIP");
+        }
+
+        orig(self);
+
+        if (recordFoodPips)
+        {
+            playerState.recordFoodPips = true;
+        }
     }
 
     #endregion
@@ -341,64 +463,111 @@ public static class PlayerHooks
 
     internal static void PlayerGraphics_Update(On.PlayerGraphics.orig_Update orig, PlayerGraphics self)
     {
-        orig(self);
+        float section = 0;
 
-        if (self.owner.room != null && self.objectLooker != null)
+        try
         {
-            /*
-            List<UpdatableAndDeletable> checkUpdels = [];
-            foreach (UpdatableAndDeletable updel in self.owner.room.updateList)
-            {
-                checkUpdels.Add(updel);
-            }
+            orig(self);
 
-            foreach (UpdatableAndDeletable updel in checkUpdels)
+            section = 1;
+
+            AAPlayerState playerState = GetPlayerState(self.player.abstractCreature.ID.number);
+            if (playerState != null)
             {
-                if (updel is PhysicalObject obj)
+                if (playerState.parasiteStick != null && playerState.parasiteStick.A != null)
                 {
-                    float interest = self.objectLooker.HowInterestingIsThisObject(obj);
-                    Create_Text(self.owner.room, obj.firstChunk.pos, interest.ToString(), "Red", 0);
+                    playerState.parasiteMalnourishment = Mathf.Min(1f, playerState.parasiteMalnourishment + 0.0001f);
+                    self.malnourished = Mathf.Max(self.malnourished, playerState.parasiteMalnourishment);
                 }
-            }*/
-
-            /*
-            if (self.objectLooker.currentMostInteresting != null)
-            {
-                Create_LineBetweenTwoPoints(self.owner.room, self.owner.firstChunk.pos, self.objectLooker.currentMostInteresting.firstChunk.pos, "Green", 0);
-                Create_Square(self.owner.room, self.objectLooker.currentMostInteresting.firstChunk.pos, 10f, 10f, Vec(45), "Green", 0);
-            }*/
-
+                else
+                {
+                    playerState.parasiteMalnourishment = Mathf.Max(0f, playerState.parasiteMalnourishment - 0.0001f);
+                    self.malnourished = Mathf.Max(self.malnourished, playerState.parasiteMalnourishment);
+                }
+            }
         }
+        catch (Exception e)
+        {
+            Methods.Methods.Log_Exception(e, "PLAYERGRAPHICS_UPDATE", section);
+        }
+
+        //Create_Text(self.player.room, self.player.mainBodyChunk.pos, self.malnourished, "Red", 0);
     }
     internal static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
-        Player.InputPackage package = self.player.input[0];
-        foreach (Creature.Grasp grasp in self.player.grasps)
+        float section = 0;
+
+        try
         {
-            if (grasp != null && grasp.grabbed != null && grasp.grabbed is Bow bow && bow.aiming)
+            section = 1;
+
+            Player.InputPackage package = self.player.input[0];
+            foreach (Creature.Grasp grasp in self.player.grasps)
             {
-                self.player.input[0].x = 0; self.player.input[0].analogueDir.x = 0;
-                if (self.player.input[0].y < 0 || self.player.input[0].analogueDir.y < 0)
-                { self.player.input[0].y = 0; self.player.input[0].analogueDir.y = 0; }
+                if (grasp != null && grasp.grabbed != null && grasp.grabbed is Bow bow && bow.aiming)
+                {
+                    self.player.input[0].x = 0; self.player.input[0].analogueDir.x = 0;
+                    if (self.player.input[0].y < 0 || self.player.input[0].analogueDir.y < 0)
+                    { self.player.input[0].y = 0; self.player.input[0].analogueDir.y = 0; }
+                }
             }
-        }
 
-        orig(self, sLeaser, rCam, timeStacker, camPos);
+            AAPlayerState AAPlayerState = GetPlayerState(self.player.abstractCreature.ID.number);
+            if (AAPlayerState != null && !sLeaser.deleteMeNextFrame && !rCam.room.game.DEBUGMODE && AAPlayerState.parasiteMalnourishment > 0)
+            {
+                self.ApplyPalette(sLeaser, rCam, rCam.currentPalette);
+            }
 
-        self.player.input[0] = package;
+            section = 2;
 
-        AAPlayerState AAPlayerState = PlayerData.GetPlayerStateFromAbstractCreature(self.player.abstractCreature);
-        if (AAPlayerState.spicyReactTimer > 0 && sLeaser.sprites[9].element.name.Contains("0"))
-        {
-            sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
-        }
+            orig(self, sLeaser, rCam, timeStacker, camPos);
 
-        foreach (Creature.Grasp grasp in self.player.grasps)
-        {
-            if (grasp is not null && grasp.grabbed is Potato potato && potato.playerSquint)
+            section = 3;
+
+            self.player.input[0] = package;
+
+            if (AAPlayerState != null && AAPlayerState.spiceAmount > 0 && AAPlayerState.spicyReactTimer > 0 && sLeaser.sprites[9].element.name.Contains("0"))
             {
                 sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
             }
+
+            foreach (Creature.Grasp grasp in self.player.grasps)
+            {
+                if (grasp is not null && grasp.grabbed is Potato potato && potato.playerSquint)
+                {
+                    sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Methods.Methods.Log_Exception(e, "PLAYERGRAPHICS_DRAWSPRITES", section);
+        }
+    }
+    internal static void PlayerGraphics_ctor(On.PlayerGraphics.orig_ctor orig, PlayerGraphics self, PhysicalObject obj)
+    {
+        float section = 0;
+
+        try
+        {
+            orig(self, obj);
+
+            section = 1;
+
+            AAPlayerState playerState = PlayerData.GetPlayerState(self.player.abstractCreature.ID.number);
+            if (playerState != null && playerState.parasiteStick != null)
+            {
+                playerState.parasiteMalnourishment = 1f;
+                self.malnourished = 1f;
+            }
+            else
+            {
+                playerState.parasiteMalnourishment = 0f;
+            }
+        }
+        catch (Exception e)
+        {
+            Methods.Methods.Log_Exception(e, "PLAYERGRAPHICS_CTOR", section);
         }
     }
     
@@ -422,37 +591,26 @@ public static class PlayerHooks
     {
         orig(self, crit, playerNumber, slugcatCharacter, isGhost);
 
-        //Debug.Log("");
-        //Debug.Log("METHOD PLAYERSTATE_CTOR WAS CALLED!");
-        //Debug.Log("");
-
-        if (PlayerData.playerStates.Count == 0 || !PlayerData.playerStates.ContainsKey(playerNumber))
+        if (playerStates.ContainsKey(crit.ID.number))
         {
-            AAPlayerState newPlayerState = new(crit, self, playerNumber);
-            playerStates.Add(playerNumber, newPlayerState);
+            playerStates[crit.ID.number].RefreshPlayerState(crit, self);
 
-            //Debug.Log("COULDN'T FIND PLAYERSTATE FOR PLAYER: " + playerNumber + ", CREATED NEW ONE.");
-        }
-        else
-        {
-            //Debug.Log("PLAYERSTATE WAS FOUND!");
-            playerStates[playerNumber].RefreshPlayerState(crit, self);
-
-            if (playerStates[playerNumber].infected)
+            if (playerStates[crit.ID.number].infected)
             {
                 foreach (AbstractCreature creature in crit.Room.creatures)
                 {
-                    if (creature.ID == playerStates[playerNumber].parasiteID && creature.stuckObjects.Count == 0)
+                    if (creature.ID == playerStates[crit.ID.number].parasiteID && creature.stuckObjects.Count == 0)
                     {
-                        //Debug.Log("PARASITE HAD NO STICK, CREATED A NEW ONE!");
-
-                        AbstractParasiteStick newStick = new(creature, crit, playerNumber, 0);
+                        new AbstractParasiteStick(creature, crit, playerNumber, 0);
                     }
                 }
             }
         }
-
-        //Debug.Log("");
+        else
+        {
+            AAPlayerState newPlayerState = new(crit, self);
+            playerStates.Add(crit.ID.number, newPlayerState);
+        }
     }
 
     #endregion
@@ -460,19 +618,30 @@ public static class PlayerHooks
     #region SlugcatHand Hooks
     internal static void SlugcatHand_Update(On.SlugcatHand.orig_Update orig, SlugcatHand self)
     {
-        orig(self);
+        float section = 0;
 
-        Player player = self.owner.owner as Player;
-        Creature.Grasp grasp = player.grasps[self.limbNumber];
-
-        if (grasp != null && grasp.grabbed is CloudFish cloudFish && !cloudFish.dead)
+        try
         {
-            self.huntSpeed = Random.value * 5f;
-            self.quickness = Random.value * 0.3f;
-            self.vel += Custom.RNV() * 1f;
-            self.pos += Custom.RNV() * 1f;
-            (player.graphicsModule as PlayerGraphics).NudgeDrawPosition(0, Custom.DirVec(player.mainBodyChunk.pos, self.pos) * 1f * Random.value);
-            (player.graphicsModule as PlayerGraphics).head.vel += Custom.DirVec(player.mainBodyChunk.pos, self.pos) * 1f * Random.value;
+            orig(self);
+
+            section = 1;
+
+            Player player = self.owner.owner as Player;
+            Creature.Grasp grasp = player.grasps[self.limbNumber];
+
+            if (grasp != null && grasp.grabbed is CloudFish cloudFish && !cloudFish.dead)
+            {
+                self.huntSpeed = Random.value * 5f;
+                self.quickness = Random.value * 0.3f;
+                self.vel += Custom.RNV() * 1f;
+                self.pos += Custom.RNV() * 1f;
+                (player.graphicsModule as PlayerGraphics).NudgeDrawPosition(0, Custom.DirVec(player.mainBodyChunk.pos, self.pos) * 1f * Random.value);
+                (player.graphicsModule as PlayerGraphics).head.vel += Custom.DirVec(player.mainBodyChunk.pos, self.pos) * 1f * Random.value;
+            }
+        }
+        catch (Exception e)
+        {
+            Methods.Methods.Log_Exception(e, "SLUGCATHAND_UPDATE", section);
         }
     }
     #endregion
@@ -481,7 +650,9 @@ public static class PlayerHooks
     
     internal static int SlugcatStats_NourishmentOfObjectEaten(On.SlugcatStats.orig_NourishmentOfObjectEaten orig, SlugcatStats.Name name, IPlayerEdible edible)
     {
-        if (edible is FirePepper)
+        int baseNourishment = orig(name, edible);
+
+        if (edible is AshPepper)
         {
             return 1;
         }
@@ -489,7 +660,8 @@ public static class PlayerHooks
         {
             return 1;
         }
-        return orig(name, edible);
+
+        return baseNourishment;
     }
 
     #endregion

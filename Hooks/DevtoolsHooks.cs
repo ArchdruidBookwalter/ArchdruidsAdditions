@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DevInterface;
-using UnityEngine;
-using RWCustom;
-using MonoMod.Cil;
-using Mono.Cecil.Cil;
+﻿using ArchdruidsAdditions.Data;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+using DevInterface;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -69,6 +61,32 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
+        else if (type == Enums.PlacedObjectType.AshPepperBush)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new AshPepperBushRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
+        else if (type == Enums.PlacedObjectType.InfectedCorpse)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new InfectedCorpseRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
         else
         {
             orig(self, type, pobj);
@@ -94,6 +112,16 @@ public static class DevtoolsHooks
         if (self.type == Enums.PlacedObjectType.DecoLightningVine)
         {
             self.data = new DecoVineData(self);
+            return;
+        }
+        if (self.type == Enums.PlacedObjectType.AshPepperBush)
+        {
+            self.data = new AshPepperBushData(self);
+            return;
+        }
+        if (self.type == Enums.PlacedObjectType.InfectedCorpse)
+        {
+            self.data = new InfectedCorpseData(self);
             return;
         }
         else
@@ -147,21 +175,36 @@ public static class DevtoolsHooks
             }
         }
     }
-    internal static string DevInterface_MapPage_CreatureVis_CritString(On.DevInterface.MapPage.CreatureVis.orig_CritString orig, AbstractCreature creature)
+    internal static string MapPage_CreatureVis_CritString(On.DevInterface.MapPage.CreatureVis.orig_CritString orig, AbstractCreature creature)
     {
+        string baseCritString = orig(creature);
+
         if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
         {
             return "h";
         }
-        return orig(creature);
+
+        return baseCritString;
     }
-    internal static Color DevInterface_MapPage_CreatureVis_CritCol(On.DevInterface.MapPage.CreatureVis.orig_CritCol orig, AbstractCreature creature)
+    internal static Color MapPage_CreatureVis_CritCol(On.DevInterface.MapPage.CreatureVis.orig_CritCol orig, AbstractCreature creature)
     {
+        Color baseCritColor = orig(creature);
+
         if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
         {
             return Custom.HSL2RGB(0.52f, 1f, 0.5f);
         }
-        return orig(creature);
+
+        return baseCritColor;
+    }
+    internal static void Handle_Update(On.DevInterface.Handle.orig_Update orig, Handle self)
+    {
+        orig(self);
+
+        if (PlayerData.TextBeingInputted)
+        {
+            self.SetColor(self.defaultColor);
+        }
     }
 
 }

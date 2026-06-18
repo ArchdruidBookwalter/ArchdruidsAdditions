@@ -1,18 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
-using RWCustom;
-using DevInterface;
-using System.Security.Policy;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using System.Reflection;
-using ArchdruidsAdditions.Methods;
-using System.Runtime.CompilerServices;
-using System.Net;
+using DevInterface;
 
 namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
@@ -145,65 +134,6 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         soundLoop.Update();
         lastRotation = rotation;
 
-        /*
-        if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Player player && room.game.devToolsActive)
-        {
-            int input = player.input[0].y;
-            if (input != 0)
-            {
-                if (soundTimer == 0f)
-                {
-                    if (input == 1)
-                    {
-                        soundIndex++;
-                        if (soundIndex > SoundID.values.entries.Count - 1)
-                        {
-                            soundIndex = 0;
-                        }
-                    }
-                    else
-                    {
-                        soundIndex--;
-                        if (soundIndex < 0)
-                        {
-                            soundIndex = SoundID.values.entries.Count - 1;
-                        }
-                    }
-                    Debug.Log("Index: " + soundIndex.ToString());
-                    string name = SoundID.values.entries[soundIndex];
-                    SoundID sound = new SoundID(name);
-                    if (!name.Contains("LOOP"))
-                    {
-                        room.PlaySound(sound, player.mainBodyChunk, false, 1f, 1f);
-                        room.AddObject(new ExplosionSpikes(room, player.mainBodyChunk.pos, 50, 10f, 5f, 10f, 10f, new(0f, 1f, 0f)));
-                    }
-                    else
-                    {
-                        room.AddObject(new ExplosionSpikes(room, player.mainBodyChunk.pos, 50, 10f, 5f, 10f, 10f, new(0f, 1f, 0f)));
-                    }
-                    Debug.Log(sound.ToString());
-                    soundTimer = 20f;
-                    if (soundSpeed < 10f)
-                    {
-                        soundSpeed += 1f;
-                    }
-                }
-                if (soundTimer > 0)
-                {
-                    soundTimer -= soundSpeed;
-                }
-                if (soundTimer < 0)
-                {
-                    soundTimer = 0;
-                }
-            }
-            else
-            {
-                soundTimer = 0;
-                soundSpeed = 0;
-            }
-        }*/
-
         if (firstChunk.ContactPoint.y < 0)
         {
             BodyChunk firstChunk = base.firstChunk;
@@ -296,6 +226,11 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
 
         rotation = Custom.DirVec(bodyChunks[0].pos, bodyChunks[1].pos);
+
+        if (camera != null)
+        {
+            UpdateLighting(camera);
+        }
     }
 
     public override void PlaceInRoom(Room placeRoom)
@@ -303,11 +238,22 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         base.PlaceInRoom(placeRoom);
         if (!AbstrConsumable.isConsumed && AbstrConsumable.placedObjectIndex >= 0 && AbstrConsumable.placedObjectIndex < placeRoom.roomSettings.placedObjects.Count)
         {
-            bodyChunks[0].HardSetPosition(placeRoom.roomSettings.placedObjects[AbstrConsumable.placedObjectIndex].pos);
-            bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(0f, stemLength));
-            homePos = bodyChunks[0].pos;
-            return;
+            Vector2 startPos = placeRoom.roomSettings.placedObjects[AbstrConsumable.placedObjectIndex].pos;
+
+            IntVector2 intStartPos = room.GetTilePosition(startPos);
+            for (int i = intStartPos.y; i > 0; i--)
+            {
+                if (room.GetTile(intStartPos.x, i).Solid)
+                {
+                    Vector2 pos = new(startPos.x, room.MiddleOfTile(intStartPos.x, i).y + Random.Range(4f, 6f));
+                    bodyChunks[0].HardSetPosition(pos);
+                    bodyChunks[1].HardSetPosition(pos + new Vector2(0f, stemLength));
+                    homePos = pos;
+                    return;
+                }
+            }
         }
+
         bodyChunks[0].HardSetPosition(placeRoom.MiddleOfTile(abstractPhysicalObject.pos));
         bodyChunks[1].HardSetPosition(bodyChunks[0].pos + new Vector2(0f, stemLength));
         homePos = bodyChunks[0].pos;
@@ -421,6 +367,8 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         sLeaser.sprites[3] = new FSprite("DangleFruit0A", true);
 
         AddToContainer(sLeaser, rCam, null);
+
+        UpdateLighting(rCam);
     }
 
     public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
@@ -477,6 +425,15 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             sLeaser.sprites[0].element = Futile.atlasManager.GetElementWithName("Potato" + (4 - bites).ToString());
         }
 
+        if (camera != rCam)
+        {
+            UpdateLighting(rCam);
+        }
+
+        Color lightColor = Color.Lerp(lastLightColor, this.lightColor, timeStacker);
+        float lightExposure = Mathf.Lerp(lastLightExposure, this.lightExposure, timeStacker);
+        float colorExposure = Mathf.Lerp(lastColorExposure, this.colorExposure, timeStacker);
+
         if (blink > 0 && UnityEngine.Random.value < 0.5f)
         {
             sLeaser.sprites[0].color = blinkColor;
@@ -486,10 +443,16 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
         else
         {
-            sLeaser.sprites[0].color = Color.Lerp(rootColor, blackColor, rootDarkness);
+            Color tintedRootColor = Color.Lerp(rootColor, lightColor, colorExposure);
+            Color finalRootColor = Color.Lerp(blackColor, tintedRootColor, lightExposure);
+
+            Color tintedFlowerColor = Color.Lerp(flowerColor, lightColor, colorExposure);
+            Color finalFlowerColor = Color.Lerp(blackColor, tintedFlowerColor, lightExposure);
+
+            sLeaser.sprites[0].color = finalRootColor;
             sLeaser.sprites[1].color = blackColor;
             sLeaser.sprites[2].color = blackColor;
-            sLeaser.sprites[3].color = Color.Lerp(flowerColor, blackColor, flowerDarkness);
+            sLeaser.sprites[3].color = finalFlowerColor;
         }
 
         sLeaser.sprites[2].MoveBehindOtherNode(sLeaser.sprites[0]);
@@ -504,6 +467,21 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
     public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
     {
         blackColor = palette.blackColor;
+    }
+
+    public RoomCamera camera;
+    public Color lightColor, lastLightColor;
+    public float lightExposure, lastLightExposure;
+    public float colorExposure, lastColorExposure;
+
+    public void UpdateLighting(RoomCamera rCam)
+    {
+        camera = rCam;
+
+        lastLightColor = lightColor;
+        lastLightExposure = lightExposure;
+        lastColorExposure = colorExposure;
+        (lightColor, lightExposure, colorExposure) = TrueLightColorAndExposure(camera.room, camera, firstChunk.pos - camera.pos, 0f);
     }
     #endregion
 }
@@ -589,6 +567,8 @@ public class PotatoRepresentation : ConsumableRepresentation
     public PotatoData data;
     public Handle rotationHandle;
     new public PotatoControlPanel controlPanel;
+    public FSprite panelLine;
+    public FSprite handleLine;
 
     public class PotatoControlPanel : ConsumableControlPanel, IDevUISignals
     {
@@ -842,28 +822,32 @@ public class PotatoRepresentation : ConsumableRepresentation
 
         subNodes.Add(rotationHandle);
         subNodes.Add(controlPanel);
-        fSprites.Add(new FSprite("pixel") { anchorY = 0f });
-        fSprites.Add(new FSprite("pixel") { anchorY = 0f });
-        owner.placedObjectsContainer.AddChild(fSprites[1]);
-        owner.placedObjectsContainer.AddChild(fSprites[2]);
+
+        panelLine = new FSprite("pixel") { anchorY = 0f };
+        fSprites.Add(panelLine);
+        owner.placedObjectsContainer.AddChild(panelLine);
+
+        handleLine = new FSprite("pixel") { anchorY = 0f };
+        fSprites.Add(handleLine);
+        owner.placedObjectsContainer.AddChild(handleLine);
     }
 
     public override void Refresh()
     {
-        MoveSprite(1, absPos);
-        fSprites[1].scaleY = rotationHandle.pos.magnitude;
-        fSprites[1].rotation = Custom.AimFromOneVectorToAnother(absPos, rotationHandle.absPos);
-        (pObj.data as PotatoData).rotation = rotationHandle.pos;
+        base.Refresh();
 
-        MoveSprite(2, absPos);
-        fSprites[2].scaleY = controlPanel.pos.magnitude;
-        fSprites[2].rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
+        MoveSprite(fSprites.IndexOf(panelLine), absPos);
+        panelLine.scaleY = controlPanel.collapsed ? 0f : controlPanel.pos.magnitude;
+        panelLine.rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
         (pObj.data as PotatoData).panelPos = controlPanel.pos;
+
+        MoveSprite(fSprites.IndexOf(handleLine), absPos);
+        handleLine.scaleY = rotationHandle.pos.magnitude;
+        handleLine.rotation = Custom.AimFromOneVectorToAnother(absPos, rotationHandle.absPos);
+        (pObj.data as PotatoData).rotation = rotationHandle.pos;
 
         data.minRegen = (pObj.data as PlacedObject.ConsumableObjectData).minRegen;
         data.maxRegen = (pObj.data as PlacedObject.ConsumableObjectData).maxRegen;
-
-        base.Refresh();
     }
 }
 

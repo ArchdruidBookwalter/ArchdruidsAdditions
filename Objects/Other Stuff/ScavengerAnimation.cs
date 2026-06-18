@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using UnityEngine;
+﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 namespace ArchdruidsAdditions.Objects
 {
@@ -22,8 +16,11 @@ namespace ArchdruidsAdditions.Objects
             this.bow = bow;
             this.lookPos = lookPos;
 
-            bowHand = (scavenger.graphicsModule as ScavengerGraphics).hands[0];
-            arrowHand = (scavenger.graphicsModule as ScavengerGraphics).hands[1];
+            if (scavenger.graphicsModule != null)
+            {
+                bowHand = (scavenger.graphicsModule as ScavengerGraphics).hands[0];
+                arrowHand = (scavenger.graphicsModule as ScavengerGraphics).hands[1];
+            }
 
             holdTimer = 0;
         }
@@ -32,24 +29,28 @@ namespace ArchdruidsAdditions.Objects
         {
             base.Update();
 
-            //scavenger.bodyChunks[2].vel *= 0.5f;
-            //scavenger.bodyChunks[2].vel += new Vector2(0, 1) * 30f;
-
-            bool scavHasBow = false;
-            foreach (Creature.Grasp grasp in scavenger.grasps)
+            if (scavenger.graphicsModule != null)
             {
-                if (grasp != null && grasp.grabbed != null && grasp.grabbed is Bow bow)
+                bowHand = (scavenger.graphicsModule as ScavengerGraphics).hands[0];
+                arrowHand = (scavenger.graphicsModule as ScavengerGraphics).hands[1];
+
+                bool scavHasBow = false;
+                foreach (Creature.Grasp grasp in scavenger.grasps)
                 {
-                    scavHasBow = true;
-                    this.bow = bow;
+                    if (grasp != null && grasp.grabbed != null && grasp.grabbed is Bow bow)
+                    {
+                        scavHasBow = true;
+                        this.bow = bow;
+                    }
                 }
-            }
 
-            if (!scavHasBow)
-            { Continue = false; }
-            else
-            {
-                this.lookPos = scavenger.lookPoint;
+                if (!scavHasBow)
+                { Continue = false; }
+                else
+                {
+                    this.lookPos = scavenger.lookPoint;
+                }
+
             }
         }
     }

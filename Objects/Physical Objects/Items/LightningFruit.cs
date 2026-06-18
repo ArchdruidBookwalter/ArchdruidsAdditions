@@ -1,18 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Globalization;
+using System.Security.Policy;
 using System.Text.RegularExpressions;
-using System.Runtime.InteropServices;
-
-using UnityEngine;
-using RWCustom;
 using DevInterface;
 
-using Random = UnityEngine.Random;
-using static ArchdruidsAdditions.Methods.Methods;
+using static ArchdruidsAdditions.Objects.PhysicalObjects.Items.LightningFruitVine.LightningFruitBall;
 
 namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
@@ -20,11 +13,14 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
 {
     public int bites = 3;
 
-    public Vector2 rotation, lastRotation, lightningRotation;
+    public Vector2 rotation, lastRotation, decoSparkRotation;
 
     public int power = 1000;
-    public int lightningPower = 0;
+    public int decoSparkPower = 0, decoSparkCooldown = 200;
     public int charge;
+    public int lastLightFlash;
+    public int lightFlash;
+    public bool flashLight;
 
     public bool shockBiter = false;
     public int shockBiterTimer = 0;
@@ -61,15 +57,15 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         shineColor = Color.Lerp(bodyColor, Color.white, 0.3f);
 
         rotation = Vector2.up;
-        lightningRotation = Vector2.up;
+        decoSparkRotation = Vector2.up;
 
         this.charge = charge;
 
         Random.State state = Random.state;
         Random.InitState(abstractPhysicalObject.ID.RandomSeed);
 
-        Color baseFruitColor = charge == 1 ? Custom.HSL2RGB(0.65f, 1f, 0.5f) : Custom.HSL2RGB(0f, 1f, 0.5f);
-        float baseColorSpread = 0.05f;
+        Color baseFruitColor = charge == 1 ? Custom.HSL2RGB(0.65f, 1f, 0.5f) : Custom.HSL2RGB(0.75f, 1f, 0.5f);
+        float baseColorSpread = 0.025f;
 
         try
         {
@@ -100,13 +96,19 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         bodyColor = Custom.HSL2RGB(spreadedHue, HSLFruitColor.y, HSLFruitColor.z);
         shineColor = Color.Lerp(bodyColor, Color.white, 0.3f);
 
+        stem = new(0.25f);
+
         Random.state = state;
     }
+
+    #region Physics Stuff
 
     public override void Update(bool eu)
     {
         base.Update(eu);
         lastRotation = rotation;
+
+        lastLightFlash = lightFlash;
 
         if (power > 0)
         {
@@ -115,9 +117,18 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
                 power--;
             }
 
-            if (Random.value < power / 10000f)
+            if (decoSparkPower == 0 && decoSparkCooldown == 0)
             {
-                DecorativeSparkle(5);
+                DecorativeSparkle(20);
+            }
+            else if (decoSparkPower > 0)
+            {
+                decoSparkRotation = Custom.rotateVectorDeg(decoSparkRotation, Random.Range(-25f, 25f));
+                decoSparkPower--;
+            }
+            else if (decoSparkCooldown > 0)
+            {
+                decoSparkCooldown--;
             }
 
             if (Submersion > 0f)
@@ -127,12 +138,17 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
             }
         }
 
-        if (lightningPower > 0)
+        if (decoSparkPower > 0)
         {
-            lightningPower--;
+            decoSparkPower--;
         }
 
-        if (grabbedBy.Count == 0 && firstChunk.vel.magnitude > 1)
+        if (lightFlash > 0)
+        {
+            lightFlash--;
+        }
+
+        if (grabbedBy.Count == 0 && !attachedToVine && firstChunk.vel.magnitude > 1)
         {
             rotation = Custom.rotateVectorDeg(rotation, firstChunk.vel.magnitude);
         }
@@ -149,21 +165,22 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
                 {
                     shockBiter = false;
                     shockBiterTimer = 0;
-                    room.PlaySound(SoundID.Centipede_Shock, firstChunk.pos, 1f, 1f);
 
-                    DecorativeSparkle(5);
-
-                    for (int i = 0; i < Random.Range(1, 4); i++)
-                    { room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * Random.Range(4f, 15f), bodyColor, null, 8, 14)); }
-
-                    grasp.grabber.Stun(Random.Range(200, 400));
-                    room.AddObject(new CreatureSpasmer(grasp.grabber, false, grasp.grabber.stun));
-                    grasp.grabber.LoseAllGrasps();
+                    ShockCreature(grasp.grabber);
                 }
             }
         }
+        else if (attachedToVine && vine != null)
+        {
+            rotation = Custom.DirVec(firstChunk.pos, vine.segPosList[1]);
+        }
 
-        //Methods.Methods.Create_Text(room, firstChunk.pos, power.ToString(), "Red", 0);
+        if (camera != null)
+        {
+            UpdateLighting(camera);
+        }
+
+        //Methods.Methods.Create_Text(room, firstChunk.segPos, power.ToString(), "Red", 0);
     }
 
     public override void Collide(PhysicalObject otherObject, int myChunk, int otherChunk)
@@ -196,13 +213,27 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
     }
 
+    public void ShockCreature(Creature creature)
+    {
+        room.PlaySound(SoundID.Centipede_Shock, firstChunk.pos, 1f, 1f);
+
+        DecorativeSparkle(50);
+
+        for (int i = 0; i < Random.Range(1, 4); i++)
+        { room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * Random.Range(4f, 15f), bodyColor, null, 8, 14)); }
+
+        creature.Stun(Random.Range(200, 400));
+        room.AddObject(new CreatureSpasmer(creature, false, creature.stun));
+        creature.LoseAllGrasps();
+    }
+
     public void ReleasePower()
     {
         if (power > 0)
         {
             power = 0;
 
-            DecorativeSparkle(20);
+            DecorativeSparkle(50);
 
             room.PlaySound(SoundID.Centipede_Shock, firstChunk.pos, 1f, 1f);
 
@@ -213,14 +244,17 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
 
     public void DecorativeSparkle(int time)
     {
-        lightningRotation = Custom.rotateVectorDeg(lightningRotation, Random.Range(-25f, 25f));
-        lightningPower = time;
+        decoSparkPower = time;
+        decoSparkCooldown = Random.Range(50, 200);
+        lightFlash = 5;
     }
 
     public void DetachFromVine()
     {
         vine.fruitAttached = false;
         vine = null;
+
+        room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.3f, 3f + Random.value / 10f);
 
         attachedToVine = false;
 
@@ -249,6 +283,8 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
     public void ThrowByPlayer()
     {
     }
+
+    #endregion
 
     #region Consumable Stuff
     public int BitesLeft
@@ -288,17 +324,21 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
 
     #region Graphics Stuff
     public Color bodyColor, shineColor, blackColor;
-    public CircularSprite body;
-    public CircularSprite shine;
+
+    public FSprite body;
+
+    public LightningFruitVine.LightningFruitStem stem;
+
     public FSprite backgroundGlow;
     public FSprite foregroundGlow;
-    public FSprite lightning;
+
+    public FSprite decoSpark;
 
     public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
     {
         List<FSprite> sprites = [];
 
-        body = new("SphericalFruit1")
+        body = new("LightningFruit1")
         {
             scale = 0.5f
         };
@@ -306,22 +346,16 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         body.color = bodyColor;
         sprites.Add(body);
 
-        shine = new("Futile_White")
-        {
-            scale = 0.35f
-        };
-        shine.SetPosition(new Vector2(-100, 100));
-        shine.color = shineColor;
-        sprites.Add(shine);
+        stem.Initialize(sprites);
 
-        lightning = new("Futile_White")
+        decoSpark = new("Futile_White")
         {
             scale = 1.5f
         };
-        lightning.SetPosition(new Vector2(-100, 100));
-        lightning.shader = rCam.room.game.rainWorld.Shaders["LightningBolt"];
-        lightning.alpha = 1f;
-        sprites.Add(lightning);
+        decoSpark.SetPosition(new Vector2(-100, 100));
+        decoSpark.shader = rCam.room.game.rainWorld.Shaders["LightningBolt"];
+        decoSpark.alpha = 1f;
+        sprites.Add(decoSpark);
 
         backgroundGlow = new("Futile_White")
         {
@@ -344,6 +378,8 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         sLeaser.sprites = sprites.ToArray();
 
         AddToContainer(sLeaser, rCam, null);
+
+        UpdateLighting(rCam);
     }
 
     public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
@@ -357,61 +393,79 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
             Vector2 chunkPos = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker) - camPos;
             Vector2 rotVec = Vector2.Lerp(lastRotation, rotation, timeStacker);
 
-            Vector2 shinePos = chunkPos + Custom.DegToVec(-45) * 2f;
-
             body.SetPosition(chunkPos);
-            body.element = Futile.atlasManager.GetElementWithName("SphericalFruit" + (4 - bites).ToString());
+            body.element = Futile.atlasManager.GetElementWithName("LightningFruit" + (4 - bites).ToString());
+            body.rotation = Custom.VecToDeg(rotVec);
 
-            shine.SetPosition(shinePos);
-            if (bites == 1)
-            { shine.isVisible = false; }
+            stem.Draw(blackColor, chunkPos + rotVec * 8f, -rotVec);
+
+            float lightFlash = Mathf.Lerp(lastLightFlash, this.lightFlash, timeStacker);
 
             backgroundGlow.SetPosition(chunkPos);
-            backgroundGlow.alpha = power / 1000f;
+            backgroundGlow.alpha = (power / 1000f) * 0.5f;
+            backgroundGlow.scale = 5f + lightFlash;
             foregroundGlow.SetPosition(chunkPos);
-            foregroundGlow.alpha = power / 3000f;
+            foregroundGlow.alpha = (power / 1000f) * 0.5f;
+            foregroundGlow.scale = 2f + lightFlash / 2;
 
-            lightning.SetPosition(chunkPos);
-            lightning.rotation = Custom.VecToDeg(lightningRotation);
-            lightning.color = Custom.HSL2RGB(1f, 1f, lightningPower / 5f);
+            if (decoSparkPower > 0)
+            {
+                decoSpark.SetPosition(chunkPos);
+                decoSpark.rotation = Custom.VecToDeg(decoSparkRotation);
+                decoSpark.color = Custom.HSL2RGB(1f, 1f, decoSparkPower > 5 ? 0.5f : ((float)decoSparkPower / 10));
+            }
 
-            (Color lightColor, float lightExposure, float colorExposure) = TrueLightColorAndExposure(room, chunkPos + camPos, power / 1000f);
+            if (camera != rCam)
+            {
+                UpdateLighting(rCam);
+            }
+
+            Color lightColor = Color.Lerp(lastLightColor, this.lightColor, timeStacker);
+            float lightExposure = Mathf.Lerp(lastLightExposure, this.lightExposure, timeStacker);
+            float colorExposure = Mathf.Lerp(lastColorExposure, this.colorExposure, timeStacker);
+
             Color baseColor = Color.Lerp(this.bodyColor, lightColor, Mathf.Clamp(Mathf.Min(lightExposure, colorExposure), 0, 0.3f));
 
-            Vector3 vecBodyColor = Custom.RGB2HSL(baseColor);
             Color bodyColor = Color.Lerp(blackColor, baseColor, lightExposure);
-            Color shineColor = Color.Lerp(blackColor, Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z + 0.1f * (1 - vecBodyColor.z), 0f, 1f)), lightExposure);
-
-            body.color = bodyColor;
-            shine.color = shineColor;
-
-            if (blink > 0)
-            {
-                body.color = Color.white;
-                shine.color = Color.white;
-            }
+            body.color = blink > 0 ? Color.white : bodyColor;
         }
     }
 
-    public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
+    public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer mainContainer)
     {
-        newContainer ??= rCam.ReturnFContainer("Items");
+        mainContainer ??= rCam.ReturnFContainer("Items");
+        FContainer lightContainer = rCam.ReturnFContainer("Water");
 
-        foreach (FSprite fsprite in sLeaser.sprites)
-        {
-            fsprite.RemoveFromContainer();
-            newContainer.AddChild(fsprite);
-        }
+        mainContainer.AddChild(body);
+        mainContainer.AddChild(stem.ballSprite);
+        mainContainer.AddChild(stem.leaf1.leafSprite);
+        mainContainer.AddChild(stem.leaf2.leafSprite);
 
-        rCam.ReturnFContainer("Water").AddChild(backgroundGlow);
-        rCam.ReturnFContainer("Water").AddChild(foregroundGlow);
-        rCam.ReturnFContainer("Water").AddChild(lightning);
+        lightContainer.AddChild(backgroundGlow);
+        lightContainer.AddChild(foregroundGlow);
+        lightContainer.AddChild(decoSpark);
     }
 
     public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
     {
         blackColor = palette.blackColor;
     }
+
+    public RoomCamera camera;
+    public Color lightColor, lastLightColor;
+    public float lightExposure, lastLightExposure;
+    public float colorExposure, lastColorExposure;
+
+    public void UpdateLighting(RoomCamera rCam)
+    {
+        camera = rCam;
+
+        lastLightColor = lightColor;
+        lastLightExposure = lightExposure;
+        lastColorExposure = colorExposure;
+        (lightColor, lightExposure, colorExposure) = TrueLightColorAndExposure(camera.room, camera, firstChunk.pos - camera.pos, power / 1000f);
+    }
+
     #endregion
 }
 
@@ -420,6 +474,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
     public Color blackColor;
     public Color fruitColor;
     public LightningFruit fruit;
+    public Vector2 fruitStemPos;
     public bool fruitAttached;
     public int releaseCounter;
 
@@ -437,13 +492,9 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
 
     public TriangleMesh vineMesh;
 
-    public CircularSprite[] rustBalls;
-    public float[] rustBallPosList;
-    public bool[] rustBallColored;
-
-    public FSprite[] exposedWires;
-    public FSprite[] wireGlows;
-    public float[] wireDegs;
+    public LightningFruitBall[] balls;
+    public LightningFruitStem stem1;
+    public LightningFruitStem stem2;
 
     public int StartIndex
     {
@@ -483,7 +534,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         Random.State state = Random.state;
         Random.InitState(fruit.abstractPhysicalObject.ID.number);
 
-        InitializeVine();
+        BaseInitializeVine();
 
         Random.state = state;
     }
@@ -501,8 +552,8 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         Random.State state = Random.state;
         Random.InitState(seed);
 
-        Color baseFruitColor = charge == 1 ? Custom.HSL2RGB(0.65f, 1f, 0.5f) : Custom.HSL2RGB(0f, 1f, 0.5f);
-        float baseColorSpread = 0.05f;
+        Color baseFruitColor = charge == 1 ? Custom.HSL2RGB(0.65f, 1f, 0.5f) : Custom.HSL2RGB(0.75f, 1f, 0.5f);
+        float baseColorSpread = 0.025f;
 
         int section = 0;
         try
@@ -535,11 +586,11 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
 
         fruitColor = Custom.HSL2RGB(spreadedHue, HSLFruitColor.y, HSLFruitColor.z);
 
-        InitializeVine();
+        BaseInitializeVine();
 
         Random.state = state;
     }
-    public void InitializeVine()
+    public void BaseInitializeVine()
     {
         float vineLength = Custom.Dist(stuckPos1, stuckPos2) + elasticity;
         this.vineLength = vineLength;
@@ -593,25 +644,27 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         for (int i = 0; i < segVelList.Length; i++)
         { segVelList[i] = Vector2.zero; }
 
-        int numOfColoredBalls = 0;
-        rustBalls = new CircularSprite[numOfSegments];
-        rustBallPosList = new float[rustBalls.Length];
-        rustBallColored = new bool[rustBalls.Length];
-        for (int i = 1; i < rustBallPosList.Length; i++)
+        List<LightningFruitBall> newballs = [];
+        for (int i = decorative ? 0 : 2; i < numOfSegments - 1; i++)
         {
-            rustBallPosList[i] = Random.Range(0, vineLength);
-            rustBallColored[i] = Random.value < 0.2f;
-
-            if (rustBallColored[i])
+            for (int j = 0; j < Random.Range(0, 5); j++)
             {
-                numOfColoredBalls++;
+                LightningFruitBall newBall = new
+                (
+                    this, 
+                    i, 
+                    Random.value, 
+                    0.25f, 
+                    Random.value < 0.1f,
+                    Random.value < 0.5 ? Random.Range(1, 3) : 0
+                );
+                newballs.Add(newBall);
             }
         }
-        exposedWires = new FSprite[numOfColoredBalls * 2];
-        wireGlows = new FSprite[numOfColoredBalls];
-        wireDegs = new float[exposedWires.Length];
-        for (int i = 0; i < wireDegs.Length; i++)
-        { wireDegs[i] = Random.Range(0f, 360f); }
+        balls = [.. newballs];
+
+        stem1 = new(0.25f);
+        stem2 = new(0.25f);
     }
 
     public override void Update(bool eu)
@@ -717,52 +770,16 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         vineMesh.color = rCam.currentPalette.blackColor;
         sprites.Add(vineMesh);
 
-        int wireIndex = 0;
-        int glowIndex = 0;
-        for (int i = 0; i < rustBalls.Length; i++)
+        foreach (LightningFruitBall ball in balls)
         {
-            if (rustBallColored[i])
-            {
-                FSprite wire1 = new("deerEyeA2")
-                { color = fruitColor };
-
-                FSprite wire2 = new("deerEyeA2")
-                { color = fruitColor };
-
-
-                exposedWires[wireIndex] = wire1;
-                exposedWires[wireIndex + 1] = wire2;
-                sprites.Add(exposedWires[wireIndex]);
-                sprites.Add(exposedWires[wireIndex + 1]);
-
-                wireIndex += 2;
-            }
-
-            CircularSprite rustBall = new("SphericalFruit1")
-            {
-                color = rustBallColored[i] ? fruitColor : blackColor,
-                scale = 0.15f,
-            };
-            rustBalls[i] = rustBall;
-            sprites.Add(rustBalls[i]);
-
-            if (rustBallColored[i])
-            {
-                FSprite wireGlow = new("Futile_White")
-                {
-                    color = fruitColor,
-                    shader = rCam.room.game.rainWorld.Shaders["FlatLight"],
-                    alpha = 0.1f,
-                    scale = 2f
-                };
-                wireGlows[glowIndex] = wireGlow;
-                sprites.Add(wireGlows[glowIndex]);
-
-                glowIndex++;
-            }
+            ball.Initialize(sprites, room.game.rainWorld);
         }
 
-        sLeaser.sprites = sprites.ToArray();
+        stem1.Initialize(sprites);
+
+        stem2.Initialize(sprites);
+
+        sLeaser.sprites = [.. sprites];
 
         AddToContainer(sLeaser, rCam, null);
     }
@@ -774,18 +791,30 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         }
         else
         {
+            List<Vector2> segPositions = [];
+
             Vector2 lastSegmentPos = Vector2.Lerp(segLastPosList[0], segPosList[0], timeStacker) - camPos;
             for (int i = 0; i < segPosList.Length; i++)
             {
-                Vector2 segmentPos = Vector2.Lerp(segLastPosList[i], segPosList[i], timeStacker) - camPos;
+                Vector2 segmentPos;
+
                 if (i == StartIndex && fruitAttached)
                 {
-                    segmentPos = Vector2.Lerp(fruit.firstChunk.lastPos, fruit.firstChunk.pos, timeStacker) - camPos;
+                    Vector2 fruitPos = Vector2.Lerp(fruit.firstChunk.lastPos, fruit.firstChunk.pos, timeStacker) - camPos;
+                    Vector2 nextSegmentPos = Vector2.Lerp(segLastPosList[1], segPosList[1], timeStacker) - camPos;
+
+                    segmentPos = fruitPos + Custom.DirVec(fruitPos, nextSegmentPos) * 8f;
                     lastSegmentPos = segmentPos;
+                }
+                else
+                {
+                    segmentPos = Vector2.Lerp(segLastPosList[i], segPosList[i], timeStacker) - camPos;
                 }
 
                 Vector2 segmentRot = Custom.DirVec(segmentPos, lastSegmentPos);
                 Vector2 perpRot = Custom.PerpendicularVector(segmentRot);
+
+                segPositions.Add(segmentPos);
 
                 float vineRad = 1f;
 
@@ -798,87 +827,210 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
                 lastSegmentPos = segmentPos;
             }
 
-            int exposedWireIndex = 0;
-            int wireGlowIndex = 0;
-            for (int i = 0; i < rustBalls.Length; i++)
+
+
+            foreach (LightningFruitBall ball in balls)
             {
-                CircularSprite ball = rustBalls[i];
-                float ballPosFloat = rustBallPosList[i];
-
-                int segIndex1 = 0;
-                int segIndex2 = 0;
-                float segPosFloat1 = 0;
-                float segPosFloat2 = 0;
-
-                for (int j = 0; j < segPosList.Length - 1; j++)
-                {
-                    float checkPosFloat1 = (float)j / (segPosList.Length - 1) * vineLength;
-                    float checkPosFloat2 = (float)(j + 1) / (segPosList.Length - 1) * vineLength;
-
-                    if (ballPosFloat >= checkPosFloat1 && ballPosFloat <= checkPosFloat2)
-                    {
-                        segIndex1 = j;
-                        segIndex2 = j + 1;
-                        segPosFloat1 = checkPosFloat1;
-                        segPosFloat2 = checkPosFloat2;
-
-                        break;
-                    }
-                }
-
-                Vector2 segPos1 = Vector2.Lerp(segLastPosList[segIndex1], segPosList[segIndex1], timeStacker) - camPos;
-                Vector2 segPos2 = Vector2.Lerp(segLastPosList[segIndex2], segPosList[segIndex2], timeStacker) - camPos;
-                Vector2 perpSegRot = Custom.PerpendicularVector(Custom.DirVec(segPos2, segPos1));
-
-                float inSegBallPos = (segPosFloat2 - segPosFloat1) / ballPosFloat;
-                Vector2 ballPos = Vector2.Lerp(segPos1, segPos2, inSegBallPos);
-
-                ball.SetPosition(ballPos);
-                ball.color = rustBallColored[i] ? fruitColor : blackColor;
-
-                if (rustBallColored[i])
-                {
-                    FSprite wire1 = exposedWires[exposedWireIndex];
-                    FSprite wire2 = exposedWires[exposedWireIndex + 1];
-                    FSprite wireGlow = wireGlows[wireGlowIndex];
-                    wire1.SetPosition(ballPos);
-                    wire2.SetPosition(ballPos);
-                    wireGlow.SetPosition(ballPos);
-                    wire1.color = fruitColor;
-                    wire2.color = fruitColor;
-                    wireGlow.color = fruitColor;
-
-                    Vector2 segmentRot = Custom.DirVec(segPos1, segPos2);
-                    Vector2 wireRot1 = Custom.rotateVectorDeg(segmentRot, wireDegs[exposedWireIndex]);
-                    Vector2 wireRot2 = Custom.rotateVectorDeg(segmentRot, wireDegs[exposedWireIndex + 1]);
-
-                    wire1.rotation = Custom.VecToDeg(wireRot1);
-                    wire2.rotation = Custom.VecToDeg(wireRot2);
-
-                    exposedWireIndex += 2;
-                    wireGlowIndex++;
-                }
+                ball.Draw
+                (
+                    camPos,
+                    Vector2.Lerp(segLastPosList[ball.segIndex], segPosList[ball.segIndex], timeStacker) - camPos,
+                    Vector2.Lerp(segLastPosList[ball.segIndex + 1], segPosList[ball.segIndex + 1], timeStacker) - camPos,
+                    blackColor
+                );
             }
+
+            //Vector2 stem1Rot = Custom.DirVec(segPositions[1], segPositions[0]);
+            //stem1.Draw(blackColor, segPositions[0], stem1Rot);
+
+            //Vector2 stem2Rot = Custom.DirVec(segPositions[segPositions.Count - 2], segPositions[segPositions.Count - 1]);
+            //stem2.Draw(blackColor, segPositions[segPositions.Count - 1], stem2Rot);
         }
     }
-    public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
+    public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer mainContainer)
     {
-        newContainer ??= rCam.ReturnFContainer("Background");
+        mainContainer ??= rCam.ReturnFContainer("Background");
+        FContainer lightContainer = rCam.ReturnFContainer("Water");
 
         foreach (FSprite fsprite in sLeaser.sprites)
         {
             fsprite.RemoveFromContainer();
-            newContainer.AddChild(fsprite);
-        }
 
-        foreach (FSprite glow in wireGlows)
-        {
-            rCam.ReturnFContainer("Water").AddChild(glow);
+            if (fsprite.shader == rCam.room.game.rainWorld.Shaders["FlatLight"])
+            {
+                lightContainer.AddChild(fsprite);
+            }
+            else
+            {
+                mainContainer.AddChild(fsprite);
+            }
         }
     }
     public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
     {
         blackColor = palette.blackColor;
+    }
+    public class LightningFruitBall
+    {
+        public LightningFruitVine vine;
+
+        public CircularSprite ballSprite;
+        public FSprite glow;
+        public LightningFruitLeaf[] leaves;
+        public int segIndex;
+        public float segPos;
+        public float size;
+
+        public Vector2 pos;
+        public Vector2 rot;
+
+        public Color color;
+        public bool colored;
+
+        public LightningFruitBall(LightningFruitVine vine, int segIndex, float pos, float size, bool colored, int leafCount)
+        {
+            this.vine = vine;
+            this.segIndex = segIndex;
+            this.segPos = pos;
+            this.size = size;
+            this.colored = colored;
+
+            if (colored)
+            { color = vine.fruitColor; }
+
+            List<LightningFruitLeaf> newLeaves = [];
+            for (int i = 0; i < leafCount; i++)
+            {
+                LightningFruitLeaf newLeaf = new(Random.value < 0.5 ? Random.Range(0, 90) : Random.Range(180, 270));
+                newLeaves.Add(newLeaf);
+            }
+            leaves = [.. newLeaves];
+        }
+        public void Initialize(List<FSprite> newSprites, RainWorld rainWorld)
+        {
+            ballSprite = new("Futile_White")
+            {
+                scale = size,
+            };
+
+            newSprites.Add(ballSprite);
+
+            foreach (LightningFruitLeaf leaf in leaves)
+            {
+                leaf.Initialize(newSprites);
+            }
+
+            if (colored)
+            {
+                glow = new("Futile_White")
+                {
+                    scale = size + 1,
+                    shader = rainWorld.Shaders["FlatLight"]
+                };
+
+                newSprites.Add(glow);
+            }
+        }
+        public void Draw(Vector2 camPos, Vector2 segPos1, Vector2 segPos2, Color blackColor)
+        {
+            pos = Vector2.Lerp(segPos1, segPos2, segPos);
+            rot = Custom.PerpendicularVector(Custom.DirVec(segPos1, segPos2));
+
+            ballSprite.SetPosition(pos);
+
+            if (colored)
+            {
+                ballSprite.color = color;
+
+                if (vine.room.GetTile(pos + camPos).Solid)
+                {
+                    glow.alpha = 0f;
+                }
+                else
+                {
+                    glow.SetPosition(pos);
+                    glow.color = color;
+                    glow.alpha = 0.5f;
+                }
+            }
+            else
+            {
+                ballSprite.color = blackColor;
+            }
+
+            foreach (LightningFruitLeaf leaf in leaves)
+            {
+                leaf.Draw(blackColor, pos, rot);
+                leaf.leafSprite.MoveBehindOtherNode(ballSprite);
+            }
+        }
+        public class LightningFruitLeaf
+        {
+            public FSprite leafSprite;
+            public int leafSpriteNumber;
+            public float floatRotation;
+
+            public LightningFruitLeaf(float startRotation)
+            {
+                floatRotation = startRotation;  
+
+                leafSpriteNumber = Random.Range(0, 5);
+            }
+
+            public void Initialize(List<FSprite> newSprites)
+            {
+                leafSprite = new FSprite("Leaf" + leafSpriteNumber.ToString(), false)
+                {
+                    scale = 0.6f,
+                    anchorY = 0.9f
+                };
+
+                newSprites.Add(leafSprite);
+            }
+            public void Draw(Color blackColor, Vector2 pos, Vector2 rot)
+            {
+                leafSprite.SetPosition(pos);
+                leafSprite.rotation = Custom.VecToDeg(rot) + floatRotation;
+                leafSprite.color = blackColor;
+            }
+        }
+    }
+    public class LightningFruitStem
+    {
+        public CircularSprite ballSprite;
+        public LightningFruitLeaf leaf1;
+        public LightningFruitLeaf leaf2;
+        public float size;
+
+        public LightningFruitStem(float size)
+        {
+            this.size = size;
+
+            leaf1 = new(135);
+            leaf2 = new(-135);
+        }
+
+        public void Initialize(List<FSprite> newSprites)
+        {
+            ballSprite = new("Futile_White")
+            {
+                scale = size,
+            };
+
+            newSprites.Add(ballSprite);
+
+            leaf1.Initialize(newSprites);
+            leaf2.Initialize(newSprites);
+        }
+
+        public void Draw(Color blackColor, Vector2 pos, Vector2 rot)
+        {
+            ballSprite.SetPosition(pos);
+            ballSprite.color = blackColor;
+
+            leaf1.Draw(blackColor, pos, rot);
+            leaf2.Draw(blackColor, pos, rot);
+        }
     }
 }
 
@@ -932,6 +1084,7 @@ public class LightningFruitRepresentation : ConsumableRepresentation
 {
     public LightningFruitData data;
     new public FruitControlPanel controlPanel;
+    public FSprite line;
 
     public class FruitControlPanel : ConsumableControlPanel, IDevUISignals
     {
@@ -973,25 +1126,25 @@ public class LightningFruitRepresentation : ConsumableRepresentation
         subNodes.RemoveAt(0);
 
         subNodes.Add(controlPanel);
-        fSprites.Add(new FSprite("pixel") { anchorY = 0f });
-        fSprites.Add(new FSprite("pixel") { anchorY = 0f });
-        owner.placedObjectsContainer.AddChild(fSprites[1]);
-        owner.placedObjectsContainer.AddChild(fSprites[2]);
+
+        line = new FSprite("pixel") { anchorY = 0f };
+        fSprites.Add(line);
+        owner.placedObjectsContainer.AddChild(line);
     }
 
     public override void Refresh()
     {
-        MoveSprite(1, absPos);
-        fSprites[1].scaleY = controlPanel.pos.magnitude;
-        fSprites[1].rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
+        base.Refresh();
+
+        MoveSprite(fSprites.IndexOf(line), absPos);
+        line.scaleY = controlPanel.collapsed ? 0f : controlPanel.pos.magnitude;
+        line.rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
         (pObj.data as LightningFruitData).panelPos = controlPanel.pos;
 
         data.minRegen = (pObj.data as PlacedObject.ConsumableObjectData).minRegen;
         data.maxRegen = (pObj.data as PlacedObject.ConsumableObjectData).maxRegen;
 
         data.charge = (pObj.data as LightningFruitData).charge;
-
-        base.Refresh();
     }
 }
 
@@ -1000,7 +1153,6 @@ public class DecoVineData : PlacedObject.ResizableObjectData
     new public Vector2 handlePos;
     public Vector2 panelPos;
     public int charge;
-    public int seed;
     public float elasticity;
 
     public DecoVineData(PlacedObject owner) : base(owner)
@@ -1008,20 +1160,18 @@ public class DecoVineData : PlacedObject.ResizableObjectData
         handlePos = new Vector2(0f, 100f);
         panelPos = new Vector2(0f, 100f);
         charge = 1;
-        seed = Random.Range(1000, 10000);
         elasticity = 1;
     }
 
     new protected string BaseSaveString()
     {
-        return string.Format(CultureInfo.InvariantCulture, "{0}~{1}~{2}~{3}~{4}~{5}~{6}", new object[]
+        return string.Format(CultureInfo.InvariantCulture, "{0}~{1}~{2}~{3}~{4}~{5}", new object[]
         {
             handlePos.x,
             handlePos.y,
             panelPos.x,
             panelPos.y,
             charge,
-            seed,
             elasticity
         });
     }
@@ -1038,9 +1188,8 @@ public class DecoVineData : PlacedObject.ResizableObjectData
             panelPos.x = float.Parse(array[2], NumberStyles.Any, CultureInfo.InvariantCulture); failIndex++;
             panelPos.y = float.Parse(array[3], NumberStyles.Any, CultureInfo.InvariantCulture); failIndex++;
             charge = int.Parse(array[4], NumberStyles.Any, CultureInfo.InvariantCulture); failIndex++;
-            seed = int.Parse(array[5], NumberStyles.Any, CultureInfo.InvariantCulture); failIndex++;
-            elasticity = float.Parse(array[6], NumberStyles.Any, CultureInfo.InvariantCulture); failIndex++;
-            unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 7);
+            elasticity = Mathf.Min(float.Parse(array[5], NumberStyles.Any, CultureInfo.InvariantCulture), 10f); failIndex++;
+            unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 6);
         }
         catch (Exception e)
         {
@@ -1068,13 +1217,9 @@ public class DecoVineData : PlacedObject.ResizableObjectData
             }
             if (failIndex < 6)
             {
-                seed = Random.Range(1000, 10000);
-            }
-            if (failIndex < 7)
-            {
                 elasticity = 1f;
             }
-            if (failIndex < 8)
+            if (failIndex < 7)
             {
                 unrecognizedAttributes = [];
             }
@@ -1096,6 +1241,7 @@ public class DecoVineRepresentation : ResizeableObjectRepresentation
     public DecoVineData data;
     public Handle handle;
     public DecoVineControlPanel controlPanel;
+    public FSprite line;
     public DecoVineRepresentation(DevUI owner, string IDstring, DevUINode parentNode, PlacedObject pobj, string name) :
         base(owner, IDstring, parentNode, pobj, name, false)
     {
@@ -1106,6 +1252,10 @@ public class DecoVineRepresentation : ResizeableObjectRepresentation
         handle.pos = data.handlePos;
 
         subNodes.Add(controlPanel);
+
+        line = new FSprite("pixel") { anchorY = 0f };
+        fSprites.Add(line);
+        owner.placedObjectsContainer.AddChild(line);
     }
 
     public class DecoVineControlPanel : Panel, IDevUISignals
@@ -1119,8 +1269,7 @@ public class DecoVineRepresentation : ResizeableObjectRepresentation
         {
             data = (parentNode as DecoVineRepresentation).data;
 
-            subNodes.Add(chargeButton = new(owner, "Charge_Button", this, new Vector2(5f, 5f), 117.5f, "CHARGE: " + data.charge));
-            subNodes.Add(newSeedButton = new(owner, "New_Seed_Button", this, new Vector2(127.5f, 5f), 117.5f, "SEED: " + data.seed));
+            subNodes.Add(chargeButton = new(owner, "Charge_Button", this, new Vector2(5f, 5f), 240, "CHARGE: " + data.charge));
             subNodes.Add(elasticitySlider = new(owner, "Elasticity_Slider", this, new Vector2(5f, 25f), "ELASTICITY"));
         }
         public void Signal(DevUISignalType type, DevUINode sender, string message)
@@ -1129,16 +1278,11 @@ public class DecoVineRepresentation : ResizeableObjectRepresentation
             {
                 data.charge = -data.charge;
             }
-            if (sender.IDstring == "New_Seed_Button")
-            {
-                data.seed = Random.Range(1000, 10000);
-            }
         }
         public override void Refresh()
         {
             data = (parentNode as DecoVineRepresentation).data;
             chargeButton.Text = "CHARGE: " + data.charge;
-            newSeedButton.Text = "SEED: " + data.seed;
 
             base.Refresh();
         }
@@ -1180,7 +1324,10 @@ public class DecoVineRepresentation : ResizeableObjectRepresentation
         (pObj.data as DecoVineData).elasticity = controlPanel.elasticitySlider.data.elasticity;
 
         data.charge = (pObj.data as DecoVineData).charge;
-        data.seed = (pObj.data as DecoVineData).seed;
         data.elasticity = (pObj.data as DecoVineData).elasticity;
+
+        MoveSprite(fSprites.IndexOf(line), absPos);
+        line.scaleY = controlPanel.collapsed ? 0f : controlPanel.pos.magnitude;
+        line.rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
     }
 }

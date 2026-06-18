@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ArchdruidsAdditions.Data;
-using UnityEngine;
 using HUD;
 
 namespace ArchdruidsAdditions.Objects.HUDObjects;
@@ -14,11 +9,10 @@ public class SpiceMeter
     public PlayerData.AAPlayerState playerState;
     public FoodMeter foodMeter;
     public Player player;
+    public HUD.HUD hud;
 
-    public SpiceCircle[] circles;
-    public int pulseCounter = 0;
-    public float pulseAmount = 0;
-    public float pulseLength = 0;
+    public int pulseTimer = 0;
+    public float pulse;
 
     public int foodPips = 0;
     public int maxPips = 0;
@@ -26,119 +20,256 @@ public class SpiceMeter
 
     public int activeSpicePipes = 0;
 
+    public SpiceMeterCircle[] circles;
+    public float[] vectorCircleRads;
+
     public SpiceMeter(HUD.HUD hud, int maxFood)
     {
         player = hud.owner as Player;
-        playerState = PlayerData.GetPlayerStateFromAbstractCreature(player.abstractCreature);
+        this.hud = hud;
+        playerState = PlayerData.GetPlayerState(player.abstractCreature.ID.number);
 
-        circles = new SpiceCircle[maxFood];
+        circles = new SpiceMeterCircle[maxFood];
         for (int i = 0; i < circles.Length; i++)
         {
-            circles[i] = new(hud, this);
+            circles[i] = new(this, (float)i / maxFood);
         }
     }
 
     public void Update(FoodMeter foodMeter)
     {
+        int section = 0;
+
         this.foodMeter = foodMeter;
 
         foodPips = player.FoodInStomach;
-        maxPips = player.MaxFoodInStomach;
-        spicePips = playerState.spiceAmount;
-
-        for (int i = 0; i < circles.Count(); i++)
+        maxPips = player.slugcatStats.maxFood;
+        PlayerData.AAPlayerState playerState = PlayerData.GetPlayerState(player.abstractCreature.ID.number);
+        if (playerState != null)
         {
-            FoodMeter.MeterCircle foodCircle = foodMeter.circles[i];
-            SpiceCircle spiceCircle = circles[i];
+            spicePips = playerState.spiceAmount;
+        }
 
-            if (foodPips >= maxPips - 1 && spicePips > 0)
+        if (foodMeter.fade > 0)
+        {
+            for (int i = 0; i < circles.Length; i++)
             {
-                spiceCircle.hide = true;
-            }
-            else
-            {
-                if (i < foodPips && foodCircle.foodPlopped)
+                circles[i].Update();
+
+                if (i < foodMeter.showCount)
                 {
-                    spiceCircle.hide = true;
+                    circles[i].plop = false;
                 }
-                else if (spicePips > 0 && i < foodPips + spicePips || i < foodPips && !spiceCircle.hide)
+                else if (i < foodMeter.showCount + spicePips)
                 {
-                    spiceCircle.hide = false;
+                    circles[i].plop = true;
                 }
                 else
                 {
-                    spiceCircle.hide = true;
+                    circles[i].plop = false;
+                }
+
+                //FoodMeter.MeterCircle foodCircle = foodMeter.circles[i];
+                //Methods.Methods.Create_Text(player.room, player.mainBodyChunk.pos + new Vector2(-50 + (50 * i), -50), foodCircle.circles[0].sprite.shader == foodCircle.circles[0].circleShader, "Red", 1);
+                //Methods.Methods.Create_Text(player.room, player.mainBodyChunk.pos + new Vector2(-50 + (50 * i), -70), foodCircle.circles[0].sprite.alpha, "Red", 1);
+                //Methods.Methods.Create_Text(player.room, player.mainBodyChunk.pos + new Vector2(-50 + (50 * i), -90), foodCircle.circles[0].sprite.scale, "Red", 1);
+            }
+        }
+
+        if (pulseTimer < 200)
+        {
+            pulseTimer++;
+        }
+        else
+        {
+            pulseTimer = 0;
+        }
+
+        pulse = (Mathf.Cos(2 * Mathf.PI * ((float)pulseTimer / 200)) + 1) * 0.1f;
+
+        /*
+        try
+        {
+            this.foodMeter = foodMeter;
+
+            section = 1;
+
+            if (player != null && playerState != null)
+            {
+                foodPips = player.FoodInStomach;
+                maxPips = player.MaxFoodInStomach;
+                spicePips = playerState.spiceAmount;
+
+                section = 2;
+
+                for (int i = 0; i < circles.Count(); i++)
+                {
+                    FoodMeter.MeterCircle foodCircle = foodMeter.circles[i];
+                    SpiceCircle spiceCircle = circles[i];
+
+                    section = 3;
+
+                    if (foodPips >= maxPips - 1 && spicePips > 0)
+                    {
+                        spiceCircle.hide = true;
+                    }
+                    else
+                    {
+                        if (i < foodPips && foodCircle.foodPlopped)
+                        {
+                            spiceCircle.hide = true;
+                        }
+                        else if (spicePips > 0 && i < foodPips + spicePips || i < foodPips && !spiceCircle.hide)
+                        {
+                            spiceCircle.hide = false;
+                        }
+                        else
+                        {
+                            spiceCircle.hide = true;
+                        }
+                    }
+
+                    section = 4;
+
+                    if (spiceCircle.hide)
+                    {
+                        if (spiceCircle.circleAlpha > 0f)
+                        { spiceCircle.circleAlpha -= 0.1f; }
+                        else if (spiceCircle.circleAlpha != 0f)
+                        { spiceCircle.circleAlpha = 0f; }
+                    }
+                    else
+                    {
+                        if (spiceCircle.circleAlpha < 1f)
+                        { spiceCircle.circleAlpha += 0.1f; }
+                        else if (spiceCircle.circleAlpha != 1f)
+                        { spiceCircle.circleAlpha = 1f; }
+                    }
+                }
+
+                section = 5;
+
+                pulseLength = 50;
+                pulseCounter++;
+                if (pulseCounter > pulseLength * 2)
+                {
+                    pulseCounter = 1;
+                }
+                pulseAmount = Mathf.PingPong(pulseCounter, pulseLength);
+            }
+        }
+        catch (Exception e)
+        {
+            Methods.Methods.Log_Exception(e, "SPICEMETER_UPDATE", section);
+        }
+        */
+    }
+
+    public void Draw(FoodMeter meter, float timeStacker)
+    {
+        int section = 0;
+
+        try
+        {
+
+            section = 1;
+
+        }
+        catch (Exception e)
+        {
+            Methods.Methods.Log_Exception(e, "SPICEMETER_DRAW", section);
+        }
+    }
+
+    public class SpiceMeterCircle
+    {
+        public SpiceMeter meter;
+        public static MaterialPropertyBlock propertyBlock = new();
+        public FSprite circle;
+        public float rad;
+
+        public float circleAlpha = 0f;
+        public bool plopped = false;
+        public bool plop = false;
+
+        public FShader customShader;
+        public Color spiceColor;
+
+        public SpiceMeterCircle(SpiceMeter meter, float startRad)
+        {
+            this.meter = meter;
+            customShader = meter.hud.rainWorld.Shaders["ArchAdds.CustomVectorCircle"];
+
+            circle = new("Futile_White", true)
+            {
+                scale = 2f,
+                color = new(1f, 0f, 0f),
+            };
+            meter.hud.fContainers[1].AddChild(circle);
+
+            rad = startRad;
+            spiceColor = Custom.HSL2RGB(0f, 0.6f, 0.5f);
+        }
+        public void Update()
+        {
+            if (!plop && plopped)
+            {
+                circleAlpha -= 0.1f;
+                if (circleAlpha < 0)
+                {
+                    circleAlpha = 0;
+                    plopped = false;
                 }
             }
 
-            if (spiceCircle.hide)
+            if (plop && !plopped)
             {
-                if (spiceCircle.fade > 0f)
-                { spiceCircle.fade -= 0.1f; }
-                else if (spiceCircle.fade != 0f)
-                { spiceCircle.fade = 0f; }
-            }
-            else
-            {
-                if (spiceCircle.fade < 1f)
-                { spiceCircle.fade += 0.1f; }
-                else if (spiceCircle.fade != 1f)
-                { spiceCircle.fade = 1f; }
+                circleAlpha += 0.1f;
+                if (circleAlpha > 1)
+                {
+                    circleAlpha = 1;
+                    plopped = true;
+                }
             }
         }
-
-        pulseLength = 50;
-        pulseCounter++;
-        if (pulseCounter > pulseLength * 2)
+        public void Draw(HUDCircle foodCircle, float timeStacker)
         {
-            pulseCounter = 1;
-        }
-        pulseAmount = Mathf.PingPong(pulseCounter, pulseLength);
-    }
-
-    public class SpiceCircle : HUDCircle
-    {
-        public SpiceMeter spiceMeter;
-        public FoodMeter foodMeter;
-        public FoodMeter.MeterCircle foodCircle;
-        public bool hide;
-        public SpiceCircle(HUD.HUD hud, SpiceMeter spiceMeter) : base(hud, SnapToGraphic.FoodCircleA, hud.fContainers[1], 0)
-        {
-            this.spiceMeter = spiceMeter;
-
-            hide = true;
-        }
-
-        public void Draw(FoodMeter.MeterCircle foodCircle)
-        {
-            FSprite foodSprite = foodCircle.circles[0].sprite;
-            FSprite spiceSprite = sprite;
-
-            float pulse = spiceMeter.pulseAmount / spiceMeter.pulseLength / 10f;
-
-            spiceSprite.x = foodSprite.x;
-            spiceSprite.y = foodSprite.y;
-            spiceSprite.shader = foodSprite.shader;
-            spiceSprite.alpha = Mathf.Min(foodSprite.alpha, fade);
-            spiceSprite.scale = foodSprite.scale + pulse + 0.2f;
-            spiceSprite.isVisible = foodSprite.isVisible;
-
-            Vector2 pos = foodSprite.GetPosition();
-            spiceSprite.x = pos.x + 0.5f;
-            spiceSprite.y = pos.y;
-
-            if (spiceSprite.shader == basicShader)
+            try
             {
-                spiceSprite.element = Futile.atlasManager.GetElementWithName(snapGraphic.ToString());
-                spiceSprite.color = new Color(1f, 0f, 0f);
-            }
-            else
-            {
-                spiceSprite.element = Futile.atlasManager.GetElementWithName("Futile_White");
-                spiceSprite.color = new Color(1f / 255f, foodSprite.color.g, foodSprite.color.b);
-            }
+                circle.x = foodCircle.sprite.x;
+                circle.y = foodCircle.sprite.y;
+                circle.color = spiceColor;
+                circle.MoveBehindOtherNode(foodCircle.sprite);
 
-            spiceSprite.MoveBehindOtherNode(foodSprite);
+                if (foodCircle.sprite.shader == foodCircle.circleShader || foodCircle.sprite.alpha == 1)
+                {
+                    circle.element = Futile.atlasManager.GetElementWithName("Futile_White");
+                    circle.shader = customShader;
+
+                    if (foodCircle.sprite.shader == foodCircle.circleShader)
+                    {
+                        circle.scale = foodCircle.sprite.scale + meter.pulse + 0.3f;
+                        circle.alpha = Mathf.Min(foodCircle.visible ? 1f : 0f, foodCircle.sprite.alpha, circleAlpha);
+                    }
+                    else
+                    {
+                        circle.scale = (foodCircle.snapRad / 8f) + meter.pulse + 0.3f;
+                        circle.alpha = Mathf.Min(foodCircle.visible ? 1f : 0f, foodCircle.snapThickness / foodCircle.snapRad, circleAlpha);
+                    }
+                }
+                else
+                {
+                    circle.element = Futile.atlasManager.GetElementWithName(foodCircle.snapGraphic.ToString());
+                    circle.shader = foodCircle.basicShader;
+
+                    circle.scale = foodCircle.sprite.scale + meter.pulse + 0.2f;
+                    circle.alpha = Mathf.Min(foodCircle.visible ? 1f : 0f, foodCircle.sprite.alpha, circleAlpha);
+                }
+            }
+            catch (Exception e)
+            {
+                Methods.Methods.Log_Exception(e, "SPICEMETERCIRCLE_DRAW", 0);
+            }
         }
     }
 }

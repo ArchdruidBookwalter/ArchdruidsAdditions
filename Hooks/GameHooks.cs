@@ -1,17 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+using ArchdruidsAdditions.Data;
 using ArchdruidsAdditions.Objects.DevObjects;
-using Menu;
-using Steamworks;
-using UnityEngine;
-using RWCustom;
-using static ArchdruidsAdditions.Methods.Methods;
-using static ArchdruidsAdditions.Data.PlayerData;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -23,7 +13,17 @@ public static class GameHooks
     #region RainWorldGame Hooks
     internal static void RainWorldGame_Update(On.RainWorldGame.orig_Update orig, RainWorldGame self)
     {
+        if (PlayerData.TextBeingInputted)
+        {
+            self.lastPauseButton = true; self.lastRestartButton = true;
+        }
+
         orig(self);
+
+        if (PlayerData.TextBeingInputted)
+        {
+            self.lastPauseButton = true; self.lastRestartButton = true;
+        }
 
         if (!self.GamePaused && self.devToolsActive)
         {
@@ -118,33 +118,42 @@ public static class GameHooks
 
         //LogMethodEnd();
     }
+    internal static void RainWorldGame_RawUpdate(On.RainWorldGame.orig_RawUpdate orig, RainWorldGame self, float dt)
+    {
+        PlayerData.DevToolsOn = self.devToolsActive;
+
+        if (PlayerData.TextBeingInputted && PlayerData.DevToolsOn)
+        {
+            //Debug.Log("PLAYER IS TYPING WHILE DEVTOOLS ARE ON, TEMPORARILY DISABLING DEVTOOLS");
+
+            PlayerData.DisableDevToolsForRainWorldGame = true;
+
+            self.debugGraphDrawer?.Update();
+            self.devUI?.Update();
+
+            self.devToolsActive = false;
+        }
+
+        orig(self, dt);
+    }
     internal static AbstractCreature RainWorldGame_SpawnPlayers(On.RainWorldGame.orig_SpawnPlayers_bool_bool_bool_bool_WorldCoordinate orig, RainWorldGame self,
         bool player1, bool player2, bool player3, bool player4, WorldCoordinate location)
     {
-        //Debug.Log("");
-        //Debug.Log("METHOD RAINWORLDGAME_SPAWNPLAYERS WAS CALLED");
-        //Debug.Log("");
-
-        AbstractCreature firstPlayer = orig(self, player1, player2, player3, player4, location);
-
-        //Debug.Log("NUMBER OF PLAYERS: " + self.Players.Count);
-        //Debug.Log("");
-
-        return firstPlayer;
+        return orig(self, player1, player2, player3, player4, location);
     }
     #endregion
 
     #region PlayerProgression Hooks
     internal static SaveState PlayerProgression_GetOrInitiateSaveState(On.PlayerProgression.orig_GetOrInitiateSaveState orig, PlayerProgression self, SlugcatStats.Name saveStateNumber, RainWorldGame game, ProcessManager.MenuSetup setup, bool saveAsDeathOrQuit)
     {
-        LogMethodStart("PLAYERPROGRESSION_GETORINITIATESAVESTATE");
+        //LogMethodStart("PLAYERPROGRESSION_GETORINITIATESAVESTATE");
 
         if (self.currentSaveState == null && Data.SaveStateData.saveStateData.ContainsKey(saveStateNumber))
         {
             Data.SaveStateData.SaveStateDataContainer saveData = Data.SaveStateData.saveStateData[saveStateNumber];
             if (saveData.parasiteSaveState != null)
             {
-                LogMessage("LOADED PARASITE SAVE STATE!");
+                //LogMessage("LOADED PARASITE SAVE STATE!");
 
                 self.currentSaveState = saveData.parasiteSaveState;
                 self.currentSaveState.deathPersistentSaveData.winState.ResetLastShownValues();
@@ -154,20 +163,20 @@ public static class GameHooks
 
         SaveState newSaveState = orig(self, saveStateNumber, game, setup, saveAsDeathOrQuit);
 
-        LogMethodEnd();
+        //LogMethodEnd();
 
         return newSaveState;
     }
     internal static bool PlayerProgression_SaveWorldStateAndProgression(On.PlayerProgression.orig_SaveWorldStateAndProgression orig, PlayerProgression self, bool malnourished)
     {
-        LogMethodStart("PLAYERPROGRESSION_SAVEWORLDSTATEANDPROGRESSION");
+        //LogMethodStart("PLAYERPROGRESSION_SAVEWORLDSTATEANDPROGRESSION");
 
         bool output;
 
         Data.SaveStateData.SaveStateDataContainer saveStateData = Data.SaveStateData.saveStateData[self.PlayingAsSlugcat];
         if (saveStateData.infected)
         {
-            LogMessage("PLAYER IS INFECTED! NOT SAVING STATE TO DISK!");
+            //LogMessage("PLAYER IS INFECTED! NOT SAVING STATE TO DISK!");
 
             output = self.SaveProgressionAndDeathPersistentDataOfCurrentState(true, false);
 
@@ -187,14 +196,14 @@ public static class GameHooks
             saveStateData.parasiteSaveState = self.currentSaveState;
             self.currentSaveState = null;
 
-            LogMethodEnd();
+            //LogMethodEnd();
 
             return output;
         }
 
         output = orig(self, malnourished);
 
-        LogMethodEnd();
+        //LogMethodEnd();
 
         return output;
     }
@@ -202,8 +211,32 @@ public static class GameHooks
     {
         orig(self);
 
-        Data.SaveStateData.SaveStateDataContainer saveStateData = Data.SaveStateData.saveStateData[self.PlayingAsSlugcat];
-        saveStateData.parasiteSaveState = null;
+        if (Data.SaveStateData.saveStateData.ContainsKey(self.PlayingAsSlugcat))
+        {
+            Data.SaveStateData.SaveStateDataContainer saveStateData = Data.SaveStateData.saveStateData[self.PlayingAsSlugcat];
+            saveStateData.parasiteSaveState = null;
+        }
+    }
+    #endregion
+
+    #region SpeedRunTimer Hooks
+    internal static double SpeedRunTimer_GetTimerTickIncrement(On.MoreSlugcats.SpeedRunTimer.orig_GetTimerTickIncrement orig, RainWorldGame game, double input)
+    {
+        double baseInc = orig(game, input);
+
+        foreach (AbstractCreature player in game.session.Players)
+        {
+            Data.PlayerData.AAPlayerState playerState = PlayerData.GetPlayerState(player.ID.number);
+            if (playerState != null && playerState.parasiteIllnessEffect != null)
+            {
+                float newFPS = Mathf.Lerp(40f, 15f, playerState.parasiteIllnessEffect.intensity / 1000);
+                double newInc = 1.0 / (double)newFPS;
+
+                return Math.Min(baseInc, newInc);
+            }
+        }
+
+        return baseInc;
     }
     #endregion
 }

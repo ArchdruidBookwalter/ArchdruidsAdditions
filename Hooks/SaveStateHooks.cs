@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using ArchdruidsAdditions.Data;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using UnityEngine;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -59,20 +56,20 @@ public static class SaveStateHooks
                         {
                             section = 2;
 
-                            int playerIndex = int.Parse(splitData[1]);
+                            int playerID = int.Parse(splitData[1]);
 
-                            if (PlayerData.playerStates.Count == 0 || !PlayerData.playerStates.ContainsKey(playerIndex))
+                            if (PlayerData.playerStates.Count == 0 || !PlayerData.playerStates.ContainsKey(playerID))
                             {
                                 section = 3;
 
-                                PlayerData.AAPlayerState newPlayerState = new(null, null, playerIndex);
-                                PlayerData.playerStates.Add(playerIndex, newPlayerState);
+                                PlayerData.AAPlayerState newPlayerState = new(null, null);
+                                PlayerData.playerStates.Add(playerID, newPlayerState);
 
                                 playerState = newPlayerState;
                             }
                             else
                             {
-                                playerState = PlayerData.playerStates[playerIndex];
+                                playerState = PlayerData.playerStates[playerID];
                             }
                         }
                         else if (playerState != null)
@@ -165,8 +162,29 @@ public static class SaveStateHooks
             }
         }
 
+        PlayerData.scavData.Clear();
+
         orig(self, game, survived, newMalnourished);
 
         //Methods.Methods.LogMethodEnd();
+    }
+    internal static float SaveState_Get_SlowFadeIn(Func<SaveState, float> orig, SaveState self)
+    {
+        float origValue = orig(self);
+
+        LogMethodStart("SAVESTATE_GET_SLOWFADEIN");
+        LogMessage("ORIG VALUE: " + origValue);
+
+        Data.SaveStateData.SaveStateDataContainer saveStateData = Data.SaveStateData.saveStateData[self.progression.PlayingAsSlugcat];
+        if (saveStateData.infected)
+        {
+            LogMessage("PARASITE FOUND!");
+
+            return Mathf.Max(origValue, 4f);
+        }
+
+        LogMethodEnd();
+
+        return origValue;
     }
 }

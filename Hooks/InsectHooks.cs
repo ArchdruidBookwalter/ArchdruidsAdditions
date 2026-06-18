@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using RWCustom;
-using UnityEngine;
+﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 namespace ArchdruidsAdditions.Hooks;
 

@@ -1,7 +1,5 @@
-﻿using System;
+﻿using System.IO;
 using System.Reflection;
-using MonoMod.RuntimeDetour;
-using UnityEngine;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -65,9 +63,17 @@ public static class MainHooks
         {
             Futile.atlasManager.LoadAtlas("atlases/SphericalFruit");
         }
-        if (!Futile.atlasManager.DoesContainAtlas("FirePepper"))
+        if (!Futile.atlasManager.DoesContainAtlas("LightningFruit"))
         {
-            Futile.atlasManager.LoadAtlas("atlases/FirePepper");
+            Futile.atlasManager.LoadAtlas("atlases/LightningFruit");
+        }
+        if (!Futile.atlasManager.DoesContainAtlas("AshPepper"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/AshPepper");
+        }
+        if (!Futile.atlasManager.DoesContainAtlas("ParasiteEgg"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/ParasiteEgg");
         }
         #endregion
 
@@ -95,22 +101,56 @@ public static class MainHooks
 
         Enums.AAEnums.RegisterAllEnums();
 
+        #region DevTools Category
         try
         { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions"); }
         catch
         { Debug.Log("ScarletFlower has already been placed in correct Devtools category."); }
+
         try
         { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions"); }
         catch
         { Debug.Log("Potato has already been placed in correct Devtools category."); }
+
         try
         { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.LightningFruit, "Archdruid's Additions"); }
         catch
         { Debug.Log("LightningFruit has already been placed in correct Devtools category."); }
+
         try
         { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.DecoLightningVine, "Archdruid's Additions"); }
         catch
         { Debug.Log("LightningVine has already been placed in correct Devtools category."); }
+
+        try
+        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.AshPepperBush, "Archdruid's Additions"); }
+        catch
+        { Debug.Log("AshPepperBush has already been placed in correct Devtools category."); }
+
+        try
+        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.InfectedCorpse, "Archdruid's Additions"); }
+        catch
+        { Debug.Log("InfectedCorpse has already been placed in correct Devtools category."); }
+        #endregion
+
+        try
+        {
+            AssetBundle bundle = AssetBundle.LoadFromFile(AssetManager.ResolveFilePath(string.Concat(
+                    [
+                        "Shaders",
+                        Path.DirectorySeparatorChar.ToString(),
+                        "rainworldaashaders",
+                    ])));
+
+            self.Shaders.Add("ArchAdds.CustomVectorCircle", FShader.CreateShader("ArchAdds.CustomVectorCircle",
+                bundle.LoadAsset<Shader>("Assets/Shaders/CustomVectorCircle.shader")));
+
+            Debug.Log("ARCHDRUIDS ADDITIONS SUCCESSFULLY LOADED SHADERS!");
+        }
+        catch
+        {
+            Debug.Log("FAILED TO ADD NEW SHADERS.");
+        }
     }
     internal static void RainWorld_UnloadResources(On.RainWorld.orig_UnloadResources orig, RainWorld self)
     {
@@ -141,9 +181,17 @@ public static class MainHooks
         {
             Futile.atlasManager.UnloadAtlas("SphericalFruit");
         }
-        if (Futile.atlasManager.DoesContainAtlas("FirePepper"))
+        if (Futile.atlasManager.DoesContainAtlas("LightningFruit"))
         {
-            Futile.atlasManager.UnloadAtlas("FirePepper");
+            Futile.atlasManager.UnloadAtlas("LightningFruit");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("AshPepper"))
+        {
+            Futile.atlasManager.UnloadAtlas("AshPepper");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("ParasiteEgg"))
+        {
+            Futile.atlasManager.UnloadAtlas("ParasiteEgg");
         }
         #endregion
 
@@ -177,22 +225,37 @@ public static class MainHooks
             {
                 Enums.AAEnums.RegisterAllEnums();
 
+                #region DevTools Category
                 try
                 { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions"); }
                 catch
                 { Debug.Log("ScarletFlower has already been placed in correct Devtools category."); }
+
                 try
                 { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions"); }
                 catch
                 { Debug.Log("Potato has already been placed in correct Devtools category."); }
+
                 try
                 { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.LightningFruit, "Archdruid's Additions"); }
                 catch
                 { Debug.Log("LightningFruit has already been placed in correct Devtools category."); }
+
                 try
                 { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.DecoLightningVine, "Archdruid's Additions"); }
                 catch
                 { Debug.Log("LightningVine has already been placed in correct Devtools category."); }
+
+                try
+                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.AshPepperBush, "Archdruid's Additions"); }
+                catch
+                { Debug.Log("AshPepperBush has already been placed in correct Devtools category."); }
+
+                try
+                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.InfectedCorpse, "Archdruid's Additions"); }
+                catch
+                { Debug.Log("InfectedCorpse has already been placed in correct Devtools category."); }
+                #endregion
 
                 break;
             }

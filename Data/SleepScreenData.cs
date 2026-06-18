@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Menu;
-
+﻿using System.Collections.Generic;
 using ArchdruidsAdditions.Objects.HUDObjects;
+using Menu;
 
 namespace ArchdruidsAdditions.Data;
 

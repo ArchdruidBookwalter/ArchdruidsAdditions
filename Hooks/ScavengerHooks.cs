@@ -1,21 +1,57 @@
 ﻿using System;
-using ArchdruidsAdditions.Objects;
 using Unity.Mathematics;
-using UnityEngine;
-using RWCustom;
-
-using Random = UnityEngine.Random;
-using System.Collections.Generic;
+using ArchdruidsAdditions.Objects;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+using static ArchdruidsAdditions.Enums.ScavengerBehavior;
+using System.Collections.Generic;
+using ArchdruidsAdditions.Data;
 
 namespace ArchdruidsAdditions.Hooks;
 
 public static class ScavengerHooks
 {
     #region Scavenger
+    internal static void Scavenger_ctor(On.Scavenger.orig_ctor orig, Scavenger self, AbstractCreature creature, World world)
+    {
+        orig(self, creature, world);
+
+        if (!PlayerData.scavData.ContainsKey(self))
+        {
+            PlayerData.scavData.Add(self, new PlayerData.ScavData(self));
+        }
+    }
+    internal static void Scavenger_Update(On.Scavenger.orig_Update orig, Scavenger self, bool eu)
+    {
+        orig(self, eu);
+
+        if (PlayerData.scavData.ContainsKey(self))
+        {
+            Bow bow = PlayerData.scavData[self].GetBow();
+            if (bow != null && bow.aiming)
+            {
+                if (self.animation == null || self.animation is not ScavengerAimBowAnimation)
+                {
+                    self.animation = new ScavengerAimBowAnimation(self, bow, bow.GetAimPos(self));
+                }
+            }
+            else
+            {
+                if (self.animation is ScavengerAimBowAnimation)
+                {
+                    self.animation = null;
+                }
+            }
+        }
+
+        //Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, -50f), self.animation, "Blue", 0);
+        //Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, -40f), self.AI.behavior, "Yellow", 0);
+    }
     internal static void Scavenger_Act(On.Scavenger.orig_Act orig, Scavenger self)
     {
         orig(self);
+
+        /*
+        Vector2 pos = self.mainBodyChunk.pos;
 
         int scavAimChargeThreshold = 50;
         CreatureTemplate.Type type = self.abstractCreature.creatureTemplate.type;
@@ -86,11 +122,11 @@ public static class ScavengerHooks
                 }
                 bow.scavAimCharge = 0;
             }
-        }
+        }*/
     }
     internal static void Scavenger_TryThrow(On.Scavenger.orig_TryThrow_BodyChunk_ViolenceType orig, Scavenger self, BodyChunk aimChunk, ScavengerAI.ViolenceType violenceType)
     {
-        if (self.grasps[0] is not null && self.grasps[0].grabbed is Bow bow)
+        if (self.grasps[0] is not null && self.grasps[0].grabbed is Bow)
         {
             return;
         }
@@ -98,7 +134,7 @@ public static class ScavengerHooks
     }
     internal static void Scavenger_TryToMeleeCreature(On.Scavenger.orig_TryToMeleeCreature orig, Scavenger self)
     {
-        if (self.grasps[0] is not null && self.grasps[0].grabbed is Bow bow)
+        if (self.grasps[0] is not null && self.grasps[0].grabbed is Bow)
         {
             return;
         }
@@ -106,13 +142,27 @@ public static class ScavengerHooks
     }
     internal static bool Scavenger_ArrangeInventory(On.Scavenger.orig_ArrangeInventory orig, Scavenger self)
     {
-        if (self.animation is ScavengerAimBowAnimation aimAnim)
+        if (PlayerData.scavData.ContainsKey(self))
         {
-            self.SwitchGrasps(aimAnim.bow.grabbedBy[0].graspUsed, 0);
-            self.PlaceAllGrabbedObjectsInCorrectContainers();
-            return false;
+            Bow bow = PlayerData.scavData[self].GetBow();
+            if (bow != null)
+            {
+                self.SwitchGrasps(bow.grabbedBy[0].graspUsed, 0);
+                self.PlaceAllGrabbedObjectsInCorrectContainers();
+            }
         }
         return orig(self);
+    }
+    internal static bool Scavenger_WantToLethallyAttack(On.Scavenger.orig_WantToLethallyAttack orig, Scavenger self, Tracker.CreatureRepresentation rep)
+    {
+        bool origValue = orig(self, rep);
+
+        if (self.AI.behavior == AttackWithBow && rep == self.AI.preyTracker.MostAttractivePrey && self.AI.currentViolenceType == ScavengerAI.ViolenceType.Lethal)
+        {
+            return true;
+        }
+
+        return origValue;
     }
     public static PhysicalObject CheckScavengerInventory_Obj(Scavenger scav, Type searchType, bool includeAllSpearTypes)
     {
@@ -156,20 +206,42 @@ public static class ScavengerHooks
         }
         return false;
     }
+    public static Bow CheckScavInventoryForBow(Scavenger scav)
+    {
+        foreach (Creature.Grasp grasp in scav.grasps)
+        {
+            if (grasp != null && grasp.grabbed is Bow bow)
+            {
+                return bow;
+            }
+        }
+        return null;
+    }
     #endregion
 
-
     #region ScavengerAI
+    internal static void ScavengerAI_Update(On.ScavengerAI.orig_Update orig, ScavengerAI self)
+    {
+        orig(self);
+    }
     internal static int ScavengerAI_WeaponScore(On.ScavengerAI.orig_WeaponScore orig, ScavengerAI self, PhysicalObject obj, bool pickupDropInstead, bool wantsSpear = false)
     {
+        int baseWeaponScore = orig(self, obj, pickupDropInstead, wantsSpear);
+
         if (obj is Bow)
         {
-            return 8;
+            baseWeaponScore = 8;
         }
-        return orig(self, obj, pickupDropInstead, wantsSpear);
+
+        return baseWeaponScore;
     }
     internal static int ScavengerAI_CollectScore(On.ScavengerAI.orig_CollectScore_PhysicalObject_bool orig, ScavengerAI self, PhysicalObject obj, bool weaponFiltered)
     {
+        int baseCollectScore = orig(self, obj, weaponFiltered);
+
+        //Create_Square(obj.room, obj.firstChunk.pos, 10f, 10f, Vec(45), "Purple", 0);
+        //Create_Text(obj.room, obj.firstChunk.pos + new Vector2(0f, 15f), baseCollectScore, "Purple", 0);
+
         if (obj is ScarletFlowerBulb)
         {
             return 3;
@@ -178,7 +250,7 @@ public static class ScavengerHooks
         {
             return 5;
         }
-        else if (obj is Potato)
+        else if (obj is Potato || obj is LightningFruit || obj is AshPepper)
         {
             return 2;
         }
@@ -188,7 +260,7 @@ public static class ScavengerHooks
         }
         else
         {
-            return orig(self, obj, weaponFiltered);
+            return baseCollectScore;
         }
     }
     internal static void ScavengerAI_CheckForScavengeItems(On.ScavengerAI.orig_CheckForScavangeItems orig, ScavengerAI self, bool conservativeBias)
@@ -210,6 +282,8 @@ public static class ScavengerHooks
     }
     internal static float ScavengerAI_PickUpItemScore(On.ScavengerAI.orig_PickUpItemScore orig, ScavengerAI self, ItemTracker.ItemRepresentation rep)
     {
+        float baseItemScore = orig(self, rep);
+
         if (rep.representedItem.type == Enums.AbstractObjectType.Bow)
         {
             foreach (Creature.Grasp grasp in self.scavenger.grasps)
@@ -220,78 +294,152 @@ public static class ScavengerHooks
                 }
             }
         }
-        return orig(self, rep);
+
+        return baseItemScore;
     }
     internal static PathCost ScavengerAI_TravelPreference(On.ScavengerAI.orig_TravelPreference orig, ScavengerAI self, MovementConnection coord, PathCost cost)
     {
-        foreach (Creature.Grasp grasp in self.scavenger.grasps)
-        {
-            if (grasp != null && grasp.grabbed != null && grasp.grabbed is Bow bow && bow.aiming)
-            {
-                cost.legality = PathCost.Legality.Unallowed;
-                return cost;
-            }
-        }
         return orig(self, coord, cost);
     }
     internal static void ScavengerAI_AttackBehavior(On.ScavengerAI.orig_AttackBehavior orig, ScavengerAI self)
     {
-        Bow bow = CheckScavengerInventory_Obj(self.scavenger, typeof(Bow), false) as Bow;
-        if (bow != null && self.preyTracker.MostAttractivePrey != null)
+        float section = 0;
+
+        try
         {
-            Spear spear = CheckScavengerInventory_Obj(self.scavenger, typeof(Spear), true) as Spear;
-            if (spear is null)
-            {
-                self.RetrieveWeapon();
-            }
-            else
-            {
-                self.focusCreature = self.preyTracker.MostAttractivePrey;
+            orig(self);
 
-                Room room = self.scavenger.room;
-                WorldCoordinate preyPos = self.focusCreature.lastSeenCoord;
-                WorldCoordinate scavPos = self.creature.pos;
+            section = 1;
 
-                if (Random.value < 0.5f)
+            if (PlayerData.scavData.ContainsKey(self.scavenger))
+            {
+                Bow bow = PlayerData.scavData[self.scavenger].GetBow();
+                if (bow != null)
                 {
-                    IntVector2 newStandPos;
-                    if (Random.value < 0.5f)
-                    { newStandPos = new(scavPos.x + Random.Range(-20, 20), scavPos.y); }
-                    else
-                    { newStandPos = new(preyPos.x + Random.Range(-20, 20), preyPos.y); }
-                    int sign = Random.value < 0.5f ? -1 : 1;
-                    for (int i = 0; i < 40; i++)
+                    Spear spear = PlayerData.scavData[self.scavenger].GetSpear();
+                    if (spear == null)
                     {
-                        //Methods.Methods.CreateDebugSquareAtPos(self.scavenger.room.MiddleOfTile(newStandPos), self.scavenger.room, "White", 10f, 0);
-                        if (room.GetTile(newStandPos).Terrain == Room.Tile.TerrainType.Air &&
-                            room.GetTile(new IntVector2(newStandPos.x, newStandPos.y - 1)).Solid &&
-                            (room.GetTile(new IntVector2(newStandPos.x - 1, newStandPos.y - 1)).Solid ||
-                            room.GetTile(new IntVector2(newStandPos.x + 1, newStandPos.y - 1)).Solid) &&
-                            room.VisualContact(room.GetWorldCoordinate(newStandPos), preyPos) &&
-                            Custom.ManhattanDistance(room.GetWorldCoordinate(newStandPos), preyPos) > 10f)
+                        self.RetrieveWeapon();
+                    }
+                    else
+                    {
+                        if (self.scavenger.movMode != Scavenger.MovementMode.Climb)
                         {
-                            if (!bow.scavStandPos.HasValue || Custom.ManhattanDistance(bow.scavStandPos.Value, scavPos) > Custom.ManhattanDistance(room.GetWorldCoordinate(newStandPos), scavPos) || !room.VisualContact(bow.scavStandPos.Value, preyPos))
+                            if (self.preyTracker.MostAttractivePrey != null && self.preyTracker.MostAttractivePrey.VisualContact)
                             {
-                                bow.scavStandPos = room.GetWorldCoordinate(newStandPos);
+                                bow.LoadSpearIntoBow(spear);
+
+                                Debug.Log("LOADED SPEAR INTO BOW");
+
+                                //Create_Square(self.scavenger.room, self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature.mainBodyChunk.pos, 20f, 20f, Vec(45), "Purple", 0);
                             }
-                            break;
                         }
-                        newStandPos.y += sign;
                     }
                 }
-
-                if (!bow.scavStandPos.HasValue)
-                { bow.scavStandPos = scavPos; }
-
-                self.creature.abstractAI.SetDestination(bow.scavStandPos.Value);
-
-                //Methods.Methods.CreateDebugSquareAtPos(self.scavenger.room.MiddleOfTile(bow.scavStandPos.Value), self.scavenger.room, "Yellow", 10f, 0);
-                //Methods.Methods.CreateDebugSquareAtPos(self.scavenger.room.MiddleOfTile(self.focusCreature.BestGuessForPosition()), self.scavenger.room, "Red");
             }
+        }
+        catch (Exception e)
+        {
+            Log_Exception(e, "SCAVENGERAI_ATTACKBEHAVIOR", section);
+        }
+    }
+    internal static void ScavengerAI_DecideBehavior(On.ScavengerAI.orig_DecideBehavior orig, ScavengerAI self)
+    {
+        orig(self);
+    }
+    internal static float ScavengerAI_CurrentPlayerAggression(On.ScavengerAI.orig_CurrentPlayerAggression orig, ScavengerAI self, AbstractCreature player)
+    {
+        float origValue = orig(self, player);
+
+        return origValue;
+    }
+    internal static bool ScavengerAI_Get_HoldAWeapon(Func<ScavengerAI, bool> orig, ScavengerAI self)
+    {
+        bool origValue = orig(self);
+
+        if (self.behavior == AttackWithBow)
+        { return true; }
+
+        return origValue;
+    }
+    internal static bool ScavengerAI_Get_NeedAWeapon(Func<ScavengerAI, bool> orig, ScavengerAI self)
+    {
+        bool origValue = orig(self);
+
+        if (self.behavior == AttackWithBow)
+        { return true; }
+
+        return origValue;
+    }
+    internal static void ScavengerAI_MakeLookHere(On.ScavengerAI.orig_MakeLookHere orig, ScavengerAI self, Vector2 point)
+    {
+        if (self.behavior == AttackWithBow)
+        {
+            return;
+        }
+
+        orig(self, point);
+    }
+    internal static void ScavengerAI_SeeThrownWeapon(On.ScavengerAI.orig_SeeThrownWeapon orig, ScavengerAI self, PhysicalObject obj, Creature thrower)
+    {
+        orig(self, obj, thrower);
+    }
+    internal static float ScavengerAI_SpearThrowPositionScore(On.ScavengerAI.orig_SpearThrowPositionScore orig, ScavengerAI self, WorldCoordinate testPos, IntVector2 targetPos, ref List<IntVector2> creatureMovementArea)
+    {
+        float origValue = orig(self, testPos, targetPos, ref creatureMovementArea);
+
+        if (origValue == float.MinValue)
+        {
+            return origValue;
+        }
+
+        if (PlayerData.scavData.ContainsKey(self.scavenger) && PlayerData.scavData[self.scavenger].GetBow() != null)
+        {
+            if (self.scavenger.room.GetTile(testPos).AnyBeam)
+            {
+                return float.MinValue;
+            }
+
+            //Vector2 pos = self.scavenger.room.MiddleOfTile(testPos);
+
+            //Create_Square(self.scavenger.room, pos, 10f, 10f, Vec(45), "White", 0);
+            //Create_Text(self.scavenger.room, pos + new Vector2(0f, 20f), origValue, "White", 0);
+            //Create_Square(self.scavenger.room, self.scavenger.room.MiddleOfTile(targetPos), 10f, 10f, Vec(45), "Purple", 0);
+
+            float score = 0f;
+
+            foreach (IntVector2 myPos in self.myMovementArea)
+            {
+                if (self.scavenger.room.VisualContact(myPos, targetPos) && Custom.DistLess(myPos, targetPos, 400f))
+                {
+                    foreach (IntVector2 crPos in creatureMovementArea)
+                    {
+                        if (Mathf.Abs(myPos.x - crPos.x) > 2)
+                        {
+                            score++;
+                        }
+                    }
+                }
+            }
+
+            if (score == 0f)
+            { score++; }
+            else
+            { score += 100f; }
+
+            score *= Custom.LerpMap(testPos.Tile.FloatDist(targetPos), 60f, 90f, 1f, 0f);
+            score *= Custom.LerpMap(testPos.Tile.FloatDist(targetPos), 20f, 0f, 1f, 0f);
+            score *= 1f - self.threatTracker.ThreatOfArea(testPos, true);
+            if (self.scavenger.occupyTile == testPos.Tile)
+            {
+                score *= 0.1f;
+            }
+
+            return score;
         }
         else
         {
-            orig(self);
+            return origValue;
         }
     }
     #endregion
@@ -387,6 +535,8 @@ public static class ScavengerHooks
     }
     internal static AbstractPhysicalObject ScavengerAbstractAI_TradeItem(On.ScavengerAbstractAI.orig_TradeItem orig, ScavengerAbstractAI self, bool main)
     {
+        AbstractPhysicalObject baseTradeItem = orig(self, main);
+
         string thisRegionHasBows = Plugin.RegionData.ReadRegionData(self.world.region.name, "ScavsHaveBows");
         if ((thisRegionHasBows is not null && thisRegionHasBows.Contains("true")) || Plugin.Options.spawnBowsEverywhere.Value)
         {
@@ -395,13 +545,16 @@ public static class ScavengerHooks
                 return new AbstractConsumable(self.world, Enums.AbstractObjectType.Bow, null, self.parent.pos, self.world.game.GetNewID(), -1, -1, null);
             }
         }
-        return orig(self, main);
+
+        return baseTradeItem;
     }
     #endregion
 
     #region ScavengerGraphics
     internal static int ScavengerGraphics_ContainerForHeldItem(On.ScavengerGraphics.orig_ContainerForHeldItem orig, ScavengerGraphics self, PhysicalObject obj, int grasp)
     {
+        int baseContainer = orig(self, obj, grasp);
+
         if (obj is Bow bow)
         {
             if (bow.aiming)
@@ -418,34 +571,35 @@ public static class ScavengerHooks
                 }
             }
         }
-        return orig(self, obj, grasp);
+
+        return baseContainer;
     }
-    internal static float2 ScavengerGraphics_ItemPosition(Func<ScavengerGraphics, int, float2> orig, ScavengerGraphics self, int grasp)
+    internal static float2 ScavengerGraphics_Get_ItemPosition(Func<ScavengerGraphics, int, float2> orig, ScavengerGraphics self, int grasp)
     {
+        float2 basePos = orig(self, grasp);
+
         if (grasp > 0 && self.scavenger.grasps[grasp].grabbed is Bow)
         {
             return self.OnBackSurfacePos(new float2(-self.flip * 0.9f, 0.4f + (grasp - 1) * 0.1f), 1f);
         }
-        return orig(self, grasp);
+
+        return basePos;
     }
-    internal static float2 ScavengerGraphics_ItemDirection(Func<ScavengerGraphics, int, float2> orig, ScavengerGraphics self, int grasp)
+    internal static float2 ScavengerGraphics_Get_ItemDirection(Func<ScavengerGraphics, int, float2> orig, ScavengerGraphics self, int grasp)
     {
+        float2 baseDir = orig(self, grasp);
+
         if (grasp > 0 && self.scavenger.grasps[grasp].grabbed is Bow)
         {
             return Custom.RotateAroundOrigo(Custom.DegToFloat2(135f - self.flip * (grasp - 1) * 10f + Custom.LerpMap(self.flip, -1f, 1f, -30f, 0f)),
                 Custom.VecToDeg(math.lerp(self.bodyAxis, Custom.DirVec(self.drawPositions[self.hipsDrawPos, 1], self.drawPositions[self.chestDrawPos, 1]), 0.75f)));
         }
-        return orig(self, grasp);
+
+        return baseDir;
     }
     internal static void ScavengerHand_DrawSprites(Action<ScavengerGraphics.ScavengerHand, RoomCamera.SpriteLeaser, RoomCamera, float, float2> orig,
         ScavengerGraphics.ScavengerHand self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, float2 camPos)
     {
-        /*
-        if (self.scavenger.room != null)
-        {
-            //self.scavenger.room.AddObject(new ColoredShapes.SmallRectangle(self.scavenger.room, self.absoluteHuntPos, self.retract ? "Green" : "Red", 10));
-        }*/
-
         orig(self, sLeaser, rCam, timeStacker, camPos);
     }
     #endregion

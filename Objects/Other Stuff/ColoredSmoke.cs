@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RWCustom;
-using UnityEngine;
-using Random = UnityEngine.Random;
-
-namespace ArchdruidsAdditions.Objects;
+﻿namespace ArchdruidsAdditions.Objects;
 
 public class ColoredVultureSmoke : Smoke.NewVultureSmoke
 {

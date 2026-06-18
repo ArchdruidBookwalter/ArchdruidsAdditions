@@ -1,21 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
-using ArchdruidsAdditions.Hooks;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using ArchdruidsAdditions.Objects.DevObjects;
-using MonoMod.RuntimeDetour;
-using RWCustom;
-using Steamworks;
-using Unity.Mathematics;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using UnityEngine;
-using static System.Collections.Specialized.BitVector32;
 
 namespace ArchdruidsAdditions.Methods
 {
@@ -160,103 +148,129 @@ namespace ArchdruidsAdditions.Methods
 
             return true;
         }
-        public static UpdatableAndDeletable GetTracker(UpdatableAndDeletable trackedUpdel, Room room)
+        public static (Color lightColor, float lightExposure, float colorExposure) TrueLightColorAndExposure(Room room, RoomCamera camera, Vector2 pos, float addBrightness)
         {
-            foreach (UpdatableAndDeletable updel in room.updateList)
-            {
-                if (trackedUpdel is Weapon weapon && updel is Trackers.ThrowTracker tracker && tracker.weapon == weapon)
-                {
-                    return tracker;
-                }
-            }
-            return null;
-        }
-        public static (Color lightColor, float lightExposure, float colorExposure) TrueLightColorAndExposure(Room room, Vector2 pos, float addBrightness)
-        {
-            float roomDarkness = Mathf.Clamp((room.Darkness(pos) - 0.3f) * 1.6f, 0f, 1f);
+            float adjustedDarkness = Mathf.Lerp(0f, 1f, Mathf.InverseLerp(0.3f, 1f, room.Darkness(pos)));
 
             float lightSourceExposure = 0;
             float lightColorExposure = 0;
+            float whiteLightExposure = 0;
             float r = 0;
             float g = 0;
             float b = 0;
-            foreach (LightSource light in room.lightSources)
+
+            List<FSprite> sprites = [];
+            foreach (RoomCamera.SpriteLeaser sLeaser in camera.spriteLeasers)
             {
-                CircularSprite newSprite = new(light.ElementName, 64);
-                float trueLightRad = light.rad * (newSprite.width / 2f) * 0.125f;
-
-                if (Custom.DistLess(pos, light.pos, trueLightRad))
+                foreach (FSprite sprite in sLeaser.sprites)
                 {
-                    float thisLightExposure = Mathf.Lerp(1, 0, Custom.Dist(pos, light.pos) / trueLightRad) * 2;
-                    lightSourceExposure = Mathf.Max(lightSourceExposure, thisLightExposure);
-
-                    float thisColorExposure = Custom.RGB2HSL(light.color).y * thisLightExposure * 2;
-                    lightColorExposure = Mathf.Max(lightColorExposure, thisColorExposure);
-
-                    r = Mathf.Max(r, light.color.r * Mathf.Min(thisLightExposure, thisColorExposure));
-                    g = Mathf.Max(g, light.color.g * Mathf.Min(thisLightExposure, thisColorExposure));
-                    b = Mathf.Max(b, light.color.b * Mathf.Min(thisLightExposure, thisColorExposure));
+                    if (sprite.shader.name == "LightSource" || sprite.shader.name == "FlatLight")
+                    {
+                        sprites.Add(sprite);
+                    }
                 }
             }
 
+            Vector2 adjPos = pos + camera.pos;
+
+            foreach (FSprite sprite in sprites)
+            {
+                Vector2 lightPos = sprite.GetPosition();
+                float dist = Custom.Dist(pos, lightPos);
+
+                float scale = sprite.width / 2;
+                float rad = scale;
+
+                Vector3 lightHSL = Custom.RGB2HSL(sprite.color);
+
+                float lightExposure = Custom.SCurve(Mathf.InverseLerp(rad, 0f, dist), 0.5f);
+                float colorExposure = Mathf.Min(lightHSL.y, lightExposure);
+                float whiteExposure = Mathf.Min(1f - colorExposure, lightExposure);
+
+                lightSourceExposure = Mathf.Max(lightSourceExposure, lightExposure);
+                lightColorExposure = Mathf.Max(lightColorExposure, colorExposure);
+                whiteLightExposure = Mathf.Max(whiteLightExposure, whiteExposure);
+
+                r = Mathf.Max(r, sprite.color.r * colorExposure);
+                g = Mathf.Max(g, sprite.color.g * colorExposure);
+                b = Mathf.Max(b, sprite.color.b * colorExposure);
+
+                if (dist < rad)
+                {
+                    //Create_LineBetweenTwoPoints(room, adjPos, lightPos + camera.pos, 2f, sprite.color, 1);
+                }
+
+                //Create_Square(room, lightPos + camera.pos, scale, scale, Vec(0), sprite.color, 1);
+            }
+
+            lightSourceExposure = Mathf.Max(lightSourceExposure, 1f - adjustedDarkness) + addBrightness;
+            whiteLightExposure = Mathf.Max(whiteLightExposure, (1f - adjustedDarkness) * 0.5f);
+            lightColorExposure -= whiteLightExposure;
+
+
             Color lightColor = new(r, g, b);
+            //Create_Text(room, adjPos + new Vector2(0f, 80f), "COLOR: " + lightColorExposure, lightColor, 0);
 
-            float trueBrightness = Mathf.Clamp(1 - (roomDarkness - lightSourceExposure - addBrightness), 0f, 1f);
+            //Create_Text(room, adjPos + new Vector2(0f, 70f), "H: " + Custom.RGB2HSL(lightColor).x, lightColor, 0);
+            //Create_Text(room, adjPos + new Vector2(0f, 60f), "S: " + Custom.RGB2HSL(lightColor).y, lightColor, 0);
+            //Create_Text(room, adjPos + new Vector2(0f, 50f), "L: " + Custom.RGB2HSL(lightColor).z, lightColor, 0);
 
-            return (lightColor, trueBrightness, lightSourceExposure);
+            //Create_Text(room, adjPos + new Vector2(0f, 40f), "WHITE: " + whiteLightExposure, Color.white, 0);
+            //Create_Text(room, adjPos + new Vector2(0f, 30f), "LIGHT: " + lightSourceExposure, Color.white, 0);
+            //Create_Text(room, adjPos + new Vector2(0f, 20f), "DARKNESS: " + adjustedDarkness, Color.white, 0);
+
+            //Create_Square(room, adjPos, 10f, 10f, Vec(0), "Red", 1);
+
+            return (lightColor, lightSourceExposure, lightColorExposure * 0.5f);
         }
 
         #region Debug Shapes
-        public static bool DebugShapes = true;
-        public static void Create_LineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, string color, int maxLife)
+        public static bool DebugShapes = false;
+        public static bool HideDebugShapes(Room room)
         {
-            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
-            { return; }
-
-            Vector2 middlePos = Vector2.Lerp(point1, point2, 0.5f);
-            float dist = Custom.Dist(point1, point2);
-            Vector2 rotation = Custom.DirVec(point1, point2);
-            Create_Square(room, middlePos, 0.2f, dist, rotation, color, maxLife);
-        }
-        public static void Create_LineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, Color color, int maxLife)
-        {
-            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
-            { return; }
-
-            Vector2 middlePos = Vector2.Lerp(point1, point2, 0.5f);
-            float dist = Custom.Dist(point1, point2);
-            Vector2 rotation = Custom.DirVec(point1, point2);
-            Create_Square(room, middlePos, 0.2f, dist, rotation, color, maxLife);
-        }
-        public static void Create_Text(Room room, Vector2 pos, string text, string color, int maxLife)
-        {
-            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
-            { return; }
+            if (room == null || !DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
+            { return true; }
 
             Player player = room.game.FirstRealizedPlayer;
             if (player != null && player.room == null)
-            { return; }
+            { return true; }
 
-            room.AddObject(new ColoredShapes.Text(room, pos, text, color, maxLife));
+            if (room.game.lastPauseButton)
+            { return true; }
+
+            return false;
         }
-        public static void Create_Text(Room room, Vector2 pos, string text, Color color, int maxLife)
+        public static void Create_LineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, float width, string color, int maxLife)
         {
-            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
+            if (HideDebugShapes(room))
             { return; }
 
-            Player player = room.game.FirstRealizedPlayer;
-            if (player != null && player.room == null)
+            room.AddObject(new ColoredShapes.Line(room, point1, point2, width, color, maxLife));
+        }
+        public static void Create_LineBetweenTwoPoints(Room room, Vector2 point1, Vector2 point2, float width, Color color, int maxLife)
+        {
+            if (HideDebugShapes(room))
             { return; }
 
-            room.AddObject(new ColoredShapes.Text(room, pos, text, color, maxLife));
+            room.AddObject(new ColoredShapes.Line(room, point1, point2, width, color, maxLife));
+        }
+        public static void Create_Text(Room room, Vector2 pos, object text, string color, int maxLife)
+        {
+            if (HideDebugShapes(room))
+            { return; }
+
+            room.AddObject(new ColoredShapes.Text(room, pos, text == null ? "NULL" : text.ToString(), color, maxLife));
+        }
+        public static void Create_Text(Room room, Vector2 pos, object text, Color color, int maxLife)
+        {
+            if (HideDebugShapes(room))
+            { return; }
+
+            room.AddObject(new ColoredShapes.Text(room, pos, text == null ? "NULL" : text.ToString(), color, maxLife));
         }
         public static void Create_TextBlock(Room room, Vector2 pos, int dir, string[] lines, string color, int maxLife)
         {
-            if (room == null || !DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
-            { return; }
-
-            Player player = room.game.FirstRealizedPlayer;
-            if (player != null && player.room == null)
+            if (HideDebugShapes(room))
             { return; }
 
             for (int i = lines.Length - 1; i >= 0; i--)
@@ -268,48 +282,46 @@ namespace ArchdruidsAdditions.Methods
 
         public static void Create_Square(Room room, Vector2 pos, float width, float height, Vector2 rotation, string color, int maxLife)
         {
-            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
-            { return; }
-
-            Player player = room.game.FirstRealizedPlayer;
-            if (player != null && player.room == null)
+            if (HideDebugShapes(room))
             { return; }
 
             room.AddObject(new ColoredShapes.Rectangle(room, pos, width, height, Custom.VecToDeg(rotation), color, maxLife));
         }
         public static void Create_Square(Room room, Vector2 pos, float width, float height, Vector2 rotation, Color color, int maxLife)
         {
-            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
-            { return; }
-
-            Player player = room.game.FirstRealizedPlayer;
-            if (player != null && player.room == null)
+            if (HideDebugShapes(room))
             { return; }
 
             room.AddObject(new ColoredShapes.Rectangle(room, pos, width, height, Custom.VecToDeg(rotation), color, maxLife));
         }
         public static void Create_LineAndDot(Room room, Vector2 startPos, Vector2 endPos, string color, int maxLife)
         {
-            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
+            if (HideDebugShapes(room))
             { return; }
 
             room.AddObject(new ColoredShapes.LineAndDot(room, startPos, endPos, color, maxLife));
         }
         public static void Create_Dot(Room room, Vector2 pos, string color, int maxLife)
         {
-            if (!DebugShapes || !room.BeingViewed || !room.game.devToolsActive)
+            if (HideDebugShapes(room))
             { return; }
 
             room.AddObject(new ColoredShapes.Dot(room, pos, color, maxLife));
         }
         #endregion
 
+        public static Vector2 GetMiddleOfScreen(Room room, RoomCamera camera)
+        {
+            return room.MiddleOfTile(room.GetTilePosition(camera.pos) + new IntVector2(35, 18));
+        }
+
         public static void Log_Exception(Exception e, string methodName, float section)
         {
             Debug.Log("");
             Debug.Log("EXCEPTION OCCURED IN METHOD: " + methodName + " IN CODE SECTION: " + section);
             Debug.Log("");
-            Debug.LogException(e);
+
+            throw e;
         }
         public static void Log_Coordinate(World world, WorldCoordinate coord)
         {
@@ -337,6 +349,11 @@ namespace ArchdruidsAdditions.Methods
         public static Vector2 Vec(float degree)
         {
             return Custom.DegToVec(degree);
+        }
+
+        public static Vector2 Vec(Vector2 start, float rotate)
+        {
+            return Custom.rotateVectorDeg(start, rotate);
         }
 
         public static bool forceDefaultMouseVisible = false;

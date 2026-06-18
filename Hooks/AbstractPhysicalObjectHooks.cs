@@ -1,14 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using System.Globalization;
-using UnityEngine;
-using Random = UnityEngine.Random;
-using RWCustom;
-
 using ArchdruidsAdditions.Enums;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
@@ -19,7 +10,8 @@ public static class AbstractPhysicalObjectHooks
 {
     internal static void AbstractPhysicalObject_Realize(On.AbstractPhysicalObject.orig_Realize orig, AbstractPhysicalObject self)
     {
-        orig.Invoke(self);
+        orig(self);
+
         if (self.realizedObject is null)
         {
             if (self.type == AbstractObjectType.Bow)
@@ -61,9 +53,20 @@ public static class AbstractPhysicalObjectHooks
                 self.realizedObject = new LightningFruit(self, charge)
                 { power = power };
             }
-            else if (self.type == AbstractObjectType.FirePepper)
+            else if (self.type == AbstractObjectType.AshPepper)
             {
-                self.realizedObject = new FirePepper(self);
+                self.realizedObject = new AshPepper(self, null, 0);
+            }
+            else if (self.type == AbstractObjectType.ParasiteEgg)
+            {
+                bool growOnStartup = false;
+                if (self.unrecognizedAttributes != null && self.unrecognizedAttributes.Contains("GROW_ON_STARTUP"))
+                {
+                    growOnStartup = true;
+                    self.unrecognizedAttributes = null;
+                }
+
+                self.realizedObject = new ParasiteEgg(self, growOnStartup);
             }
         }
     }
@@ -79,54 +82,91 @@ public static class AbstractPhysicalObjectHooks
             self.unrecognizedAttributes[0] = fruit.charge.ToString();
             self.unrecognizedAttributes[1] = fruit.power.ToString();
         }
+
         orig(self, coord);
     }
 
     internal static bool AbstractConsumable_IsTypeConsumable(On.AbstractConsumable.orig_IsTypeConsumable orig, AbstractPhysicalObject.AbstractObjectType type)
     {
+        bool ret = orig(type);
+
         if (type == AbstractObjectType.ScarletFlowerBulb ||
             type == AbstractObjectType.Potato ||
             type == AbstractObjectType.LightningFruit ||
-            type == AbstractObjectType.FirePepper)
+            type == AbstractObjectType.AshPepper)
         {
             return true;
         }
-        return orig(type);
+
+        return ret;
     }
 
     internal static void AbstractObjectStick_FromString(On.AbstractPhysicalObject.AbstractObjectStick.orig_FromString orig, string[] splitString, AbstractRoom room)
     {
-        if (splitString.Length > 1 && splitString[1] == "paraStk")
+        if (splitString.Length > 1)
         {
-            //Debug.Log("");
-            //Debug.Log("METHOD ABSTRACTOBJECTSTICK_FROMSTRING WAS CALLED FOR PARASITESTICK");
-            //Debug.Log("");
-
-            EntityID ID1 = EntityID.FromString(splitString[2]);
-            EntityID ID2 = EntityID.FromString(splitString[3]);
-            AbstractPhysicalObject obj1 = null;
-            AbstractPhysicalObject obj2 = null;
-
-            for (int i = 0; i < room.entities.Count; i++)
+            if (splitString[1] == "paraStk")
             {
-                AbstractWorldEntity entity = room.entities[i];
+                //Debug.Log("");
+                //Debug.Log("METHOD ABSTRACTOBJECTSTICK_FROMSTRING WAS CALLED FOR PARASITESTICK");
+                //Debug.Log("");
 
-                if (entity is AbstractPhysicalObject obj)
+                EntityID ID1 = EntityID.FromString(splitString[2]);
+                EntityID ID2 = EntityID.FromString(splitString[3]);
+                AbstractPhysicalObject obj1 = null;
+                AbstractPhysicalObject obj2 = null;
+
+                for (int i = 0; i < room.entities.Count; i++)
                 {
-                    if (obj.ID == ID1)
-                    { obj1 = obj; }
-                    else if (obj.ID == ID2)
-                    { obj2 = obj; }
+                    AbstractWorldEntity entity = room.entities[i];
+
+                    if (entity is AbstractPhysicalObject obj)
+                    {
+                        if (obj.ID == ID1)
+                        { obj1 = obj; }
+                        else if (obj.ID == ID2)
+                        { obj2 = obj; }
+                    }
+                }
+
+                if (obj1 != null && obj2 != null)
+                {
+                    int chunk = int.Parse(splitString[4], NumberStyles.Any, CultureInfo.InvariantCulture);
+                    int growth = int.Parse(splitString[5], NumberStyles.Any, CultureInfo.InvariantCulture);
+
+                    new AbstractParasiteStick(obj1, obj2, chunk, growth).unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(splitString, 6);
+                    return;
                 }
             }
-
-            if (obj1 != null && obj2 != null)
+            else if (splitString[1] == "paraEggStk")
             {
-                int chunk = int.Parse(splitString[4], NumberStyles.Any, CultureInfo.InvariantCulture);
-                int growth = int.Parse(splitString[5], NumberStyles.Any, CultureInfo.InvariantCulture);
+                EntityID ID1 = EntityID.FromString(splitString[2]);
+                EntityID ID2 = EntityID.FromString(splitString[3]);
+                AbstractPhysicalObject obj1 = null;
+                AbstractPhysicalObject obj2 = null;
 
-                new AbstractParasiteStick(obj1, obj2, chunk, growth).unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(splitString, 6);
-                return;
+                for (int i = 0; i < room.entities.Count; i++)
+                {
+                    AbstractWorldEntity entity = room.entities[i];
+
+                    if (entity is AbstractPhysicalObject obj)
+                    {
+                        if (obj.ID == ID1)
+                        { obj1 = obj; }
+                        else if (obj.ID == ID2)
+                        { obj2 = obj; }
+                    }
+                }
+
+                if (obj1 != null && obj2 != null)
+                {
+                    new AbstractParasiteEggStick(obj1, obj2).unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(splitString, 4);
+                    return;
+                }
+            }
+            else
+            {
+                orig(splitString, room);
             }
         }
         else

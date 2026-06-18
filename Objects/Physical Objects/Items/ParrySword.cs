@@ -1,18 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
-using RWCustom;
-using System.Runtime.InteropServices;
-using JetBrains.Annotations;
-using IL;
-using On;
-using MoreSlugcats;
-using System.IO.Ports;
-using Smoke;
-using ArchdruidsAdditions.Objects.DevObjects;
 
 namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
@@ -98,418 +85,422 @@ public class ParrySword : Weapon, IDrawable
         base.Update(eu);
         soundLoop.Update();
 
-        #region Behavior
-
-        lastRotation = rotation;
-        firstChunk.collideWithTerrain = grabbedBy.Count == 0;
-
-        #region Grabbed By Player
-
-        if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Player)
+        if (room != null)
         {
-            spinning = false;
-            spinSpeed = 0f;
-            playerHeldBy = grabbedBy[0].grabber as Player;
-            Player.InputPackage input = playerHeldBy.input[0];
+            #region Behavior
 
-            #region Charge
+            lastRotation = rotation;
+            firstChunk.collideWithTerrain = grabbedBy.Count == 0;
 
-            playerMaxKarma = playerHeldBy.KarmaCap + 1;
-            if (charge < 1000 / playerMaxKarma)
+            #region Grabbed By Player
+
+            if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Player)
             {
-                charge++;
-            }
-            else if (charge == 1000 / playerMaxKarma && !charged)
-            {
-                for (int a = 0; a < 3; a++)
+                spinning = false;
+                spinSpeed = 0f;
+                playerHeldBy = grabbedBy[0].grabber as Player;
+                Player.InputPackage input = playerHeldBy.input[0];
+
+                #region Charge
+
+                playerMaxKarma = playerHeldBy.KarmaCap + 1;
+                if (charge < 1000 / playerMaxKarma)
                 {
-                    room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, swordColor, null, 50, 50));
+                    charge++;
                 }
-                room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, firstChunk.pos, 0.5f, 1.8f);
-                room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
-                room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
-                room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
-
-                charged = true;
-            }
-
-            #endregion
-
-            #region Object Detector
-
-            /*
-            for (int i = 0; i < 3; i++)
-            {
-                var physicalObjects = room.physicalObjects[i];
-                for (var j = 0; j < physicalObjects.Count(); j++)
+                else if (charge == 1000 / playerMaxKarma && !charged)
                 {
-                    var obj = physicalObjects[j];
-
-                    
-                    if (obj is BigNeedleWorm noodlefly)
+                    for (int a = 0; a < 3; a++)
                     {
-                        noodlefly.BigAI.SocialEvent(SocialEventRecognizer.EventID.Killing, grabbedPlayer as Creature, noodlefly, null);
-                        Vector2 fangPos1 = noodlefly.bodyChunks[0].pos + (noodlefly.fangLength * Custom.DirVec(noodlefly.bodyChunks[1].pos, noodlefly.bodyChunks[0].pos) * 1f);
-
-                        room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                        room.AddObject(new ExplosionSpikes(room, fangPos1, 50, 1f, 2f, 7f, 5f, new(1f, 1f, 1f)));
-
-                        if (noodlefly.AI.behavior == NeedleWormAI.Behavior.Attack)
-                        {
-                            UnityEngine.Debug.Log("Noodlefly Detected. Velocity: " + noodlefly.mainBodyChunk.vel.magnitude);
-                            room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].pos, 50, 10f, 50f, 7f, 5f, new(0f, 0f, 1f)));
-                        }
-                        if (noodlefly.chargingAttack > 0.5f || noodlefly.swishDir != null)
-                        {
-                            room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackFromPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
-                            room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackTargetPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
-                        }
+                        room.AddObject(new Spark(firstChunk.pos, Custom.RNV() * 2f, swordColor, null, 50, 50));
                     }
+                    room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, firstChunk.pos, 0.5f, 1.8f);
+                    room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
+                    room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
+                    room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
 
-                    if (obj is Cicada squidcada)
+                    charged = true;
+                }
+
+                #endregion
+
+                #region Object Detector
+
+                /*
+                for (int i = 0; i < 3; i++)
+                {
+                    var physicalObjects = room.physicalObjects[i];
+                    for (var j = 0; j < physicalObjects.Count(); j++)
                     {
-                        room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                        if (squidcada.Charging)
-                        {
-                            room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                        }
-                    }
+                        var obj = physicalObjects[j];
 
 
-                    if (obj is Lizard lizard)
-                    {
-                        Vector2 vel = new(20, 20);
-                        vel = Custom.rotateVectorDeg(vel, UnityEngine.Random.Range(0, 360));
-                        if (lizard.animation == Lizard.Animation.FightingStance)
+                        if (obj is BigNeedleWorm noodlefly)
                         {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0f, 0f), null, 50, 50)); //Black
-                        }
-                        if (lizard.animation == Lizard.Animation.HearSound)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0f, 1f), null, 50, 50)); //Blue
-                        }
-                        if (lizard.animation == Lizard.Animation.Jumping)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 1f, 0f), null, 50, 50)); //Green
-                        }
-                        if (lizard.animation == Lizard.Animation.Lounge)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 0f), null, 50, 50)); //Red
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 0f), null, 50, 50)); 
-                        }
-                        if (lizard.animation == Lizard.Animation.PrepareToJump)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0.5f, 0f), null, 50, 50)); //Dark Green
-                        }
-                        if (lizard.animation == Lizard.Animation.PrepareToLounge)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0f, 0f), null, 50, 50)); //Dark Red
-                        }
-                        if (lizard.animation == Lizard.Animation.PreyReSpotted)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 1f, 0f), null, 50, 50)); //Yellow
-                        }
-                        if (lizard.animation == Lizard.Animation.PreySpotted)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0f, 1f), null, 50, 50)); //Magenta
-                        }
-                        if (lizard.animation == Lizard.Animation.ShakePrey)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 1f, 1f), null, 50, 50)); //Cyan
-                        }
-                        if (lizard.animation == Lizard.Animation.ShootTongue)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 0.5f, 0f), null, 50, 50)); //Orange
-                        }
-                        if (lizard.animation == Lizard.Animation.Spit)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0f, 1f), null, 50, 50)); //Purple
-                        }
-                        if (lizard.animation == Lizard.Animation.Standard)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0.5f, 0.5f, 0f), null, 50, 50)); //Dark Yellow
-                        }
-                        if (lizard.animation == Lizard.Animation.ThreatReSpotted)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(0f, 0.5f, 0.5f), null, 50, 50)); //Dark Magenta
-                        }
-                        if (lizard.animation == Lizard.Animation.ThreatSpotted)
-                        {
-                            room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.pos, vel, new(1f, 1f, 1f), null, 50, 50)); //White
-                        }
-                    }
+                            noodlefly.BigAI.SocialEvent(SocialEventRecognizer.EventID.Killing, grabbedPlayer as Creature, noodlefly, null);
+                            Vector2 fangPos1 = noodlefly.bodyChunks[0].segPos + (noodlefly.fangLength * Custom.DirVec(noodlefly.bodyChunks[1].segPos, noodlefly.bodyChunks[0].segPos) * 1f);
 
-                    if (obj is Vulture vulture)
-                    {
-                        room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                            room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].segPos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                            room.AddObject(new ExplosionSpikes(room, fangPos1, 50, 1f, 2f, 7f, 5f, new(1f, 1f, 1f)));
 
-                        if (vulture.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
-                        {
-                            room.AddObject(new ExplosionSpikes(room, vulture.Head().pos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                        }
-
-                        if (vulture.IsKing)
-                        {
-                            for (int k = 0; k < 2; k++)
+                            if (noodlefly.AI.behavior == NeedleWormAI.Behavior.Attack)
                             {
-                                KingTusks.Tusk[] tusks = vulture.kingTusks.tusks;
-                                KingTusks.Tusk tusk = vulture.kingTusks.tusks[k];
-                                Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
-                                Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
-                                Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
-
-                                room.AddObject(new ExplosionSpikes(room, tuskPos1, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
-                                room.AddObject(new ExplosionSpikes(room, tuskPos2, 50, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
-                                room.AddObject(new ExplosionSpikes(room, tuskPoint, 50, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+                                UnityEngine.Debug.Log("Noodlefly Detected. Velocity: " + noodlefly.mainBodyChunk.vel.magnitude);
+                                room.AddObject(new ExplosionSpikes(room, noodlefly.bodyChunks[0].segPos, 50, 10f, 50f, 7f, 5f, new(0f, 0f, 1f)));
+                            }
+                            if (noodlefly.chargingAttack > 0.5f || noodlefly.swishDir != null)
+                            {
+                                room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackFromPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
+                                room.AddObject(new ExplosionSpikes(room, noodlefly.BigAI.attackTargetPos, 50, 10f, 50f, 7f, 5f, new(1f, 0f, 0f)));
                             }
                         }
+
+                        if (obj is Cicada squidcada)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].segPos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                            if (squidcada.Charging)
+                            {
+                                room.AddObject(new ExplosionSpikes(room, squidcada.bodyChunks[0].segPos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                            }
+                        }
+
+
+                        if (obj is Lizard lizard)
+                        {
+                            Vector2 vel = new(20, 20);
+                            vel = Custom.rotateVectorDeg(vel, UnityEngine.Random.Range(0, 360));
+                            if (lizard.animation == Lizard.Animation.FightingStance)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(0f, 0f, 0f), null, 50, 50)); //Black
+                            }
+                            if (lizard.animation == Lizard.Animation.HearSound)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(0f, 0f, 1f), null, 50, 50)); //Blue
+                            }
+                            if (lizard.animation == Lizard.Animation.Jumping)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(0f, 1f, 0f), null, 50, 50)); //Green
+                            }
+                            if (lizard.animation == Lizard.Animation.Lounge)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(1f, 0f, 0f), null, 50, 50)); //Red
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(1f, 0f, 0f), null, 50, 50)); 
+                            }
+                            if (lizard.animation == Lizard.Animation.PrepareToJump)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(0f, 0.5f, 0f), null, 50, 50)); //Dark Green
+                            }
+                            if (lizard.animation == Lizard.Animation.PrepareToLounge)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(0.5f, 0f, 0f), null, 50, 50)); //Dark Red
+                            }
+                            if (lizard.animation == Lizard.Animation.PreyReSpotted)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(1f, 1f, 0f), null, 50, 50)); //Yellow
+                            }
+                            if (lizard.animation == Lizard.Animation.PreySpotted)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(1f, 0f, 1f), null, 50, 50)); //Magenta
+                            }
+                            if (lizard.animation == Lizard.Animation.ShakePrey)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(0f, 1f, 1f), null, 50, 50)); //Cyan
+                            }
+                            if (lizard.animation == Lizard.Animation.ShootTongue)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(1f, 0.5f, 0f), null, 50, 50)); //Orange
+                            }
+                            if (lizard.animation == Lizard.Animation.Spit)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(0.5f, 0f, 1f), null, 50, 50)); //Purple
+                            }
+                            if (lizard.animation == Lizard.Animation.Standard)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(0.5f, 0.5f, 0f), null, 50, 50)); //Dark Yellow
+                            }
+                            if (lizard.animation == Lizard.Animation.ThreatReSpotted)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(0f, 0.5f, 0.5f), null, 50, 50)); //Dark Magenta
+                            }
+                            if (lizard.animation == Lizard.Animation.ThreatSpotted)
+                            {
+                                room.AddObject(new Spark((lizard.graphicsModule as LizardGraphics).head.segPos, vel, new(1f, 1f, 1f), null, 50, 50)); //White
+                            }
+                        }
+
+                        if (obj is Vulture vulture)
+                        {
+                            room.AddObject(new ExplosionSpikes(room, vulture.Head().segPos, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+
+                            if (vulture.AI.DynamicRelationship((grabbedPlayer as Creature).abstractCreature).GoForKill)
+                            {
+                                room.AddObject(new ExplosionSpikes(room, vulture.Head().segPos, 50, 10f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                            }
+
+                            if (vulture.IsKing)
+                            {
+                                for (int k = 0; k < 2; k++)
+                                {
+                                    KingTusks.Tusk[] tusks = vulture.kingTusks.tusks;
+                                    KingTusks.Tusk tusk = vulture.kingTusks.tusks[k];
+                                    Vector2 tuskPos1 = tusk.chunkPoints[0, 0];
+                                    Vector2 tuskPos2 = tusk.chunkPoints[1, 0];
+                                    Vector2 tuskPoint = tuskPos1 + Custom.DirVec(tuskPos2, tuskPos1) * 50;
+
+                                    room.AddObject(new ExplosionSpikes(room, tuskPos1, 50, 1f, 2f, 7f, 5f, new(1f, 0f, 0f)));
+                                    room.AddObject(new ExplosionSpikes(room, tuskPos2, 50, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
+                                    room.AddObject(new ExplosionSpikes(room, tuskPoint, 50, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
+                                }
+                            }
+                        }
+
                     }
-                    
+                }*/
+
+                #endregion
+
+                #region Reject Player
+
+                if (playerHeldBy.KarmaCap < 1)
+                {
+                    rejectTime++;
+                    soundLoop.Volume = 1f;
+                    soundLoop.Pitch = 1f + rejectTime / 100f;
                 }
-            }*/
+                else
+                {
+                    soundLoop.Volume = 0f;
+                    rejectTime = 0;
+                }
+                if (rejectTime > 0 && rejectTime % 10 == 0)
+                {
+                    room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, new(1f, 0f, 0f)));
+                }
+                if (rejectTime == 50f)
+                {
+                    soundLoop.Volume = 0f;
+                    room.PlaySound(SoundID.Centipede_Shock, playerHeldBy.mainBodyChunk.pos, 1f, 1f);
+                    room.AddObject(new Explosion(room, this, firstChunk.pos, 10, 50, 50, 0, 10, 0.1f, null, 0f, 10, 10));
+                    room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
+                    room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
+                    room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
+                    playerHeldBy.Stun(200);
+                    room.AddObject(new CreatureSpasmer(playerHeldBy, false, playerHeldBy.stun));
+                    playerHeldBy.LoseAllGrasps();
+                    rejectTime = 0f;
+                }
+                #endregion
 
-            #endregion
+                #region Rotation
 
-            #region Reject Player
+                int grasp;
+                if (grabbedBy[0].graspUsed == 0) { grasp = -1; }
+                else { grasp = 1; }
 
-            if (playerHeldBy.KarmaCap < 1)
-            {
-                rejectTime++;
-                soundLoop.Volume = 1f;
-                soundLoop.Pitch = 1f + rejectTime / 100f;
+                if (input.x != 0 || input.y != 0)
+                {
+                    aimDirection = Custom.DirVec(grabbedBy[0].grabber.mainBodyChunk.pos, grabbedBy[0].grabber.mainBodyChunk.pos + new Vector2(input.x, input.y));
+                    if (aimDirection.x != 0f)
+                    {
+                        lastDirection = aimDirection.x;
+                    }
+                }
+
+                (playerHeldBy.graphicsModule as PlayerGraphics).LookAtPoint(playerHeldBy.mainBodyChunk.pos + aimDirection * 100, 10f);
+                Vector2 playerUpVec = Custom.DirVec(playerHeldBy.bodyChunks[1].pos, playerHeldBy.bodyChunks[0].pos);
+                SlugcatHand hand = (playerHeldBy.graphicsModule as PlayerGraphics).hands[grabbedBy[0].graspUsed];
+
+                if (useBool == false)
+                {
+                    useTime = 1;
+                    if (grasp == -1) { faceDirection = "left"; }
+                    if (grasp == 1) { faceDirection = "right"; }
+                    if (playerHeldBy.bodyMode == Player.BodyModeIndex.Crawl
+                        || playerHeldBy.bodyMode == Player.BodyModeIndex.CorridorClimb
+                        || playerHeldBy.bodyMode == Player.BodyModeIndex.ClimbIntoShortCut
+                        || playerHeldBy.animation == Player.AnimationIndex.ClimbOnBeam
+                        || playerHeldBy.animation == Player.AnimationIndex.Flip
+                        || playerHeldBy.animation == Player.AnimationIndex.Roll
+                        || playerHeldBy.animation == Player.AnimationIndex.BellySlide
+                        || playerHeldBy.animation == Player.AnimationIndex.ZeroGSwim
+                        || playerHeldBy.animation == Player.AnimationIndex.ZeroGPoleGrab)
+                    {
+                        rotation = playerUpVec;
+                    }
+                    else if (playerHeldBy.animation == Player.AnimationIndex.HangFromBeam)
+                    {
+                        rotation = Custom.rotateVectorDeg(playerUpVec, 90f);
+                    }
+                    else
+                    {
+                        rotation = Custom.rotateVectorDeg(playerUpVec, 30f * grasp);
+                    }
+                    holdDir = Custom.DirVec(playerHeldBy.mainBodyChunk.pos, firstChunk.pos);
+                }
+
+                if (useBool == true)
+                {
+                    useTime++;
+                    hand.reachingForObject = true;
+                    hand.huntSpeed = 400f / maxUseTime;
+
+                    float maxRotation = 60f;
+                    if (holdDir != null && holdDir.x * aimDirection.x > 0)
+                    {
+                        maxRotation = 100f;
+                    }
+
+                    if (usedNum == 0)
+                    {
+                        if (useTime < maxUseTime * 0.4f)
+                        {
+                            hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -maxRotation) * 80f;
+                            faceDirection = "right";
+                        }
+                        else if (useTime < maxUseTime * 0.6f)
+                        {
+                            hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -30f) * 80f;
+                            faceDirection = "right";
+                        }
+                        else if (useTime < maxUseTime * 0.8f)
+                        {
+                            hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, 30f) * 80f;
+                            faceDirection = "right";
+                        }
+                        else if (useTime >= maxUseTime * 0.8f)
+                        {
+                            hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, maxRotation) * 80f;
+                            faceDirection = "right";
+                        }
+                    }
+                    else
+                    {
+                        if (useTime < maxUseTime * 0.4f)
+                        {
+                            hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, maxRotation) * 80f;
+                            faceDirection = "left";
+                        }
+                        else if (useTime < maxUseTime * 0.6f)
+                        {
+                            hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, 30f) * 80f;
+                            faceDirection = "left";
+                        }
+                        else if (useTime < maxUseTime * 0.8f)
+                        {
+                            hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -30f) * 80f;
+                            faceDirection = "left";
+                        }
+                        else if (useTime >= maxUseTime * 0.8f)
+                        {
+                            hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -maxRotation) * 80f;
+                            faceDirection = "left";
+                        }
+                    }
+                    if (useTime > 3)
+                    {
+                        rotation = Custom.DirVec(playerHeldBy.mainBodyChunk.pos, hand.pos);
+                    }
+                    if (useTime == 3)
+                    {
+                        room.PlaySound(SoundID.Slugcat_Throw_Spear, firstChunk.pos, 0.5f, 1.5f);
+                    }
+                    if (useTime > maxUseTime)
+                    {
+                        useBool = false;
+                    }
+                }
+
+                #endregion
             }
             else
             {
+                playerHeldBy = null;
+                if (charge > 0)
+                {
+                    charge--;
+                }
+                charged = false;
                 soundLoop.Volume = 0f;
-                rejectTime = 0;
-            }
-            if (rejectTime > 0 && rejectTime % 10 == 0)
-            {
-                room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, new(1f, 0f, 0f)));
-            }
-            if (rejectTime == 50f)
-            {
-                soundLoop.Volume = 0f;
-                room.PlaySound(SoundID.Centipede_Shock, playerHeldBy.mainBodyChunk.pos, 1f, 1f);
-                room.AddObject(new Explosion(room, this, firstChunk.pos, 10, 50, 50, 0, 10, 0.1f, null, 0f, 10, 10));
-                room.AddObject(new Explosion.ExplosionLight(firstChunk.pos, 100f, 1f, 5, swordColor));
-                room.AddObject(new ExplosionSpikes(room, firstChunk.pos, 14, 2f, 5f, 7f, 100f, swordColor));
-                room.AddObject(new ShockWave(firstChunk.pos, 100f, 0.05f, 5, false));
-                playerHeldBy.Stun(200);
-                room.AddObject(new CreatureSpasmer(playerHeldBy, false, playerHeldBy.stun));
-                playerHeldBy.LoseAllGrasps();
                 rejectTime = 0f;
-            }
-            #endregion
 
-            #region Rotation
-
-            int grasp;
-            if (grabbedBy[0].graspUsed == 0) { grasp = -1; }
-            else { grasp = 1; }
-
-            if (input.x != 0 || input.y != 0)
-            {
-                aimDirection = Custom.DirVec(grabbedBy[0].grabber.mainBodyChunk.pos, grabbedBy[0].grabber.mainBodyChunk.pos + new Vector2(input.x, input.y));
-                if (aimDirection.x != 0f)
+                if (firstChunk.ContactPoint.y < 0)
                 {
-                    lastDirection = aimDirection.x;
-                }
-            }
+                    if (rotation.x > 0)
+                    {
+                        rotation = Custom.DegToVec(90);
+                    }
+                    else
+                    {
+                        rotation = Custom.DegToVec(270);
+                    }
 
-            (playerHeldBy.graphicsModule as PlayerGraphics).LookAtPoint(playerHeldBy.mainBodyChunk.pos + aimDirection * 100, 10f);
-            Vector2 playerUpVec = Custom.DirVec(playerHeldBy.bodyChunks[1].pos, playerHeldBy.bodyChunks[0].pos);
-            SlugcatHand hand = (playerHeldBy.graphicsModule as PlayerGraphics).hands[grabbedBy[0].graspUsed];
-
-            if (useBool == false)
-            {
-                useTime = 1;
-                if (grasp == -1) { faceDirection = "left"; }
-                if (grasp == 1) { faceDirection = "right"; }
-                if (playerHeldBy.bodyMode == Player.BodyModeIndex.Crawl
-                    || playerHeldBy.bodyMode == Player.BodyModeIndex.CorridorClimb
-                    || playerHeldBy.bodyMode == Player.BodyModeIndex.ClimbIntoShortCut
-                    || playerHeldBy.animation == Player.AnimationIndex.ClimbOnBeam
-                    || playerHeldBy.animation == Player.AnimationIndex.Flip
-                    || playerHeldBy.animation == Player.AnimationIndex.Roll
-                    || playerHeldBy.animation == Player.AnimationIndex.BellySlide
-                    || playerHeldBy.animation == Player.AnimationIndex.ZeroGSwim
-                    || playerHeldBy.animation == Player.AnimationIndex.ZeroGPoleGrab)
-                {
-                    rotation = playerUpVec;
-                }
-                else if (playerHeldBy.animation == Player.AnimationIndex.HangFromBeam)
-                {
-                    rotation = Custom.rotateVectorDeg(playerUpVec, 90f);
+                    BodyChunk firstChunk = base.firstChunk;
+                    firstChunk.vel.x = firstChunk.vel.x * 0.1f;
                 }
                 else
                 {
-                    rotation = Custom.rotateVectorDeg(playerUpVec, 30f * grasp);
-                }
-                holdDir = Custom.DirVec(playerHeldBy.mainBodyChunk.pos, firstChunk.pos);
-            }
-
-            if (useBool == true)
-            {
-                useTime++;
-                hand.reachingForObject = true;
-                hand.huntSpeed = 400f / maxUseTime;
-
-                float maxRotation = 60f;
-                if (holdDir != null && holdDir.x * aimDirection.x > 0)
-                {
-                    maxRotation = 100f;
-                }
-
-                if (usedNum == 0)
-                {
-                    if (useTime < maxUseTime * 0.4f)
+                    rotation = Custom.rotateVectorDeg(rotation, spinSpeed);
+                    if (spinSpeed < 0)
                     {
-                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -maxRotation) * 80f;
-                        faceDirection = "right";
-                    }
-                    else if (useTime < maxUseTime * 0.6f)
-                    {
-                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -30f) * 80f;
-                        faceDirection = "right";
-                    }
-                    else if (useTime < maxUseTime * 0.8f)
-                    {
-                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, 30f) * 80f;
-                        faceDirection = "right";
-                    }
-                    else if (useTime >= maxUseTime * 0.8f)
-                    {
-                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, maxRotation) * 80f;
-                        faceDirection = "right";
-                    }
-                }
-                else
-                {
-                    if (useTime < maxUseTime * 0.4f)
-                    {
-                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, maxRotation) * 80f;
                         faceDirection = "left";
                     }
-                    else if (useTime < maxUseTime * 0.6f)
+                    else
                     {
-                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, 30f) * 80f;
-                        faceDirection = "left";
+                        faceDirection = "right";
                     }
-                    else if (useTime < maxUseTime * 0.8f)
-                    {
-                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -30f) * 80f;
-                        faceDirection = "left";
-                    }
-                    else if (useTime >= maxUseTime * 0.8f)
-                    {
-                        hand.absoluteHuntPos = playerHeldBy.mainBodyChunk.pos + Custom.rotateVectorDeg(aimDirection, -maxRotation) * 80f;
-                        faceDirection = "left";
-                    }
-                }
-                if (useTime > 3)
-                {
-                    rotation = Custom.DirVec(playerHeldBy.mainBodyChunk.pos, hand.pos);
-                }
-                if (useTime == 3)
-                {
-                    room.PlaySound(SoundID.Slugcat_Throw_Spear, firstChunk.pos, 0.5f, 1.5f);
-                }
-                if (useTime > maxUseTime)
-                {
-                    useBool = false;
                 }
             }
 
             #endregion
-        }
-        else
-        {
-            playerHeldBy = null;
-            if (charge > 0)
+
+            #region Used
+
+            if (parryNum >= 3)
             {
-                charge--;
+                ActivateLongCooldown();
             }
-            charged = false;
-            soundLoop.Volume = 0f;
-            rejectTime = 0f;
 
-            if (firstChunk.ContactPoint.y < 0)
+            #endregion
+
+            if (cooldown > 0)
             {
-                if (rotation.x > 0)
-                {
-                    rotation = Custom.DegToVec(90);
-                }
-                else
-                {
-                    rotation = Custom.DegToVec(270);
-                }
+                cooldown--;
+            }
 
-                BodyChunk firstChunk = base.firstChunk;
-                firstChunk.vel.x = firstChunk.vel.x * 0.1f;
+            #endregion
+
+            #region Visuals
+
+            float alpha;
+            if (charged)
+            {
+                alpha = 1f;
             }
             else
             {
-                rotation = Custom.rotateVectorDeg(rotation, spinSpeed);
-                if (spinSpeed < 0)
-                {
-                    faceDirection = "left";
-                }
-                else
-                {
-                    faceDirection = "right";
-                }
+                alpha = 1f * (charge / (1000 / playerMaxKarma));
             }
-        }
-
-        #endregion
-
-        #region Used
-
-        if (parryNum >= 3)
-        {
-            ActivateLongCooldown();
-        }
-
-        #endregion
-
-        if (cooldown > 0)
-        {
-            cooldown--;
-        }
-
-        #endregion
-
-        #region Visuals
-
-        float alpha;
-        if (charged)
-        {
-            alpha = 1f;
-        }
-        else
-        {
-            alpha = 1f * (charge / (1000 / playerMaxKarma));
-        }
 
 
-        if (lightSource1 == null)
-        {
-            lightSource1 = new LightSource(firstChunk.pos, true, swordColor, this);
-            lightSource1.affectedByPaletteDarkness = 0.5f;
-            room.AddObject(lightSource1);
-        }
-        else
-        {
-            lightSource1.setPos = new Vector2?(firstChunk.pos + rotation * 30);
-            lightSource1.setRad = new float?(100f);
-            lightSource1.setAlpha = new float?(0.5f * alpha);
-            if (lightSource1.slatedForDeletetion || lightSource1.room != room)
+            if (lightSource1 == null)
             {
-                lightSource1 = null;
+                lightSource1 = new LightSource(firstChunk.pos, true, swordColor, this);
+                lightSource1.affectedByPaletteDarkness = 0.5f;
+                room.AddObject(lightSource1);
             }
+            else
+            {
+                lightSource1.setPos = new Vector2?(firstChunk.pos + rotation * 30);
+                lightSource1.setRad = new float?(100f);
+                lightSource1.setAlpha = new float?(0.5f * alpha);
+                if (lightSource1.slatedForDeletetion || lightSource1.room != room)
+                {
+                    lightSource1 = null;
+                }
+            }
+            #endregion
+
         }
-        #endregion
     }
 
     public override void TerrainImpact(int chunk, IntVector2 direction, float speed, bool firstContact)
@@ -570,9 +561,9 @@ public class ParrySword : Weapon, IDrawable
             playerHeldBy.bodyChunks[1].vel -= aimDirection * 2f;
             /*
             if (usedNum == 0)
-            { room.AddObject(new ColoredRectangle(room, playerHeldBy.mainBodyChunk.pos, 20f, 20f, 45f, new(1f, 0f, 0f), 10)); }
+            { room.AddObject(new ColoredRectangle(room, playerHeldBy.mainBodyChunk.segPos, 20f, 20f, 45f, new(1f, 0f, 0f), 10)); }
             else
-            { room.AddObject(new ColoredRectangle(room, playerHeldBy.mainBodyChunk.pos, 20f, 20f, 45f, new(0f, 0f, 1f), 10)); }
+            { room.AddObject(new ColoredRectangle(room, playerHeldBy.mainBodyChunk.segPos, 20f, 20f, 45f, new(0f, 0f, 1f), 10)); }
             */
             usedNum++;
             if (usedNum > 1)
@@ -739,7 +730,7 @@ public class ParrySword : Weapon, IDrawable
             for (int i = 0; i < positions.Length; i++)
             {
                 Vector3 newPos = splineSolver.getPoint(1f * (i / (float)positions.Length));
-                //Debug.Log("I: " + i + " Length: " + positions.Length + " Result: " + i / (float)positions.Length);
+                //Debug.Log("I: " + i + " Length: " + numOfPositions.Length + " Result: " + i / (float)numOfPositions.Length);
                 positions[i] = new Vector2(newPos.x, newPos.y);
             }
 
@@ -770,14 +761,15 @@ public class ParrySword : Weapon, IDrawable
                 mesh.isVisible = true;
                 mesh2.isVisible = true;
 
+                /*
                 if (room.game.devToolsActive)
                 {
-                    foreach (Vector2 position in positions)
+                    foreach (Vector2 position in numOfPositions)
                     { room.AddObject(new ColoredShapes.Rectangle(room, position, 1.5f, 1.5f, 45f, "Red", 1)); }
                     foreach (Vector2 position in lastTipPositions)
                     { room.AddObject(new ColoredShapes.Rectangle(room, position, 1.5f, 1.5f, 45f, "Green", 1)); }
                     room.AddObject(new ColoredShapes.Rectangle(room, lastTipPositions[0], 2f, 2f, 45f, "Yellow", 1));
-                }
+                }*/
             }
             else
             { mesh.isVisible = false; mesh2.isVisible = false; }
@@ -847,7 +839,7 @@ public class ParrySword : Weapon, IDrawable
                                         //room.AddObject(new ExplosionSpikes(room, tuskPos2, 14, 1f, 2f, 7f, 5f, new(0f, 1f, 0f)));
                                         //room.AddObject(new ExplosionSpikes(room, tuskPoint, 14, 1f, 2f, 7f, 5f, new(0f, 0f, 1f)));
 
-                                        if (vulture.kingTusks.tusks[k].mode == KingTusks.Tusk.Mode.ShootingOut && Custom.DistNoSqrt(tuskPoint, position) < collisionRange)
+                                        if (vulture.kingTusks.tusks[k].aimMode == KingTusks.Tusk.Mode.ShootingOut && Custom.DistNoSqrt(tuskPoint, position) < collisionRange)
                                         {
                                             UnityEngine.Debug.Log("Parried object, King Vulture Harpoon");
                                             //vulture.kingTusks.tusks[k].SwitchMode(KingTusks.Tusk.Mode.Dangling);
@@ -857,10 +849,10 @@ public class ParrySword : Weapon, IDrawable
                                 }
                                 if (obj is Weapon && obj.firstChunk.vel.magnitude > 5)
                                 {
-                                    if (Custom.DistNoSqrt(obj.firstChunk.pos, position) < collisionRange)
+                                    if (Custom.DistNoSqrt(obj.firstChunk.segPos, position) < collisionRange)
                                     {
                                         UnityEngine.Debug.Log("Parried object, " + obj.GetType() + "Velocity: " + obj.firstChunk.vel.magnitude);
-                                        //(obj as Weapon).WeaponDeflect(Vector2.Lerp(position, obj.firstChunk.pos, 0.5f), rotation * obj.firstChunk.vel.magnitude * 2, 1.1f);
+                                        //(obj as Weapon).WeaponDeflect(Vector2.Lerp(position, obj.firstChunk.segPos, 0.5f), floatRotation * obj.firstChunk.vel.magnitude * 2, 1.1f);
                                         //(obj as Weapon).ChangeMode(Weapon.Mode.Thrown);
                                         entityDetected = true;
                                     }

@@ -1,71 +1,100 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net.WebSockets;
-using System.Text.RegularExpressions;
-using System.Windows.Forms;
-using DevConsole;
-using DevInterface;
-using HarmonyLib;
-using IL.MoreSlugcats;
-using RWCustom;
-using UnityEngine;
-using static ArchdruidsAdditions.Methods.Methods;
-using Random = UnityEngine.Random;
+using System.Reflection;
 
 namespace ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
 public class CloudFish : AirBreatherCreature, IPlayerEdible
 {
-    public CloudFishAI AI;
-
     public Rope[] connectionRopes;
+    public TailSegment[] tail;
+    public SharedPhysics.TerrainCollisionData tailCollisionData;
 
     public int tailLength;
-    public TailSegment[] tail;
-    public SharedPhysics.TerrainCollisionData collisionData;
+    public int numOfBodySegments;
+    public Vector2[,] BodySegmentPositions
+    {
+        get
+        {
+            Vector2[,] bodySegmentPositions = new Vector2[bodyChunks.Length + tailLength, 2];
+
+            int index = 0;
+            for (int i = 0; i < bodyChunks.Length; i++)
+            {
+                bodySegmentPositions[index, 0] = bodyChunks[i].pos;
+                bodySegmentPositions[index, 1] = bodyChunks[i].lastPos;
+                index++;
+            }
+
+            if (tail != null)
+            {
+                for (int i = 0; i < tail.Length; i++)
+                {
+                    bodySegmentPositions[index, 0] = tail[i].pos;
+                    bodySegmentPositions[index, 1] = tail[i].lastPos;
+                    index++;
+                }
+            }
+
+            return bodySegmentPositions;
+        }
+    }
+    public float[] BodySegmentWidths
+    {
+        get
+        {
+            if (this.bodySegmentWidths != null)
+            { return this.bodySegmentWidths; }
+
+            List<float> bodySegmentWidths = [];
+            for (int i = 0; i < bodyChunks.Length; i++)
+            {
+                bodySegmentWidths.Add(bodyChunks[i].rad);
+            }
+
+            for (int i = 0; i < tailLength; i++)
+            {
+                bodySegmentWidths.Add(Mathf.Lerp(bodyChunks[bodyChunks.Length - 1].rad, 0f, (float)(i + 1) / tailLength));
+            }
+
+            this.bodySegmentWidths = [..bodySegmentWidths];
+            return this.bodySegmentWidths;
+        }
+    }
+    public float[] bodySegmentWidths = null;
 
     public Vector2 rotation;
     public Vector2 lastRotation;
+
+    public CloudFishAI AI;
     public WorldCoordinate lastExitUsed;
     public float dominance;
-    public int bites;
-    public bool eaten;
 
     public int whistleTimer;
 
-    public Smoke.NewVultureSmoke smoke = null;
-    public bool emittingSmoke = false;
-    public bool releasedSmoke = false;
-
-    public bool pullOnChunks;
-
-    public int BitesLeft { get { return bites; } }
-    public int FoodPoints { get { return 1; } }
-    public bool Edible { get { return true; } }
-    public bool AutomaticPickUp { get { return true; } }
+    public int ignoreChunk;
 
     public CloudFish(AbstractCreature abstractCreature, World world) : base(abstractCreature, world)
     {
         bodyChunks = new BodyChunk[3];
         for (int i = 0; i < bodyChunks.Length; i++)
         {
-            bodyChunks[i] = new(this, 0, default, 4f, 0.05f);
+            bodyChunks[i] = new(this, 0, default, 4f, 0.04f);
         }
 
         List<BodyChunkConnection> newBodyChunkConnections = [];
-        for (int i = 0; i < bodyChunks.Length - 1; i++)
+        for (int i = 0; i < bodyChunks.Length; i++)
         {
-            for (int j = i + 2; j < bodyChunks.Length; j++)
+            for (int j = i + 1; j < bodyChunks.Length; j++)
             {
-                BodyChunkConnection newConnection2 = new(bodyChunks[i], bodyChunks[j], (bodyChunks[i].rad + bodyChunks[j].rad) * 2, BodyChunkConnection.Type.Push, 1f, -1f);
+                BodyChunkConnection newConnection2 = new(bodyChunks[i], bodyChunks[j], bodyChunks[i].rad + bodyChunks[j].rad, BodyChunkConnection.Type.Push, 1f, -1f);
                 newBodyChunkConnections.Add(newConnection2);
             }
         }
         bodyChunkConnections = [.. newBodyChunkConnections];
 
-        gravity = 0.1f;
+        gravity = 0.9f;
         airFriction = 0.999f;
         bounce = 0.2f;
         surfaceFriction = 0.2f;
@@ -75,7 +104,6 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
 
         GoThroughFloors = true;
         bites = 4;
-        eaten = false;
         rotation = new(1, 0);
 
         CloudFishAbstractAI abstractAI = abstractCreature.abstractAI as CloudFishAbstractAI;
@@ -88,47 +116,15 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
         Random.State state = Random.state;
         Random.InitState(abstractCreature.ID.RandomSeed);
 
-        tailLength = Random.Range(8, 9);
+        tailLength = Random.Range(5, 4);
+
+        numOfBodySegments = bodyChunks.Length + tailLength;
 
         Random.state = state;
     }
 
-    public override void PlaceInRoom(Room placeRoom)
-    {
-        base.PlaceInRoom(placeRoom);
-        AI.pathFinder.Reset(placeRoom);
+    #region Behavior
 
-        for (int i = 0; i < tail.Length; i++)
-        {
-            if (i == 0 || i == 1)
-            {
-                tail[i].pos = bodyChunks[i + 1].pos;
-            }
-            else
-            {
-                tail[i].pos = bodyChunks[2].pos;
-            }
-        }
-    }
-    public override void NewRoom(Room newRoom)
-    {
-        base.NewRoom(newRoom);
-
-        connectionRopes = new Rope[bodyChunks.Length - 1];
-        for (int i = 0; i < connectionRopes.Length; i++)
-        {
-            connectionRopes[i] = new(newRoom, bodyChunks[i].pos, bodyChunks[i + 1].pos, 1f);
-        }
-
-        tail = new TailSegment[tailLength];
-        tail[0] = new(newRoom, this, 10, 4, 20, bodyChunks[0].pos, null);
-        TailSegment lastSegment = tail[0];
-        for (int i = 1; i < tail.Length; i++)
-        {
-            tail[i] = new(newRoom, this, 10, Mathf.Lerp(4, 0, (float)i / tailLength), 20, null, lastSegment);
-            lastSegment = tail[i];
-        }
-    }
     public override void Update(bool eu)
     {
         float section = 0;
@@ -136,119 +132,354 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
         try
         {
             section = 1;
+
             base.Update(eu);
 
-            for (int i = 0; i < connectionRopes.Length - 1; i++)
-            {
-                ConnectSegments(i, i + 1);
-            }
-            for (int i = connectionRopes.Length - 1; i > 0; i--)
-            {
-                ConnectSegments(i, i + 1);
-            }
-
-            tail[0].SetConnectPos(bodyChunks[0].pos);
-            for (int i = 0; i < tail.Length; i++)
-            {
-                TailSegment segment = tail[i];
-                segment.Update();
-                segment.gravity = gravity;
-
-                if (i == 0 || i == 1)
-                {
-                    BodyChunk chunk = bodyChunks[i + 1];
-                    Vector2 chunkDir = Custom.DirVec(chunk.pos, bodyChunks[i].pos);
-
-                    if (Consious)
-                    {
-                        chunk.vel = chunkDir * bodyChunks[i].vel.magnitude;
-                    }
-
-                    segment.pos = chunk.pos;
-                    segment.vel = chunk.vel;
-                }
-            }
-
-            lastRotation = rotation;
-            if (Consious)
-            {
-                if (firstChunk.vel.magnitude > 1f)
-                {
-                    rotation = firstChunk.vel.normalized;
-                }
-            }
-            else
-            {
-                rotation = Custom.DirVec(bodyChunks[1].pos, bodyChunks[0].pos);
-            }
-
-            GoThroughFloors = true;
-
-            if (!dead)
-            {
-                ChangeCollisionLayer(1);
-                releasedSmoke = false;
-            }
-            else
-            {
-                ChangeCollisionLayer(1);
-            }
-
-            section = 2;
             if (room != null)
             {
-                if (Consious)
+                bool ignoreTail = bites < 4;
+
+                if (!ignoreTail)
                 {
-                    section = 2.1f;
+                    tail[0].setConnectedPos = bodyChunks[bodyChunks.Length - 1].pos;
+                    for (int i = 0; i < tail.Length; i++)
+                    {
+                        tail[i].Update();
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < tail.Length; i++)
+                    {
+                        tail[i].lastPos = tail[i].pos;
+                        tail[i].pos = bodyChunks[2].pos + Custom.DirVec(bodyChunks[1].pos, bodyChunks[2].pos);
+                    }
+                }    
+
+                ignoreChunk = -1;
+                if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Vulture vulture)
+                {
+                    Vector2 neckPos = vulture.neck.tChunks[vulture.neck.tChunks.Length - 1].pos;
+                    Vector2 headPos = vulture.Head().pos;
+                    grabbedBy[0].grabbedChunk.pos = neckPos + Custom.DirVec(neckPos, headPos) * 20f;
+                    ignoreChunk = bodyChunks.IndexOf(grabbedBy[0].grabbedChunk);
+                }
+                else
+                {
+                    foreach (AbstractCreature creature in room.abstractRoom.creatures)
+                    {
+                        if (creature.realizedCreature != null && creature.realizedCreature is Vulture vulture2 && vulture2.IsKing)
+                        {
+                            foreach (KingTusks.Tusk tusk in vulture2.kingTusks.tusks)
+                            {
+                                if (tusk.impaleChunk != null && bodyChunks.Contains(tusk.impaleChunk))
+                                {
+                                    ignoreChunk = bodyChunks.IndexOf(tusk.impaleChunk);
+
+                                    Vector2 headPos = vulture2.Head().pos;
+                                    tusk.impaleChunk.vel += Custom.DirVec(tusk.impaleChunk.pos, headPos) * 1f;
+
+                                    goto End;
+                                }
+                            }
+                        }
+                    }
+                End:;
+                }
+
+                if (enteringShortCut == null)
+                {
+                    for (int i = 0; i < connectionRopes.Length - 1; i++)
+                    {
+                        ConnectSegments(i, i + 1);
+                    }
+                    for (int i = connectionRopes.Length - 1; i >= 0; i--)
+                    {
+                        ConnectSegments(i, i + 1);
+                    }
+
+                    if (!ignoreTail)
+                    {
+                        Vector2 lastSegmentPos = GetSegmentPos(0);
+                        Vector2 lastSegmentVel = GetSegmentVel(0);
+                        Vector2 lastSegmentRot = Custom.DirVec(GetSegmentPos(1), lastSegmentPos);
+                        float maxLength = 0;
+
+                        bool pushTail = false;
+                        for (int i = 1; i < bodyChunks.Length + tail.Length; i++)
+                        {
+                            Vector2 segmentPos = GetSegmentPos(i);
+                            Vector2 segmentVel = GetSegmentVel(i);
+
+                            Vector2 segmentRot = Custom.DirVec(segmentPos, lastSegmentPos);
+                            float segmentLength = GetSegmentLength(i - 1, i);
+                            float dist = Custom.Dist(segmentPos, lastSegmentPos);
+
+                            if (i != ignoreChunk)
+                            {
+                                if (gravity == 0)
+                                {
+                                    UpdateSegmentVel(i, segmentRot * lastSegmentVel.magnitude * Mathf.InverseLerp(-5f, 0f, dist - segmentLength));
+                                }
+                                else
+                                {
+                                    pushTail = true;
+
+                                    bool bodyChunk = SegmentIsBodyChunk(i);
+
+                                    if ((bodyChunk && bodyChunks[i].ContactPoint.y != 0) || (!bodyChunk && tail[i - bodyChunks.Length].contactPoint.y != 0))
+                                    {
+                                        pushTail = true;
+                                    }
+
+
+                                }
+                            }
+
+                            lastSegmentPos = segmentPos;
+                            lastSegmentVel = segmentVel;
+                            lastSegmentRot = segmentRot;
+                            maxLength += segmentLength;
+                        }
+
+                        int tailIndex = bodyChunks.Length + tail.Length - 1;
+                        float length = Custom.Dist(GetSegmentPos(0), GetSegmentPos(tailIndex));
+                        if (pushTail)
+                        {
+                            Vector2 pushDir = Custom.DirVec(GetSegmentPos(0), GetSegmentPos(1)) * Mathf.Lerp(1f, 0f, length / maxLength);
+
+                            UpdateSegmentVel(0, GetSegmentVel(0) - pushDir);
+                            UpdateSegmentVel(tailIndex, GetSegmentVel(tailIndex) + pushDir);
+                        }
+                    }
+                }
+
+                section = 2;
+
+                if (Consious && !dead)
+                {
+                    gravity = 0;
+
                     Act();
-
-                    gravity = 0f;
-                    bounce = 0.2f;
-
-                    IntVector2 tilePos = room.GetTilePosition(firstChunk.pos);
-                    Room.Tile tile = room.GetTile(firstChunk.pos);
-                    if (shortcutDelay == 0 && tile.Terrain == Room.Tile.TerrainType.ShortcutEntrance && room.shortcutData(tilePos).shortCutType != ShortcutData.Type.DeadEnd)
-                    {
-                        enteringShortCut = tilePos;
-                    }
-
-                    lungs = 1f;
                 }
                 else
                 {
-                    section = 2.2f;
-
                     gravity = 0.9f;
-                    if (room.gravity < 0.1f)
-                    { bounce = 0.4f; }
-                    else
-                    { bounce = 0.2f; }
-
-                    AI.behavior = CloudFishAI.Behavior.Flee;
-                    AI.fleeCounter = 0;
                 }
 
-                section = 2.3f;
-                if (grabbedBy.Count > 0 && grabbedBy[0].grabber is not Player)
-                {
-                    foreach (RoomCamera camera in room.game.cameras)
-                    {
-                        camera.MoveObjectToContainer(graphicsModule, camera.ReturnFContainer("Background"));
-                    }
-                }
-                else
-                {
-                    foreach (RoomCamera camera in room.game.cameras)
-                    {
-                        camera.MoveObjectToContainer(graphicsModule, camera.ReturnFContainer("Midground"));
-                    }
-                }
+                section = 3;
             }
         }
         catch (Exception e)
         {
             Log_Exception(e, "CLOUDFISH UPDATE", section);
         }
+    }
+    public void Act()
+    {
+        AI.Update();
+    }
+    public override void Die()
+    {
+        if (!dead)
+        {
+            room?.PlaySound(Enums.NewSoundID.AA_CloudFishDeath, firstChunk.pos, 2f, Random.Range(1f, 1.4f));
+
+            if (AI != null && AI.trackedCreatures != null && AI.trackedCreatures.Count > 0)
+            {
+                foreach (CloudFishAI.TrackedObject obj in AI.trackedCreatures)
+                {
+                    if (obj.obj is CloudFish cloudFish && Custom.DistLess(firstChunk.pos, cloudFish.firstChunk.pos, 1000) && cloudFish.room != null)
+                    {
+                        cloudFish.AI.fleeCounter = 0;
+                        cloudFish.AI.abstractAI.behavior = CloudFishAI.Behavior.Flee;
+                        cloudFish.AI.lastDangerRoom = cloudFish.room;
+                    }
+                }
+            }
+        }
+
+        base.Die();
+    }
+
+    #endregion
+
+    #region Physics
+
+    public override void PlaceInRoom(Room placeRoom)
+    {
+        base.PlaceInRoom(placeRoom);
+        AI.pathFinder.Reset(placeRoom);
+    }
+    public override void NewRoom(Room newRoom)
+    {
+        base.NewRoom(newRoom);
+
+        tail = new TailSegment[tailLength];
+        TailSegment lastSegment = tail[0];
+        for (int i = 0; i < tail.Length; i++)
+        {
+            if (i == 0)
+            {
+                tail[i] = new(newRoom, this, 10, BodySegmentWidths[i + bodyChunks.Length], 20, bodyChunks[0].pos, null);
+            }
+            else
+            {
+                tail[i] = new(newRoom, this, 10, BodySegmentWidths[i + bodyChunks.Length], 20, null, lastSegment);
+            }
+            lastSegment = tail[i];
+        }
+
+        connectionRopes = new Rope[bodyChunks.Length + tail.Length - 1];
+        int bodyChunkIndex = 0;
+        int tailIndex = 0;
+        for (int i = 0; i < connectionRopes.Length; i++)
+        {
+            if (i < bodyChunks.Length - 1)
+            {
+                connectionRopes[i] = new(newRoom, bodyChunks[bodyChunkIndex].pos, bodyChunks[bodyChunkIndex + 1].pos, 1f);
+                bodyChunkIndex++;
+            }
+            else if (i == bodyChunks.Length - 1)
+            {
+                connectionRopes[i] = new(newRoom, bodyChunks[bodyChunkIndex].pos, tail[0].pos, 1f);
+            }
+            else
+            {
+                connectionRopes[i] = new(newRoom, tail[tailIndex].pos, tail[tailIndex + 1].pos, 1f);
+                tailIndex++;
+            }
+        }
+    }
+    public bool SegmentIsBodyChunk(int index)
+    {
+        if (index < bodyChunks.Length)
+        {
+            return true;
+        }
+        return false;
+    }
+    public Vector2 GetSegmentPos(int index)
+    {
+        if (SegmentIsBodyChunk(index))
+        {
+            return bodyChunks[index].pos;
+        }
+        else
+        {
+            return tail[index - bodyChunks.Length].pos;
+        }
+    }
+    public Vector2 GetSegmentVel(int index)
+    {
+        if (SegmentIsBodyChunk(index))
+        {
+            return bodyChunks[index].vel;
+        }
+        else
+        {
+            return tail[index - bodyChunks.Length].vel;
+        }
+    }
+    public float GetSegmentLength(int indexA, int indexB)
+    {
+        if (SegmentIsBodyChunk(indexB))
+        {
+            return bodyChunks[indexA].rad + bodyChunks[indexB].rad;
+        }
+        else
+        {
+            return tail[indexB - bodyChunks.Length].segmentLength;
+        }
+    }
+    public float GetSegmentMass(int index)
+    {
+        if (SegmentIsBodyChunk(index))
+        {
+            return bodyChunks[index].mass;
+        }
+        else
+        {
+            return 0.02f;
+        }
+    }
+    public void UpdateSegmentPos(int index, Vector2 newPos)
+    {
+        if (SegmentIsBodyChunk(index))
+        {
+            bodyChunks[index].pos = newPos;
+        }
+        else
+        {
+            tail[index - bodyChunks.Length].pos = newPos;
+        }
+    }
+    public void UpdateSegmentVel(int index, Vector2 newVel)
+    {
+        if (SegmentIsBodyChunk(index))
+        {
+            bodyChunks[index].vel = newVel;
+        }
+        else
+        {
+            tail[index - bodyChunks.Length].vel = newVel;
+        }
+    }
+    public void ConnectSegments(int indexA, int indexB)
+    {
+        if (bites < 4 && indexB > bites - 1 && !SegmentIsBodyChunk(indexB))
+        {
+            return;
+        }
+
+        Rope rope = indexA < indexB ? connectionRopes[indexA] : connectionRopes[indexB];
+        Vector2 segmentAPos = GetSegmentPos(indexA);
+        Vector2 segmentBPos = GetSegmentPos(indexB);
+
+        rope.Update(segmentAPos, segmentBPos);
+
+        float ropeLength = rope.totalLength;
+        float segmentLength = GetSegmentLength(indexA, indexB);
+
+        if (ropeLength > segmentLength)
+        {
+            float mass = GetSegmentMass(indexA) / (GetSegmentMass(indexA) + GetSegmentMass(indexB));
+            float pullStrength = (ropeLength - segmentLength) * 1.5f;
+            Vector2 dirVec1 = Custom.DirVec(segmentAPos, rope.AConnect);
+            Vector2 dirVec2 = Custom.DirVec(segmentBPos, rope.BConnect);
+
+            if (indexA != ignoreChunk)
+            {
+                UpdateSegmentPos(indexA, segmentAPos + dirVec1 * pullStrength * mass);
+                UpdateSegmentVel(indexA, GetSegmentVel(indexA) + dirVec1 * pullStrength * mass);
+            }
+
+            if (indexB != ignoreChunk)
+            {
+                UpdateSegmentPos(indexB, segmentBPos + dirVec2 * pullStrength * (1f - mass));
+                UpdateSegmentVel(indexB, GetSegmentVel(indexB) + dirVec2 * pullStrength * (1f - mass));
+            }
+        }
+    }
+    public void ThrowByPlayer()
+    {
+    }
+    public override void Violence(BodyChunk source, Vector2? directionAndMomentum, BodyChunk hitChunk, Appendage.Pos hitAppendage, DamageType type, float damage, float stunBonus)
+    {
+        float newDamage = damage;
+        if (type != null && type == DamageType.Stab)
+        {
+            newDamage *= 5f;
+            if (directionAndMomentum.HasValue)
+            {
+                ReleaseSmoke(-directionAndMomentum.Value.normalized);
+            }
+            else
+            {
+                ReleaseSmoke(Custom.RNV() * 20f);
+            }
+        }
+        base.Violence(source, directionAndMomentum, hitChunk, hitAppendage, type, newDamage, stunBonus);
     }
     public override void Grabbed(Grasp grasp)
     {
@@ -272,58 +503,18 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
 
         AI.lastShortCutUsed = room.GetWorldCoordinate(pos);
     }
-    public override void Die()
-    {
-        base.Die();
 
-        room?.PlaySound(Enums.NewSoundID.AA_CloudFishDeath, firstChunk.pos, 2f, Random.Range(1f, 1.4f));
+    #endregion
 
-        if (AI != null && AI.trackedCreatures != null && AI.trackedCreatures.Count > 0)
-        {
-            foreach (CloudFishAI.TrackedObject obj in AI.trackedCreatures)
-            {
-                if (obj.obj is CloudFish cloudFish && Custom.DistLess(firstChunk.pos, cloudFish.firstChunk.pos, 1000) && cloudFish.room != null)
-                {
-                    cloudFish.AI.fleeCounter = 0;
-                    cloudFish.AI.abstractAI.behavior = CloudFishAI.Behavior.Flee;
-                    cloudFish.AI.lastDangerRoom = cloudFish.room;
-                }
-            }
-        }
-    }
-    public void ConnectSegments(int indexA, int indexB)
-    {
-        Rope rope = indexA < indexB ? connectionRopes[indexA] : connectionRopes[indexB];
-        BodyChunk chunk1 = bodyChunks[indexA];
-        BodyChunk chunk2 = bodyChunks[indexB];
+    #region Consumable Stuff
 
-        rope.Update(chunk1.pos, chunk2.pos);
+    public int bites;
 
-        float ropeLength = rope.totalLength;
-        float segmentLength = chunk1.rad + chunk2.rad;
+    public int BitesLeft { get { return bites; } }
+    public int FoodPoints { get { return 1; } }
+    public bool Edible { get { return true; } }
+    public bool AutomaticPickUp { get { return true; } }
 
-        if (ropeLength > segmentLength)
-        {
-            Vector2 dirVec = Custom.DirVec(chunk1.pos, chunk2.pos);
-            Vector2 newDir = dirVec * (ropeLength - segmentLength) * 0.5f;
-
-            chunk1.pos += newDir;
-            chunk1.vel += newDir;
-            chunk2.pos -= newDir;
-            chunk2.vel -= newDir;
-        }
-    }
-    public void Act()
-    {
-        AI.Update();
-    }
-    public override void InitiateGraphicsModule()
-    {
-        if (graphicsModule == null)
-        {
-            graphicsModule = new CloudFishGraphics(this);
-        }
-    }
     public void BitByPlayer(Grasp grasp, bool eu)
     {
         bites--;
@@ -343,26 +534,15 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
             Destroy();
         }
     }
-    public void ThrowByPlayer()
-    {
-    }
-    public override void Violence(BodyChunk source, Vector2? directionAndMomentum, BodyChunk hitChunk, Appendage.Pos hitAppendage, DamageType type, float damage, float stunBonus)
-    {
-        float newDamage = damage;
-        if (type != null && type == DamageType.Stab)
-        {
-            newDamage *= 5f;
-            if (directionAndMomentum.HasValue)
-            {
-                ReleaseSmoke(-directionAndMomentum.Value.normalized);
-            }
-            else
-            {
-                ReleaseSmoke(Custom.RNV() * 20f);
-            }
-        }
-        base.Violence(source, directionAndMomentum, hitChunk, hitAppendage, type, newDamage, stunBonus);
-    }
+
+    #endregion
+
+    #region Smoke
+
+    public Smoke.NewVultureSmoke smoke = null;
+    public bool emittingSmoke = false;
+    public bool releasedSmoke = false;
+
     public void ReleaseSmoke(Vector2 dir)
     {
         if (!releasedSmoke)
@@ -373,6 +553,16 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
             Color endColor = Custom.HSL2RGB(bodyHue, 0.2f, 0.1f);
             releasedSmoke = true;
             room.AddObject(new GasJet(firstChunk, dir, 4f, 20, startColor, endColor));
+        }
+    }
+
+    #endregion
+
+    public override void InitiateGraphicsModule()
+    {
+        if (graphicsModule == null)
+        {
+            graphicsModule = new CloudFishGraphics(this);
         }
     }
 
@@ -428,12 +618,10 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
             }
         }
     }
-
     public class TailSegment
     {
         public float segmentLength;
         public float segmentWidth;
-        public float gravity;
         public Vector2 pos;
         public Vector2 lastPos;
         public Vector2 vel;
@@ -441,24 +629,12 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
         public Vector2 lastAirPos;
 
         public IntVector2 contactPoint;
+        public bool touchingOtherSegment;
 
         public TailSegment connectedSegment = null;
         public Vector2? setConnectedPos = null;
-
         public Vector2 ConnectedPos
         { get { return setConnectedPos ?? connectedSegment.pos; } }
-
-        public Vector2? ConnectedRot
-        {
-            get
-            {
-                if (connectedSegment != null)
-                {
-                    return connectedSegment.segmentRot;
-                }
-                return fish.rotation;
-            }
-        }
 
         public Room room;
         public CloudFish fish;
@@ -471,14 +647,10 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
             this.fish = fish;
 
             if (connectedPos.HasValue)
-            {
-                setConnectedPos = connectedPos.Value;
-            }
+            { setConnectedPos = connectedPos.Value; }
 
             if (connectedSegment != null)
-            {
-                this.connectedSegment = connectedSegment;
-            }
+            { this.connectedSegment = connectedSegment; }
 
             pos = ConnectedPos;
             lastPos = pos;
@@ -490,49 +662,88 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
             float segment = 0;
             try
             {
-                segmentRot = Custom.DirVec(pos, ConnectedPos);
-
                 lastPos = pos;
 
-                vel *= 0.5f;
-
-                segment = 1;
-
-                float segmentStretchDist = Custom.Dist(pos, ConnectedPos);
-                if (segmentStretchDist > segmentLength)
+                if (room != null)
                 {
-                    pos = Vector2.Lerp(pos, ConnectedPos - segmentRot * segmentLength, 0.9f);
-                    vel += segmentRot / 2;
-                }
-
-                segment = 2;
-
-                vel.y -= fish.gravity;
-
-                if (ConnectedRot != null)
-                {
-                    float angle = Custom.Angle(segmentRot, ConnectedRot.Value);
-
-                    if (Mathf.Abs(angle) > 20)
+                    if (room.PointSubmerged(pos))
                     {
-                        pos = ConnectedPos + Custom.rotateVectorDeg(-ConnectedRot.Value, angle > 0 ? 20 : -20) * segmentLength;
+                        vel.y += fish.buoyancy * Mathf.InverseLerp(pos.y - segmentWidth / 2, pos.y + segmentWidth / 2, room.FloatWaterLevel(pos));
+                    }
+                    else
+                    {
+                        vel.y -= fish.gravity;
                     }
                 }
 
-                segment = 3;
+                segment = 4;
 
+                float segmentStretchDist = Custom.Dist(pos, ConnectedPos);
                 if (room != null && segmentStretchDist < 40)
                 {
-                    SharedPhysics.TerrainCollisionData collisionData = fish.collisionData.Set(pos, lastPos, vel, 5f, new IntVector2(0, 0), true);
+                    SharedPhysics.TerrainCollisionData collisionData = fish.tailCollisionData.Set(pos, lastPos, vel, 5f, contactPoint, true);
                     collisionData = SharedPhysics.VerticalCollision(room, collisionData);
                     collisionData = SharedPhysics.HorizontalCollision(room, collisionData);
                     pos = collisionData.pos;
                     vel = collisionData.vel;
+                }
 
-                    if (collisionData.contactPoint.x != 0 || collisionData.contactPoint.y != 0 && segmentStretchDist > segmentLength)
+                touchingOtherSegment = false;
+
+                foreach (BodyChunk chunk in fish.bodyChunks)
+                {
+                    float collideRad = (segmentWidth / 2) + chunk.rad;
+                    float dist = Custom.Dist(pos, chunk.pos);
+
+                    if (dist < collideRad)
                     {
-                        vel *= 0.5f;
-                        vel += segmentRot * 0;
+                        Vector2 collideVec = Custom.DirVec(pos, chunk.pos);
+                        float massFac = chunk.mass / (0.02f + chunk.mass);
+
+                        pos -= collideVec * (collideRad - dist) * massFac;
+                        vel -= collideVec * (collideRad - dist) * massFac;
+                        chunk.pos += collideVec * (collideRad - dist) * (1f - massFac);
+                        chunk.vel += collideVec * (collideRad - dist) * (1f - massFac);
+
+                        touchingOtherSegment = true;
+
+                        if (chunk.pos.y < pos.y + 10 && chunk.pos.y > pos.y - 10)
+                        {
+                            pos.y += 1f * massFac;
+                            vel.y += 1f * massFac;
+                            chunk.pos.y += 1f * (1f - massFac);
+                            chunk.vel.y += 1f * (1f - massFac);
+                        }
+                    }
+                }
+
+                foreach (TailSegment otherSegment in fish.tail)
+                {
+                    if (otherSegment != this)
+                    {
+                        float collideRad = (segmentWidth / 2) + (otherSegment.segmentWidth / 2);
+                        float dist = Custom.Dist(pos, otherSegment.pos);
+
+                        if (dist < collideRad)
+                        {
+                            Vector2 collideVec = Custom.DirVec(pos, otherSegment.pos);
+                            float massFac = 0.5f;
+
+                            pos -= collideVec * (collideRad - dist) * massFac;
+                            vel -= collideVec * (collideRad - dist) * massFac;
+                            otherSegment.pos += collideVec * (collideRad - dist) * (1f - massFac);
+                            otherSegment.vel += collideVec * (collideRad - dist) * (1f - massFac);
+
+                            touchingOtherSegment = true;
+
+                            if (otherSegment.pos.y < pos.y + 10 && otherSegment.pos.y > pos.y - 10)
+                            {
+                                pos.y += 1f * massFac;
+                                vel.y += 1f * massFac;
+                                otherSegment.pos.y += 1f * (1f - massFac);
+                                otherSegment.vel.y += 1f * (1f - massFac);
+                            }
+                        }
                     }
                 }
 
@@ -556,7 +767,7 @@ public class CloudFishGraphics : GraphicsModule
 {
     public CloudFish cloudFish;
 
-    public TriangleMesh bodyMech;
+    public TriangleMesh bodyMesh;
     public TriangleMesh shineMesh;
 
     public TriangleMesh tailFinMesh1;
@@ -573,11 +784,11 @@ public class CloudFishGraphics : GraphicsModule
     public FSprite eye1;
     public FSprite eye2;
 
-    public int numOfTailSegments;
-    public int numOfFinSegments;
-    public int numOfBodySegments;
     public int bodyFin1Length;
     public int bodyFin2Length;
+
+    public int tailFin1Length;
+    public int tailFin2Length;
 
     public bool shakeTail;
     public float shakeTailTimer;
@@ -611,10 +822,6 @@ public class CloudFishGraphics : GraphicsModule
         Random.InitState(cloudFish.abstractCreature.ID.RandomSeed);
 
         #region Body And Tail
-
-        numOfTailSegments = cloudFish.tailLength;
-        numOfFinSegments = Random.Range(3, 5);
-        numOfBodySegments = numOfTailSegments - (numOfFinSegments - 1);
 
         #endregion
 
@@ -690,10 +897,10 @@ public class CloudFishGraphics : GraphicsModule
 
 
         #region Whiskers
-        whisker1 = new(this, 20f, Random.Range(10f, 20f), 0.8f, cloudFish.firstChunk);
-        whisker2 = new(this, 20f, Random.Range(10f, 20f), 0.8f, cloudFish.firstChunk);
-        whisker3 = new(this, 20f, Random.Range(10f, 20f), 0.8f, cloudFish.firstChunk);
-        whisker4 = new(this, 20f, Random.Range(10f, 20f), 0.8f, cloudFish.firstChunk);
+        whisker1 = new(this, 20f, Random.Range(8, 15), 0.8f, cloudFish.firstChunk);
+        whisker2 = new(this, 20f, Random.Range(8, 15), 0.8f, cloudFish.firstChunk);
+        whisker3 = new(this, 20f, Random.Range(8, 15), 0.8f, cloudFish.firstChunk);
+        whisker4 = new(this, 20f, Random.Range(8, 15), 0.8f, cloudFish.firstChunk);
         list.Add(whisker1.bodyPart);
         list.Add(whisker2.bodyPart);
         list.Add(whisker3.bodyPart);
@@ -704,6 +911,9 @@ public class CloudFishGraphics : GraphicsModule
         #region Fins
         bodyFin1Length = Random.Range(2, 4);
         bodyFin2Length = Random.Range(2, 4);
+
+        tailFin1Length = Random.Range(3, 5);
+        tailFin2Length = Random.Range(3, 5);
         #endregion
 
 
@@ -784,41 +994,47 @@ public class CloudFishGraphics : GraphicsModule
         float shakeTail = Mathf.PingPong(shakeTailTimer, maxTailShake) - maxTailShake / 2f;
         tailShakeDir = Custom.rotateVectorDeg(bodyRotation, shakeTail);
 
-        Vector2 headDir = Custom.DirVec(cloudFish.bodyChunks[1].pos, cloudFish.bodyChunks[0].pos);
+        Vector2 headDir = Custom.DirVec(cloudFish.GetSegmentPos(1) - cloudFish.GetSegmentVel(1), cloudFish.GetSegmentPos(0) - cloudFish.GetSegmentVel(0));
 
-        Vector2 whisker1Dir = Custom.RotateAroundOrigo(headDir, 45 + wiggleWhiskers);
-        Vector2 whisker2Dir = Custom.RotateAroundOrigo(headDir, -45 - wiggleWhiskers);
-        Vector2 whisker3Dir = Custom.RotateAroundOrigo(headDir, 90 + wiggleWhiskers);
-        Vector2 whisker4Dir = Custom.RotateAroundOrigo(headDir, -90 - wiggleWhiskers);
+        whisker1.Update(headDir, 45 + wiggleWhiskers, Color.red);
+        whisker2.Update(headDir, 90 + wiggleWhiskers, Color.yellow);
+        whisker3.Update(headDir, -45 + wiggleWhiskers, Color.green);
+        whisker4.Update(headDir, -90 + wiggleWhiskers, Color.cyan);
 
-        whisker1.Update(whisker1Dir);
-        whisker2.Update(whisker2Dir);
-        whisker3.Update(whisker3Dir);
-        whisker4.Update(whisker4Dir);
+        /*
+        for (int i = 0; i < cloudFish.BodySegmentPositions.GetLength(0); i++)
+        {
+            //Create_Square(cloudFish.room, cloudFish.GetSegmentPos(i) - cloudFish.GetSegmentVel(i), 1f, 1f, Vec(45), Custom.HSL2RGB((float)i / cloudFish.BodySegmentPositions.GetLength(0), 1f, 0.5f), 0);
+        }*/
+
+
+        if (camera != null)
+        {
+            UpdateLighting(camera);
+        }
     }
     public override void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
     {
         sLeaser.sprites = new FSprite[12];
 
-        TriangleMesh newBodyMesh = TriangleMesh.MakeLongMesh(numOfTailSegments, true, false);
+        TriangleMesh newBodyMesh = TriangleMesh.MakeLongMesh(cloudFish.BodySegmentPositions.GetLength(0) * 2, true, false);
         sLeaser.sprites[0] = newBodyMesh;
 
-        TriangleMesh newShineMesh = TriangleMesh.MakeLongMesh(numOfTailSegments, true, false);
+        TriangleMesh newShineMesh = TriangleMesh.MakeLongMesh(cloudFish.BodySegmentPositions.GetLength(0) * 2, true, false);
         sLeaser.sprites[1] = newShineMesh;
 
         sLeaser.sprites[2] = new FSprite("JetFishEyeA", true);
         sLeaser.sprites[3] = new FSprite("JetFishEyeB", true);
 
-        int tailFinVertices = numOfFinSegments * 2 - 1;
-        int finSegments = (tailFinVertices + 3) / 4;
+        int finVertices = cloudFish.BodySegmentPositions.GetLength(0) * 2;
 
-        TriangleMesh finMesh1 = TriangleMesh.MakeLongMesh(5, false, false);
+        TriangleMesh finMesh1 = TriangleMesh.MakeLongMesh(finVertices, false, false);
         sLeaser.sprites[4] = finMesh1;
-        TriangleMesh finMesh2 = TriangleMesh.MakeLongMesh(5, false, false);
+        TriangleMesh finMesh2 = TriangleMesh.MakeLongMesh(finVertices, false, false);
         sLeaser.sprites[5] = finMesh2;
-        TriangleMesh finMesh3 = TriangleMesh.MakeLongMesh(5, false, false);
+        TriangleMesh finMesh3 = TriangleMesh.MakeLongMesh(finVertices, false, false);
         sLeaser.sprites[6] = finMesh3;
-        TriangleMesh finMesh4 = TriangleMesh.MakeLongMesh(5, false, false);
+        TriangleMesh finMesh4 = TriangleMesh.MakeLongMesh(finVertices, false, false);
         sLeaser.sprites[7] = finMesh4;
 
         sLeaser.sprites[8] = whisker1.triMesh;
@@ -827,6 +1043,8 @@ public class CloudFishGraphics : GraphicsModule
         sLeaser.sprites[11] = whisker4.triMesh;
 
         AddToContainer(sLeaser, rCam, null);
+
+        UpdateLighting(rCam);
     }
     public override void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
@@ -847,160 +1065,278 @@ public class CloudFishGraphics : GraphicsModule
             List<Vector2> tailFin2Positions = [];
             tailPositions.Add(chunkPos);
 
-            Vector2 neckPos = Vector2.Lerp(cloudFish.tail[0].lastPos, cloudFish.tail[0].pos, timeStacker) - camPos;
-            Vector2 headRot = Custom.DirVec(neckPos, chunkPos);
-            float rotX = headRot.x;
+            List<Vector2> segmentPositions = [];
+            for (int i = 0; i < cloudFish.BodySegmentPositions.GetLength(0); i++)
+            {
+                Vector2 segmentPos = Vector2.Lerp(cloudFish.BodySegmentPositions[i, 1], cloudFish.BodySegmentPositions[i, 0], timeStacker) - camPos;
+                segmentPositions.Add(segmentPos);
 
-            Vector2 headPos1 = chunkPos + headRot * (cloudFish.tail[0].segmentWidth * 2f) - Custom.PerpendicularVector(headRot) * (cloudFish.tail[0].segmentWidth / 2f);
-            Vector2 headPos2 = chunkPos + headRot * (cloudFish.tail[0].segmentWidth * 2f) + Custom.PerpendicularVector(headRot) * (cloudFish.tail[0].segmentWidth / 2f);
-            Vector2 headPos3 = chunkPos - Custom.PerpendicularVector(headRot) * cloudFish.tail[0].segmentWidth;
-            Vector2 headPos4 = chunkPos + Custom.PerpendicularVector(headRot) * cloudFish.tail[0].segmentWidth;
+                //Create_Text(cloudFish.room, segmentPos + camPos, i, "Red", 0);
+            }
 
-            bodyPositions.Add(headPos1);
-            bodyPositions.Add(headPos2);
-            bodyPositions.Add(headPos3);
-            bodyPositions.Add(headPos4);
+            Vector2 headRot = Custom.DirVec(segmentPositions[1], segmentPositions[0]);
+            float headWidth = cloudFish.BodySegmentWidths[0];
 
-            shinePositions.Add(chunkPos + Custom.PerpendicularVector(headRot) * rotX * 2f);
+            Vector2 lastSegmentPos = segmentPositions[0] + headRot * 5f;
+            Vector2 thisSegmentPos = segmentPositions[0];
+            Vector2 nextSegmentPos = segmentPositions[1];
 
-            bodyFin1Positions.Add(headPos3);
-            bodyFin2Positions.Add(headPos4);
+            Vector2 frontPos = Vector2.Lerp(thisSegmentPos, lastSegmentPos, 0.5f);
+            Vector2 backPos = Vector2.Lerp(thisSegmentPos, nextSegmentPos, 0.5f);
 
-            section = 1;
+            Vector2 frontRot = headRot;
+            Vector2 backRot = Custom.DirVec(nextSegmentPos, thisSegmentPos);
 
-            #region Getting Draw Positions 
-            Vector2 bodySegConnectPos = chunkPos;
-            float bodyFinWidth = 5f;
-            int tailFinIndex = 0;
-            float tailFinWidth = 5f;
+            float thisRad = headWidth;
+            float lastRad = headWidth;
+            float midRad = headWidth;
 
-            for (int i = 0; i < numOfTailSegments; i++)
+            float lastTailFinWidth = 0;
+            float thisTailFinWidth = 0;
+
+            for (int i = 0; i < segmentPositions.Count - 1; i++)
             {
                 if (bites < 4 && i > bites - 1)
                 {
                     break;
                 }
 
-                CloudFish.TailSegment segment = cloudFish.tail[i];
+                lastSegmentPos = thisSegmentPos;
+                thisSegmentPos = nextSegmentPos;
+                nextSegmentPos = segmentPositions[i + 1];
 
-                Vector2 segmentPos = Vector2.Lerp(segment.lastPos, segment.pos, timeStacker) - camPos;
-                Vector2 segmentRot = Custom.DirVec(bodySegConnectPos, segmentPos);
-                Vector2 perpRot = Custom.PerpendicularVector(segmentRot);
-                tailPositions.Add(segmentPos);
-                tailRotations.Add(segmentRot);
-                float segmentRad = Mathf.Clamp(segment.segmentWidth, 0.1f, 50);
+                lastTailFinWidth = thisTailFinWidth;
 
-                section = 1.1f;
+                float rotX = headRot.x;
 
-                if (i == numOfBodySegments)
+                if (i == 0)
                 {
-                    bodyPositions.Add(segmentPos);
+                    Vector2 headPos1 = segmentPositions[0] + headRot * (headWidth * 2f) - Custom.PerpendicularVector(headRot) * (headWidth / 2f);
+                    Vector2 headPos2 = segmentPositions[0] + headRot * (headWidth * 2f) + Custom.PerpendicularVector(headRot) * (headWidth / 2f);
+                    Vector2 headPos3 = segmentPositions[0] - Custom.PerpendicularVector(headRot) * headWidth;
+                    Vector2 headPos4 = segmentPositions[0] + Custom.PerpendicularVector(headRot) * headWidth;
 
-                    shinePositions.Add(segmentPos);
+                    bodyPositions.Add(headPos1);
+                    bodyPositions.Add(headPos2);
+                    bodyPositions.Add(headPos3);
+                    bodyPositions.Add(headPos4);
+
+                    shinePositions.Add(segmentPositions[0] + Custom.PerpendicularVector(headRot) * rotX * 2f);
+
+                    bodyFin1Positions.Add(headPos3);
+                    bodyFin2Positions.Add(headPos4);
                 }
                 else
                 {
-                    if (i < numOfBodySegments)
-                    {
-                        Vector2 bodyPos1 = segmentPos + perpRot * segmentRad;
-                        Vector2 bodyPos2 = segmentPos - perpRot * segmentRad;
-                        bodyPositions.Add(bodyPos1);
-                        bodyPositions.Add(bodyPos2);
+                    frontPos = backPos;
+                    backPos = Vector2.Lerp(thisSegmentPos, nextSegmentPos, 0.5f);
 
-                        Vector2 shinePos1 = segmentPos + perpRot * (segmentRad / 4f) - perpRot * rotX;
-                        Vector2 shinePos2 = segmentPos - perpRot * (segmentRad / 4f) - perpRot * rotX;
+                    frontRot = backRot;
+                    backRot = Custom.DirVec(nextSegmentPos, thisSegmentPos);
+
+                    Vector2 perpFrontRot = Custom.PerpendicularVector(frontRot);
+                    Vector2 thisRot = Vector2.Lerp(frontRot, backRot, 0.5f).normalized;
+                    Vector2 perpRot = Custom.PerpendicularVector(thisRot);
+
+                    lastRad = thisRad;
+                    thisRad = cloudFish.BodySegmentWidths[i];
+                    midRad = Mathf.Lerp(lastRad, thisRad, 0.5f);
+
+                    Vector2 frontPos1 = frontPos - perpFrontRot * midRad;
+                    Vector2 frontPos2 = frontPos + perpFrontRot * midRad;
+
+                    Vector2 sidePos1 = thisSegmentPos - perpRot * thisRad;
+                    Vector2 sidePos2 = thisSegmentPos + perpRot * thisRad;
+
+                    if (i < segmentPositions.Count - 3)
+                    {
+                        bodyPositions.Add(frontPos1);
+                        bodyPositions.Add(frontPos2);
+                        bodyPositions.Add(sidePos1);
+                        bodyPositions.Add(sidePos2);
+
+                        Vector2 frontShinePos1 = frontPos + perpFrontRot * (midRad / 4f) - perpFrontRot * rotX;
+                        Vector2 frontShinePos2 = frontPos - perpFrontRot * (midRad / 4f) - perpFrontRot * rotX;
+                        Vector2 shinePos1 = thisSegmentPos + perpRot * (thisRad / 4f) - perpRot * rotX;
+                        Vector2 shinePos2 = thisSegmentPos - perpRot * (thisRad / 4f) - perpRot * rotX;
+
+                        shinePositions.Add(frontShinePos1);
+                        shinePositions.Add(frontShinePos2);
                         shinePositions.Add(shinePos1);
                         shinePositions.Add(shinePos2);
-                    }
 
-                    section = 1.2f;
+                        if (i < bodyFin1Length)
+                        {
+                            Vector2 frontFinPos = frontPos - perpFrontRot * (midRad + 4f);
+                            Vector2 sideFinPos = thisSegmentPos - perpRot * (thisRad + 4f);
 
-                    if (i < bodyFin1Length - 1)
-                    {
-                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad);
-                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * bodyFinWidth);
-                    }
-                    else if (i == bodyFin1Length - 1)
-                    {
-                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * bodyFinWidth / 2f);
-                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * bodyFinWidth);
-                    }
-                    else if (i == bodyFin1Length)
-                    {
-                        bodyFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * bodyFinWidth);
-                    }
+                            bodyFin1Positions.Add(frontFinPos);
+                            bodyFin1Positions.Add(frontPos1);
+                            bodyFin1Positions.Add(sideFinPos);
+                            bodyFin1Positions.Add(sidePos1);
+                        }
+                        else if (i == bodyFin1Length)
+                        {
+                            Vector2 frontFinPos = frontPos - perpFrontRot * (midRad + 4f);
+                            Vector2 midFrontFinPos = frontPos - perpFrontRot * (midRad + 2f);
+                            Vector2 sideFinPos = thisSegmentPos - perpRot * (thisRad + 4f);
 
-                    section = 1.3f;
+                            bodyFin1Positions.Add(frontFinPos);
+                            bodyFin1Positions.Add(midFrontFinPos);
+                            bodyFin1Positions.Add(sideFinPos);
+                        }
 
-                    if (i < bodyFin2Length - 1)
-                    {
-                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad);
-                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * bodyFinWidth);
+                        if (i < bodyFin2Length)
+                        {
+                            Vector2 frontFinPos = frontPos + perpFrontRot * (midRad + 4f);
+                            Vector2 sideFinPos = thisSegmentPos + perpRot * (thisRad + 4f);
+
+                            bodyFin2Positions.Add(frontFinPos);
+                            bodyFin2Positions.Add(frontPos2);
+                            bodyFin2Positions.Add(sideFinPos);
+                            bodyFin2Positions.Add(sidePos2);
+                        }
+                        else if (i == bodyFin2Length)
+                        {
+                            Vector2 frontFinPos = frontPos + perpFrontRot * (midRad + 4f);
+                            Vector2 midFrontFinPos = frontPos + perpFrontRot * (midRad + 2f);
+                            Vector2 sideFinPos = thisSegmentPos + perpRot * (thisRad + 4f);
+
+                            bodyFin2Positions.Add(frontFinPos);
+                            bodyFin2Positions.Add(midFrontFinPos);
+                            bodyFin2Positions.Add(sideFinPos);
+                        }
+
+                        if (i == segmentPositions.Count - 4)
+                        {
+                            tailFin1Positions.Add(sidePos1 + perpRot * 1f);
+                            tailFin2Positions.Add(sidePos2 - perpRot * 1f);
+                        }
                     }
-                    else if (i == bodyFin2Length - 1)
+                    else if (i == segmentPositions.Count - 3)
                     {
-                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * bodyFinWidth / 2f);
-                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * bodyFinWidth);
-                    }
-                    else if (i == bodyFin2Length)
-                    {
-                        bodyFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * bodyFinWidth);
-                    }
-                    bodyFinWidth++;
-                }
+                        bodyPositions.Add(thisSegmentPos);
 
-                section = 1.4f;
+                        shinePositions.Add(thisSegmentPos);
 
-                if (i > numOfBodySegments - 2)
-                {
-                    if (tailFinIndex == 0)
-                    {
-                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad);
+                        float finWidth = 5f;
+                        thisTailFinWidth = Mathf.Lerp(0f, 5f, Mathf.InverseLerp(segmentPositions.Count - 3, segmentPositions.Count, i));
+                        float frontWidth = Mathf.Lerp(lastTailFinWidth, thisTailFinWidth, 0.5f);
 
-                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad);
-                    }
-                    else if (i == numOfTailSegments - 1)
-                    {
-                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * tailFinWidth);
+                        Vector2 frontFin1Pos = frontPos - perpFrontRot * finWidth;
+                        Vector2 sideFin1Pos = thisSegmentPos - perpRot * finWidth;
 
-                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * tailFinWidth);
-                    }
-                    else if (tailFinIndex == 1)
-                    {
-                        tailFin1Positions.Add(segmentPos);
-                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * tailFinWidth);
+                        tailFin1Positions.Add(frontFin1Pos);
+                        tailFin1Positions.Add(frontPos1 + perpFrontRot * 1f);
+                        tailFin1Positions.Add(sideFin1Pos);
+                        tailFin1Positions.Add(thisSegmentPos + perpRot * 1f);
 
-                        tailFin2Positions.Add(segmentPos);
-                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * tailFinWidth);
+                        Vector2 frontFin2Pos = frontPos + perpFrontRot * finWidth;
+                        Vector2 sideFin2Pos = thisSegmentPos + perpRot * finWidth;
+
+                        tailFin2Positions.Add(frontFin2Pos);
+                        tailFin2Positions.Add(frontPos2 - perpFrontRot * 1f);
+                        tailFin2Positions.Add(sideFin2Pos);
+                        tailFin2Positions.Add(thisSegmentPos - perpRot * 1f);
                     }
                     else
                     {
-                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * tailFinWidth / 2f);
-                        tailFin1Positions.Add(segmentPos + perpRot * segmentRad + perpRot * tailFinWidth);
+                        float finWidth = 5f;
+                        thisTailFinWidth = Mathf.Lerp(0f, 5f, Mathf.InverseLerp(segmentPositions.Count - 3, segmentPositions.Count, i));
+                        float frontWidth = Mathf.Lerp(lastTailFinWidth, thisTailFinWidth, 0.5f);
 
-                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * tailFinWidth / 2f);
-                        tailFin2Positions.Add(segmentPos - perpRot * segmentRad - perpRot * tailFinWidth);
+                        if (tailFin1Length == 4)
+                        {
+                            Vector2 frontFin1Pos1 = frontPos - perpFrontRot * finWidth;
+                            Vector2 frontFin1Pos2 = frontPos - perpFrontRot * frontWidth;
+                            Vector2 sideFin1Pos1 = thisSegmentPos - perpRot * finWidth;
+                            Vector2 sideFin1Pos2 = thisSegmentPos - perpRot * thisTailFinWidth;
+
+                            tailFin1Positions.Add(frontFin1Pos1);
+                            tailFin1Positions.Add(frontFin1Pos2);
+                            tailFin1Positions.Add(sideFin1Pos1);
+                            tailFin1Positions.Add(sideFin1Pos2);
+                        }
+                        else
+                        {
+                            Vector2 frontFin1Pos1 = frontPos - perpFrontRot * finWidth;
+                            Vector2 frontFin1Pos2 = frontPos - perpFrontRot * Mathf.Lerp(lastTailFinWidth, 5f, 0.5f);
+                            Vector2 sideFin1Pos = thisSegmentPos - perpRot * finWidth;
+
+                            tailFin1Positions.Add(frontFin1Pos1);
+                            tailFin1Positions.Add(frontFin1Pos2);
+                            tailFin1Positions.Add(sideFin1Pos);
+                        }
+
+                        if (tailFin2Length == 4)
+                        {
+                            Vector2 frontFin2Pos1 = frontPos + perpFrontRot * finWidth;
+                            Vector2 frontFin2Pos2 = frontPos + perpFrontRot * frontWidth;
+                            Vector2 sideFin2Pos1 = thisSegmentPos + perpRot * finWidth;
+                            Vector2 sideFin2Pos2 = thisSegmentPos + perpRot * thisTailFinWidth;
+
+                            tailFin2Positions.Add(frontFin2Pos1);
+                            tailFin2Positions.Add(frontFin2Pos2);
+                            tailFin2Positions.Add(sideFin2Pos1);
+                            tailFin2Positions.Add(sideFin2Pos2);
+                        }
+                        else
+                        {
+                            Vector2 frontFin2Pos1 = frontPos + perpFrontRot * finWidth;
+                            Vector2 frontFin2Pos2 = frontPos + perpFrontRot * Mathf.Lerp(lastTailFinWidth, 5f, 0.5f);
+                            Vector2 sideFin2Pos = thisSegmentPos + perpRot * finWidth;
+
+                            tailFin2Positions.Add(frontFin2Pos1);
+                            tailFin2Positions.Add(frontFin2Pos2);
+                            tailFin2Positions.Add(sideFin2Pos);
+                        }
                     }
-                    tailFinWidth += Mathf.Sqrt(tailFinIndex);
-                    tailFinIndex++;
                 }
-
-                bodySegConnectPos = segmentPos;
             }
-            #endregion
+
+            lastTailFinWidth = thisTailFinWidth;
+            thisTailFinWidth = 5f;
+            float lastFrontWidth = Mathf.Lerp(lastTailFinWidth, thisTailFinWidth, 0.5f);
+
+            Vector2 tailPos = segmentPositions[segmentPositions.Count - 1];
+            Vector2 tailPos2 = segmentPositions[segmentPositions.Count - 2];
+            Vector2 frontTailPos = Vector2.Lerp(tailPos, tailPos2, 0.5f);
+            Vector2 perpTailRot = Custom.PerpendicularVector(Custom.DirVec(tailPos, tailPos2));
+
+            if (tailFin1Length == 4)
+            {
+                Vector2 frontTailFin1Pos1 = frontTailPos - perpTailRot * 5f;
+                Vector2 frontTailFin1Pos2 = frontTailPos - perpTailRot * lastFrontWidth;
+                Vector2 sideTailFin1Pos = tailPos - perpTailRot * thisTailFinWidth;
+
+                tailFin1Positions.Add(frontTailFin1Pos1);
+                tailFin1Positions.Add(frontTailFin1Pos2);
+                tailFin1Positions.Add(sideTailFin1Pos);
+            }
+
+            if (tailFin2Length == 4)
+            {
+                Vector2 frontTailFin2Pos1 = frontTailPos + perpTailRot * 5f;
+                Vector2 frontTailFin2Pos2 = frontTailPos + perpTailRot * lastFrontWidth;
+                Vector2 sideTailFin2Pos = tailPos + perpTailRot * thisTailFinWidth;
+
+                tailFin2Positions.Add(frontTailFin2Pos1);
+                tailFin2Positions.Add(frontTailFin2Pos2);
+                tailFin2Positions.Add(sideTailFin2Pos);
+            }
 
             section = 2;
 
             #region Setting Mech Vertices
-            bodyMech = sLeaser.sprites[0] as TriangleMesh;
+            bodyMesh = sLeaser.sprites[0] as TriangleMesh;
             if (bodyPositions.Count > 0)
             {
-                for (int i = 0; i < bodyMech.vertices.Length; i++)
+                for (int i = 0; i < bodyMesh.vertices.Length; i++)
                 {
                     Vector2 bodyPos = bodyPositions[Mathf.Clamp(i, 0, bodyPositions.Count - 1)];
-                    bodyMech.MoveVertice(i, bodyPos);
+                    bodyMesh.MoveVertice(i, bodyPos);
                 }
-                bodyMech.alpha = 1f;
+                bodyMesh.alpha = 1f;
             }
 
             shineMesh = sLeaser.sprites[1] as TriangleMesh;
@@ -1068,13 +1404,13 @@ public class CloudFishGraphics : GraphicsModule
 
             #region Eye
             eye1 = sLeaser.sprites[2];
-            eye1.SetPosition(chunkPos);
+            eye1.SetPosition(segmentPositions[0]);
             eye1.rotation = Custom.VecToDeg(headRot);
             eye1.scale = 1f;
             eye1.alpha = 1f;
 
             eye2 = sLeaser.sprites[3];
-            eye2.SetPosition(chunkPos + eyesLookDirection * 1f);
+            eye2.SetPosition(segmentPositions[0] + eyesLookDirection * 1f);
             eye2.rotation = Custom.VecToDeg(headRot);
             eye2.scale = 0.5f;
             eye2.alpha = 1f;
@@ -1084,56 +1420,49 @@ public class CloudFishGraphics : GraphicsModule
 
             #region Whiskers
 
-            whisker1.DrawSprite(camPos, timeStacker, bodyPositions[0], headRot, true);
-            whisker2.DrawSprite(camPos, timeStacker, bodyPositions[1], headRot, false);
-            whisker3.DrawSprite(camPos, timeStacker, bodyPositions[0], headRot, true);
-            whisker4.DrawSprite(camPos, timeStacker, bodyPositions[1], headRot, false);
+            if (bodyPositions.Count > 1)
+            {
+                whisker1.DrawSprite(camPos, timeStacker, bodyPositions[0], headRot, true, "Red");
+                whisker2.DrawSprite(camPos, timeStacker, bodyPositions[0], headRot, true, "Yellow");
+                whisker3.DrawSprite(camPos, timeStacker, bodyPositions[1], headRot, false, "Green");
+                whisker4.DrawSprite(camPos, timeStacker, bodyPositions[1], headRot, false, "Cyan");
+            }
 
             #endregion
 
             section = 5;
 
             #region Color
-            Vector2 actualChunkPos = chunkPos + camPos;
-            float roomDarkness = Mathf.Clamp((rCam.room.Darkness(actualChunkPos) - 0.3f) * 1.6f, 0f, 1f);
 
-            float lightSourceExposure = 0;
-            float r = 0;
-            float g = 0;
-            float b = 0;
-            List<LightSource> nearbyLightSources = [];
-            foreach (LightSource light in rCam.room.lightSources)
+            if (camera != rCam)
             {
-                CircularSprite newSprite = new(light.ElementName, 64);
-                float trueLightRad = light.rad * (newSprite.width / 2f) * 0.125f;
-
-                if (Custom.DistLess(actualChunkPos, light.pos, trueLightRad))
-                {
-                    float thisLightExposure = Mathf.Lerp(1, 0, Custom.Dist(actualChunkPos, light.pos) / trueLightRad);
-                    lightSourceExposure = Mathf.Max(lightSourceExposure, thisLightExposure);
-
-                    r = Mathf.Max(r, light.color.r * thisLightExposure);
-                    g = Mathf.Max(g, light.color.g * thisLightExposure);
-                    b = Mathf.Max(b, light.color.b * thisLightExposure);
-                }
+                UpdateLighting(rCam);
             }
 
-            float trueDarkness = roomDarkness - lightSourceExposure;
-            Color lightColor = new(r, g, b);
-            Color baseColor = Color.Lerp(this.bodyColor, Color.Lerp(this.bodyColor, lightColor, Custom.RGB2HSL(lightColor).y), Mathf.Clamp(lightSourceExposure, 0, 0.5f));
+            Color lightColor = Color.Lerp(lastLightColor, this.lightColor, timeStacker);
+            float lightExposure = Mathf.Lerp(lastLightExposure, this.lightExposure, timeStacker);
+            float colorExposure = Mathf.Lerp(lastColorExposure, this.colorExposure, timeStacker);
 
-            Vector3 vecBodyColor = Custom.RGB2HSL(baseColor);
-            Color bodyColor = Color.Lerp(Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, vecBodyColor.z), blackColor, trueDarkness);
-            Color shineColor = Color.Lerp(Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z + 0.2f, 0f, 1f)), blackColor, trueDarkness);
-            Color finColor = Color.Lerp(Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z - 0.1f, 0f, 1f)), blackColor, trueDarkness);
+            Color tintedBodyColor = Color.Lerp(this.bodyColor, lightColor, colorExposure);
+            Color finalBodyColor = Color.Lerp(blackColor, tintedBodyColor, lightExposure);
 
-            bodyMech.color = bodyColor;
+            Vector3 vecBodyColor = Custom.RGB2HSL(finalBodyColor);
+            Color bodyColor = finalBodyColor;
+            Color shineColor = Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z + 0.2f * lightExposure, 0.01f, 1f));
+            Color finColor = Custom.HSL2RGB(vecBodyColor.x, vecBodyColor.y, Mathf.Clamp(vecBodyColor.z - 0.1f, 0.01f, 1f));
+
+            bodyMesh.color = bodyColor;
             shineMesh.color = Color.Lerp(shineColor, bodyColor, darkness * 0.5f);
 
             tailFinMesh1.color = finColor;
             tailFinMesh2.color = finColor;
             bodyFinMesh1.color = finColor;
             bodyFinMesh2.color = finColor;
+
+            tailFinMesh1.MoveBehindOtherNode(bodyMesh);
+            tailFinMesh2.MoveBehindOtherNode(bodyMesh);
+            bodyFinMesh1.MoveBehindOtherNode(bodyMesh);
+            bodyFinMesh2.MoveBehindOtherNode(bodyMesh);
 
             whisker1.triMesh.color = finColor;
             whisker2.triMesh.color = finColor;
@@ -1177,6 +1506,23 @@ public class CloudFishGraphics : GraphicsModule
         base.ApplyPalette(sLeaser, rCam, palette);
 
         blackColor = palette.blackColor;
+
+        UpdateLighting(rCam);
+    }
+
+    public RoomCamera camera;
+    public Color lightColor, lastLightColor;
+    public float lightExposure, lastLightExposure;
+    public float colorExposure, lastColorExposure;
+
+    public void UpdateLighting(RoomCamera rCam)
+    {
+        camera = rCam;
+
+        lastLightColor = lightColor;
+        lastLightExposure = lightExposure;
+        lastColorExposure = colorExposure;
+        (lightColor, lightExposure, colorExposure) = TrueLightColorAndExposure(camera.room, camera, cloudFish.firstChunk.pos - camera.pos, 0f);
     }
 
     public class Whisker
@@ -1185,59 +1531,78 @@ public class CloudFishGraphics : GraphicsModule
         public GenericBodyPart bodyPart;
         public TriangleMesh triMesh;
         public BodyChunk connectedChunk;
-        public float lengthA;
-        public float lengthB;
+        public float physicsLength;
+        public int meshLength;
         public float width;
 
-        public Whisker(GraphicsModule module, float pointDistLength, float actualLength, float width, BodyChunk connectedChunk)
+        public Whisker(GraphicsModule module, float physicsLength, int meshLength, float width, BodyChunk connectedChunk)
         {
             this.connectedChunk = connectedChunk;
             this.width = width;
 
-            lengthA = pointDistLength;
-            lengthB = actualLength;
+            this.physicsLength = physicsLength;
+            this.meshLength = meshLength;
 
-            endPos = connectedChunk.pos + new Vector2(0, 1) * lengthA;
+            endPos = connectedChunk.pos + new Vector2(0, 1) * this.physicsLength;
             bodyPart = new(module, 1f, 0.6f, 0.9f, connectedChunk);
             triMesh = TriangleMesh.MakeLongMesh(4, true, false);
             triMesh.alpha = 0f;
         }
 
-        public void Update(Vector2 newDir)
+        public void Update(Vector2 chunkRad, float rotate, Color color)
         {
-            endPos = connectedChunk.pos + newDir * lengthA;
             bodyPart.Update();
-            bodyPart.ConnectToPoint(endPos, 0f, false, 0f, connectedChunk.vel, 0f, 0f);
+
+            Vector2 connectPos = connectedChunk.pos + Custom.rotateVectorDeg(chunkRad, rotate) * physicsLength;
+
+            bodyPart.ConnectToPoint(connectPos, 0f, false, 0.2f, connectedChunk.vel, 0.5f, 0.1f);
+
+            //Create_Square(connectedChunk.owner.room, connectPos, 1f, 1f, Vec(45), color, 1);
         }
 
-        public void DrawSprite(Vector2 camPos, float timeStacker, Vector2 startPos, Vector2 bodyRot, bool flip)
+        public void DrawSprite(Vector2 camPos, float timeStacker, Vector2 startPos, Vector2 bodyRot, bool flip, string color)
         {
             Vector2 endPos = Vector2.Lerp(bodyPart.lastPos, bodyPart.pos, timeStacker) - camPos;
             float width = flip ? -this.width : this.width;
 
             Vector2 rot = Custom.DirVec(startPos, endPos);
-            for (int j = 0; j < 13; j += 2)
+            Vector2 perpRot = Custom.PerpendicularVector(rot);
+
+            Vector2 lastPos = startPos;
+            for (int j = 0; j < 15; j += 2)
             {
-                Vector2 perpRot = Custom.RotateAroundOrigo(rot, 90);
                 if (j == 0)
                 {
                     triMesh.MoveVertice(j, startPos);
                     triMesh.MoveVertice(j + 1, startPos - bodyRot * 2f);
                 }
-                else if (j / 14f * lengthA > lengthB)
+                else if (j < 14)
                 {
-                    float bendFac = (-Mathf.Pow(j - 7f, 2f) + 36f) / 20f * (flip ? -1 : 1);
-                    triMesh.MoveVertice(j, Vector2.Lerp(startPos, endPos, j / 14f) + perpRot * bendFac);
-                    triMesh.MoveVertice(j + 1, Vector2.Lerp(startPos, endPos, j / 14f) + perpRot * bendFac);
+                    if (j < meshLength)
+                    {
+                        float lerp = j / 14f;
+                        float curve = Mathf.Sin(Mathf.Lerp(0f, 0.5f, lerp) * 2 * Mathf.PI) * 2.5f * (flip ? -1f : 1f);
+
+                        Vector2 pos = Vector2.Lerp(startPos, endPos, j / 14f) - perpRot * curve;
+
+                        //Create_Square(connectedChunk.owner.room, pos + camPos, 1f, 1f, Vec(45), color, 1);
+
+                        triMesh.MoveVertice(j, pos + perpRot * width);
+                        triMesh.MoveVertice(j + 1, pos - perpRot * width);
+
+                        lastPos = pos;
+                    }
+                    else
+                    {
+                        triMesh.MoveVertice(j, lastPos + perpRot * width);
+                        triMesh.MoveVertice(j + 1, lastPos - perpRot * width);
+                    }
                 }
                 else
                 {
-                    float bendFac = (-Mathf.Pow(j - 7f, 2f) + 36f) / 20f * (flip ? -1 : 1);
-                    triMesh.MoveVertice(j, Vector2.Lerp(startPos, endPos, j / 14f) + perpRot * width + perpRot * bendFac);
-                    triMesh.MoveVertice(j + 1, Vector2.Lerp(startPos, endPos, j / 14f) - perpRot * width + perpRot * bendFac);
+                    triMesh.MoveVertice(14, lastPos);
                 }
             }
-            triMesh.MoveVertice(14, endPos);
 
             triMesh.alpha = 1f;
 
@@ -1436,27 +1801,6 @@ public class CloudFishAI : ArtificialIntelligence
 
                     UpdateBehavior();
                     UpdateMovement();
-
-                    List<string> list = [];
-                    list.Add("Behavior: " + behavior.value + ", Movement Type: " + movementType.value);
-                    list.Add("Tracked Objects:");
-                    foreach (TrackedObject obj in trackedObjects)
-                    {
-                        list.Add("-" + obj.obj.GetType() + " : " + obj.threat);
-                    }
-                    list.Add("Tracked Creatures:");
-                    foreach (TrackedObject obj in trackedCreatures)
-                    {
-                        list.Add("-" + obj.obj.GetType() + " : " + obj.threat);
-                    }
-
-                    if (myLeader != null && myLeader.realizedCreature != null)
-                    {
-                        Vector2 leaderPos = myLeader.realizedCreature.mainBodyChunk.pos;
-                        Create_Square(room, Vector2.Lerp(leaderPos, pos, 0.5f), 0.1f, Custom.Dist(leaderPos, pos), Custom.DirVec(leaderPos, pos), "Blue", 0);
-                    }
-
-                    //Create_TextBlock(room, pos + new Vector2(0f, -20f), -1, [.. list], "Yellow", 0);
                 }
 
                 abstractAI.dominance = cloudfish.dominance;
@@ -1633,7 +1977,7 @@ public class CloudFishAI : ArtificialIntelligence
                     }
                 }
 
-                //Create_Square(room, Vector2.Lerp(creaturePos, pos, 0.5f), 0.1f, Custom.Dist(creaturePos, pos), Custom.DirVec(creaturePos, pos), color, 1);
+                //Create_Square(room, Vector2.Lerp(creaturePos, segPos, 0.5f), 0.1f, Custom.Dist(creaturePos, segPos), Custom.DirVec(creaturePos, segPos), color, 1);
             }
 
             section = 5;
@@ -1865,7 +2209,7 @@ public class CloudFishAI : ArtificialIntelligence
             }
         }
 
-        Create_Square(cloudfish.room, pos, 10f, 10f, Vec(45), "Red", 0);
+        //Create_Square(cloudfish.room, pos, 10f, 10f, Vec(45), "Red", 0);
     }
 
 
@@ -1960,7 +2304,7 @@ public class CloudFishAI : ArtificialIntelligence
                                     if (pathFinder.CoordinateReachable(cloudfish.room.GetWorldCoordinate(checkTile2)) &&
                                         Custom.ManhattanDistance(checkTile2, intPos) > Custom.ManhattanDistance(bestPos, intPos) &&
                                         (map.getTerrainProximity(checkTile2) > 5 || map.getTerrainProximity(checkTile2) > map.getTerrainProximity(bestPos)) &&
-                                        !cloudfish.room.GetTile(checkTile1).AnyWater)
+                                        !cloudfish.room.GetTile(checkTile2).AnyWater)
                                     {
                                         bestPos = checkTile2;
                                     }
@@ -2040,9 +2384,9 @@ public class CloudFishAI : ArtificialIntelligence
                     section = 7;
                 }
 
-                //Create_Text(room, pos + new Vector2(0f, 40f), "Circle Timer: " + circleCounter, "Purple", 0);
+                //Create_Text(room, segPos + new Vector2(0f, 40f), "Circle Timer: " + circleCounter, "Purple", 0);
 
-                //Create_Text(room, pos + new Vector2(0f, 60f), "Leave Room Timer: " + stayInRoomDesire, "Red", 0);
+                //Create_Text(room, segPos + new Vector2(0f, 60f), "Leave Room Timer: " + stayInRoomDesire, "Red", 0);
             }
             else if (behavior == Behavior.GoToDen)
             {
@@ -2181,7 +2525,7 @@ public class CloudFishAI : ArtificialIntelligence
                                 if (cloudfish.room.VisualContact(pos, actualSwarmPos))
                                 {
                                     section = 32.1f;
-                                    //Create_LineAndDot(room, pos, realizedLeader.mainBodyChunk.pos, "Green", 0);
+                                    //Create_LineAndDot(room, segPos, realizedLeader.mainBodyChunk.segPos, "Green", 0);
 
                                     speed = Mathf.Lerp(normalSpeed, normalSpeed * 2f, Custom.Dist(pos, actualSwarmPos) / 500);
 
@@ -2201,7 +2545,7 @@ public class CloudFishAI : ArtificialIntelligence
 
                                     speed = normalSpeed * 2f;
 
-                                    //Create_LineAndDot(room, pos, realizedLeader.mainBodyChunk.pos, "Red", 0);
+                                    //Create_LineAndDot(room, segPos, realizedLeader.mainBodyChunk.segPos, "Red", 0);
 
                                     if (Custom.DistLess(pos, destination, 200) && cloudfish.room.VisualContact(pos, destination))
                                     {
@@ -2353,7 +2697,7 @@ public class CloudFishAI : ArtificialIntelligence
 
                 if (rainTracker.rainCycle.TimeUntilRain < 2000)
                 {
-                    speed = Mathf.Max(speed, Mathf.Lerp(normalSpeed * 3f, normalSpeed * 1.5f, rainTracker.rainCycle.TimeUntilRain / 2000));
+                    speed = Mathf.Max(speed, Mathf.Lerp(normalSpeed * 10f, normalSpeed * 5f, rainTracker.rainCycle.TimeUntilRain / 2000));
                 }
             }
             else if (behavior == Behavior.Flee)
@@ -2362,7 +2706,7 @@ public class CloudFishAI : ArtificialIntelligence
                 stayInRoomDesire = minRoomTime;
                 circleCounter = Random.Range(minCircleTime, maxCircleTime);
 
-                speed = Mathf.Lerp(normalSpeed * 3f, normalSpeed * 1.5f, Custom.Dist(pos, lastDangerPos) / 500);
+                speed = Mathf.Lerp(normalSpeed * 10f, normalSpeed * 5f, Custom.Dist(pos, lastDangerPos) / 500);
 
                 if (Custom.DistLess(pos, lastDangerPos, 200))
                 {
@@ -2483,10 +2827,12 @@ public class CloudFishAI : ArtificialIntelligence
             else if (behavior == Behavior.Hunt)
             {
                 goToPoint = nearestInsect.pos;
-                speed = Mathf.Lerp(normalSpeed * 3f, normalSpeed * 1.5f, Custom.Dist(pos, goToPoint) / 50);
+                speed = Mathf.Lerp(normalSpeed * 10, normalSpeed * 5f, Custom.Dist(pos, goToPoint) / 50);
                 movementType = MovementType.GoStraightToPoint;
             }
             #endregion
+
+            if (!pathfinding)
 
             section = 40;
 
@@ -2583,27 +2929,35 @@ public class CloudFishAI : ArtificialIntelligence
                     }
 
                     section = 45;
-                    if (pathToDestination != null)
+                    if (pathToDestination != null && migrateDestination.HasValue)
                     {
                         abstractAI.destination = migrateDestination.Value;
+
+                        section = 46;
 
                         WorldCoordinate? travelNode = null;
                         foreach (WorldCoordinate node in pathToDestination)
                         {
+                            section = 47;
+
                             if (node != null)
                             {
                                 AbstractRoom roomOfNode = world.GetAbstractRoom(node.room);
                                 if (roomOfNode.realizedRoom != null && roomOfNode.realizedRoom.shortcuts != null)
                                 {
+                                    section = 48;
+
                                     WorldCoordinate actualCoordOfNode = roomOfNode.realizedRoom.LocalCoordinateOfNode(node.abstractNode);
                                     //Create_Dot(roomOfNode.realizedRoom, roomOfNode.realizedRoom.MiddleOfTile(actualCoordOfNode), "Green", 0);
                                     if (roomOfNode == cloudfish.room.abstractRoom && travelNode == null)
                                     {
+                                        section = 49;
+
                                         travelNode = actualCoordOfNode;
                                         if (pathFinder.destination != actualCoordOfNode)
                                         {
                                             pathFinder.AssignNewDestination(actualCoordOfNode);
-                                            //Create_Square(room, pos, 10f, 10f, Vector2.up, "Red", 100);
+                                            //Create_Square(room, segPos, 10f, 10f, Vector2.up, "Red", 100);
                                         }
                                     }
                                 }
@@ -2617,7 +2971,30 @@ public class CloudFishAI : ArtificialIntelligence
             section = 50;
 
             #region Movement Control
-            if (movementType == MovementType.StandStill)
+            if (movementType != MovementType.FollowPath && room.PointSubmerged(pos))
+            {
+                bool foundAir = false;
+                for (int i = 0; i < 8; i++)
+                {
+                    IntVector2 dir = Custom.eightDirections[i];
+                    for (int j = 0; j < 20; j++)
+                    {
+                        IntVector2 testTilePos = intPos + dir * j;
+                        Vector2 testPos = room.MiddleOfTile(testTilePos);
+                        if (!room.PointSubmerged(testPos) && room.VisualContact(pos, testPos))
+                        {
+                            foundAir = true;
+                            moveDir = Vector2.Lerp(moveDir, Custom.DirVec(pos, testPos), 0.5f).normalized;
+                        }
+                    }
+                }
+
+                if (!foundAir)
+                {
+                    moveDir = Vector2.Lerp(moveDir, Vector2.up, 0.1f).normalized;
+                }
+            }
+            else if (movementType == MovementType.StandStill)
             {
                 section = 51;
 
@@ -2697,7 +3074,7 @@ public class CloudFishAI : ArtificialIntelligence
                     Create_Square(cloudfish.room, Vector2.Lerp(pos3, pos4, 0.5f), 1f, Custom.Dist(pos3, pos4), Custom.DirVec(pos3, pos4), "White", 0);
                 }*/
 
-                //Create_LineAndDot(room, pos, destination, "Green", 0);
+                //Create_LineAndDot(room, segPos, destination, "Green", 0);
             }
             else if (movementType == MovementType.CircleInPlace)
             {
@@ -2786,7 +3163,10 @@ public class CloudFishAI : ArtificialIntelligence
 
                 section = 53.3f;
 
-                //Create_LineAndDot(room, pos, destPos, "Purple", 0);
+                if (room.PointSubmerged(pos))
+                {
+                    moveDir = Vector2.Lerp(moveDir, Vector2.up, 0.1f).normalized;
+                }
             }
             else if (movementType == MovementType.AvoidWalls)
             {
@@ -2852,7 +3232,7 @@ public class CloudFishAI : ArtificialIntelligence
 
                 Vector2 checkPos = pos + moveDir * 40f;
                 bool nearbyChunk = PointTooCloseToChunk(checkPos, 10f, 100f);
-                if (nearbyChunk || room.GetTilePosition(checkPos) == null || room.GetTilePosition(pos) == null || map.getTerrainProximity(checkPos) < 3 || map.getTerrainProximity(pos) < 3)
+                if (nearbyChunk || room.GetTilePosition(checkPos) == null || room.GetTilePosition(pos) == null || map.getTerrainProximity(checkPos) < 3 || map.getTerrainProximity(pos) < 3 || room.PointSubmerged(checkPos) || room.PointSubmerged(pos))
                 {
                     Vector2 bestDir = moveDir;
                     Vector2 testDir = moveDir;
@@ -2861,7 +3241,7 @@ public class CloudFishAI : ArtificialIntelligence
                         Vector2 testPos = pos + testDir * 40;
                         if (room.VisualContact(pos, testPos))
                         {
-                            if (map.getTerrainProximity(testPos) >= 3 && !PointTooCloseToChunk(testPos, 10f, 100f))
+                            if (map.getTerrainProximity(testPos) >= 3 && !PointTooCloseToChunk(testPos, 10f, 100f) && !room.PointSubmerged(testPos))
                             {
                                 bestDir = testDir;
                                 break;
@@ -2878,6 +3258,11 @@ public class CloudFishAI : ArtificialIntelligence
                 else
                 {
                     moveDir = Custom.rotateVectorDeg(moveDir, Random.value > 0.5 ? 1 : -1);
+                }
+
+                if (room.PointSubmerged(pos))
+                {
+                    moveDir = Vector2.Lerp(moveDir, Vector2.up, 0.1f).normalized;
                 }
             }
             else if (movementType == MovementType.GoStraightToPoint)
@@ -2912,7 +3297,7 @@ public class CloudFishAI : ArtificialIntelligence
                 IntVector2 forwardsDir = new(forwardsDirX, forwardsDirY);
                 IntVector2 backwardsDir = new(-forwardsDir.x, -forwardsDir.y);
 
-                Create_Square(room, room.MiddleOfTile(intPos), 10f, 10f, Vec(45), "Yellow", 0);
+                //Create_Square(room, room.MiddleOfTile(intPos), 10f, 10f, Vec(45), "Yellow", 0);
 
                 IntVector2 testDir = forwardsDir;
                 int checkDir = Random.value > 0.5 ? 1 : -1;
@@ -2962,18 +3347,13 @@ public class CloudFishAI : ArtificialIntelligence
                         }
                     }
                 }
-            End:;
+                End:;
 
                 for (int i = 0; i < 4; i++)
                 {
                     Room.Tile testTile = room.GetTile(startPos + testDir);
-                    if (testTile.Solid)
+                    if (!testTile.Solid)
                     {
-                        Create_Square(room, room.MiddleOfTile(startPos + testDir), 5f, 5f, Vec(45), "Red", 0);
-                    }
-                    else
-                    {
-                        Create_Square(room, room.MiddleOfTile(startPos + testDir), 5f, 5f, Vec(45), "Green", 0);
                         break;
                     }
                     testDir = Custom.PerpIntVec(testDir) * checkDir;
@@ -2981,63 +3361,6 @@ public class CloudFishAI : ArtificialIntelligence
 
                 Vector2 tilePos = room.MiddleOfTile(startPos + testDir) + Custom.RNV() * Random.Range(5, -5);
                 moveDir = Custom.DirVec(pos, tilePos);
-
-                /*
-                bool fleeFromEnemy = lastDangerRoom == room && Custom.DistLess(pos, lastDangerPos, 200) && room.VisualContact(pos, lastDangerPos);
-                if (fleeFromEnemy)
-                {
-                    Vector2 dangerDir = Custom.DirVec(lastDangerPos, pos);
-                    forwardsDir = new(Mathf.RoundToInt(dangerDir.x), Mathf.RoundToInt(dangerDir.y));
-                }
-
-                //Create_Square(room, room.MiddleOfTile(intPos), 5f, 5f, Custom.DegToVec(45), "Cyan", 0);
-
-                bool foundNewDirection = false;
-                IntVector2 testDir = Random.value > 0.1f ? forwardsDir : Custom.PerpIntVec(forwardsDir) * (Random.value > 0.5f ? 1 : -1);
-                for (int i = 0; i < 4; i++)
-                {
-                    AItile.Accessibility acc = map.getAItile(intPos + testDir).acc;
-                    Room.Tile.TerrainType terrain = room.GetTile(intPos + testDir).Terrain;
-                    if (testDir != backwardsDir && acc != AItile.Accessibility.Solid && terrain != Room.Tile.TerrainType.Slope)
-                    {
-                        if (lastShortCutUsed.HasValue)
-                        {
-                            Vector2 shortCutPos = room.MiddleOfTile(lastShortCutUsed.Value);
-                            float angle = Mathf.Abs(Custom.Angle(testDir.ToVector2(), Custom.DirVec(pos, shortCutPos)));
-                            //Debug.Log(angle);
-                            if (angle < 45)
-                            {
-                                for (int j = 0; j < 10; j++)
-                                {
-                                    IntVector2 testPos = intPos + testDir * (j + 1);
-                                    //Create_Square(room, room.MiddleOfTile(testPos), 10f, 10f, Custom.DegToVec(0), "White", 0);
-                                    if (testPos == lastShortCutUsed.Value.Tile)
-                                    {
-                                        //Create_Square(room, room.MiddleOfTile(intPos + testDir), 5f, 5f, Custom.DegToVec(45), "Blue", 0);
-                                        goto Skip;
-                                    }
-                                    else if (map.getAItile(testPos).narrowSpace == false)
-                                    {
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
-                        foundNewDirection = true;
-                        moveDir = testDir.ToVector2().normalized;
-                        //Create_Square(room, room.MiddleOfTile(intPos + testDir), 5f, 5f, Custom.DegToVec(45), "Green", 0);
-                        break;
-                    }
-                    Skip:;
-                    //Create_Square(room, room.MiddleOfTile(intPos + testDir), 5f, 5f, Custom.DegToVec(45), "Red", 0);
-                    testDir = Custom.PerpIntVec(testDir);
-                }
-
-                if (!foundNewDirection)
-                {
-                    moveDir = backwardsDir.ToVector2().normalized;
-                }*/
             }
             #endregion
 
@@ -3045,7 +3368,7 @@ public class CloudFishAI : ArtificialIntelligence
             if (shakeTail)
             {
                 Vector2 normalMoveDir = moveDir;
-                //Create_LineBetweenTwoPoints(room, pos, pos + normalMoveDir * 20f, "Red", 0);
+                //Create_LineBetweenTwoPoints(room, segPos, segPos + normalMoveDir * 20f, "Red", 0);
 
                 if (shakeTailTimer > 80)
                 { shakeTailTimer = 1; }
@@ -3067,26 +3390,26 @@ public class CloudFishAI : ArtificialIntelligence
                 cloudfish.firstChunk.vel += (moveDir + shakeTailDir).normalized * speed * 0.5f;
             }
 
-            Vector2 vel = cloudfish.firstChunk.vel.normalized;
-            Vector2 bodyDir = Custom.DirVec(cloudfish.bodyChunks[0].pos, cloudfish.bodyChunks[2].pos);
-            if (Mathf.Abs(Custom.Angle(vel, bodyDir)) < 90)
+            if (cloudfish.grabbedBy.Count == 0)
             {
-                Vector2 perpVel1 = Custom.PerpendicularVector(moveDir);
-                Vector2 perpVel2 = -Custom.PerpendicularVector(moveDir);
+                Vector2 vel = cloudfish.firstChunk.vel.normalized;
+                Vector2 bodyDir = Custom.DirVec(cloudfish.bodyChunks[0].pos, cloudfish.bodyChunks[2].pos);
+                if (Mathf.Abs(Custom.Angle(vel, bodyDir)) < 90)
+                {
+                    Vector2 perpVel1 = Custom.PerpendicularVector(moveDir);
+                    Vector2 perpVel2 = -Custom.PerpendicularVector(moveDir);
 
-                cloudfish.bodyChunks[0].vel += perpVel1;
-                cloudfish.bodyChunks[2].vel += perpVel2;
+                    cloudfish.bodyChunks[0].vel += perpVel1;
+                    cloudfish.bodyChunks[2].vel += perpVel2;
 
-                Create_Square(room, cloudfish.bodyChunks[0].pos + perpVel1 * 20f, 1f, 40f, perpVel1, "Red", 0);
-                Create_Square(room, cloudfish.bodyChunks[2].pos + perpVel2 * 20f, 1f, 40f, perpVel2, "Red", 0);
+                    //Create_Square(room, cloudfish.bodyChunks[0].pos + perpVel1 * 20f, 1f, 40f, perpVel1, "Red", 0);
+                    //Create_Square(room, cloudfish.bodyChunks[2].pos + perpVel2 * 20f, 1f, 40f, perpVel2, "Red", 0);
+                }
             }
-
-            //Create_Square(room, pos + cloudfish.firstChunk.vel.normalized * 20f, 1f, 40f, cloudfish.firstChunk.vel.normalized, "Green", 0);
-            //Create_Square(room, pos + moveDir * 20f, 1f, 40f, moveDir, "Yellow", 0);
         }
         catch (Exception e)
         {
-            Log_Exception(e, "CLOUDFISH AI UPDATEBEHAVIOR", section);
+            Log_Exception(e, "CLOUDFISH AI UPDATEMOVEMENT", section);
         }
     }
     public bool PointTooCloseToChunk(Vector2 pos, float minRad, float extraRad)
@@ -3101,7 +3424,7 @@ public class CloudFishAI : ArtificialIntelligence
             if (chunk.rad > minRad && Custom.DistLess(pos, chunk.pos, chunk.rad + extraRad))
             {
                 Room room = cloudfish.room;
-                //Create_Square(room, chunk.pos, chunk.rad * 2f, chunk.rad * 2f, Vector2.up, "Green", 0);
+                //Create_Square(room, chunk.segPos, chunk.rad * 2f, chunk.rad * 2f, Vector2.up, "Green", 0);
                 return true;
             }
         }

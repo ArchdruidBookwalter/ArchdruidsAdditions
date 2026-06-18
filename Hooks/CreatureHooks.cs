@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
-using static ArchdruidsAdditions.Methods.Methods;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -77,7 +70,7 @@ public static class CreatureHooks
         {
             foreach (BodyChunk chunk in self.bodyChunks)
             {
-                Create_Square(self.room, chunk.pos, chunk.rad * 2f, chunk.rad * 2f, Vector2.up, "Red", 0);
+                Create_Square(self.room, chunk.segPos, chunk.rad * 2f, chunk.rad * 2f, Vector2.up, "Red", 0);
             }
             foreach (PhysicalObject.BodyChunkConnection connection in self.bodyChunkConnections)
             {
@@ -95,7 +88,7 @@ public static class CreatureHooks
                         break;
                 }
 
-                Create_LineBetweenTwoPoints(self.room, connection.chunk1.pos, connection.chunk2.pos, color, 0);
+                Create_LineBetweenTwoPoints(self.room, connection.chunk1.segPos, connection.chunk2.segPos, color, 0);
             }
         }*/
     }

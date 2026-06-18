@@ -1,14 +1,18 @@
-﻿using System;
-using BepInEx;
-using System.Security.Permissions;
-using MonoMod.RuntimeDetour;
+﻿global using RWCustom;
+global using UnityEngine;
+global using static ArchdruidsAdditions.Methods.Methods;
+global using Color = UnityEngine.Color;
+global using Random = UnityEngine.Random;
+using System;
 using System.Reflection;
-using Unity.Mathematics;
-using UnityEngine;
-using EffExt;
+using System.Security.Permissions;
 using ArchdruidsAdditions.Data;
-using Menu;
 using ArchdruidsAdditions.Objects.RoomEffects;
+using BepInEx;
+using EffExt;
+using Menu;
+using MonoMod.RuntimeDetour;
+using Unity.Mathematics;
 
 #pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -60,6 +64,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.AbstractCreature.ctor += Hooks.AbstractCreatureHooks.AbstractCreature_ctor;
         On.AbstractCreature.InDenUpdate += Hooks.AbstractCreatureHooks.AbstractCreature_InDenUpdate;
         On.AbstractCreature.Update += Hooks.AbstractCreatureHooks.AbstractCreature_Update;
+        On.AbstractCreature.ChangeRooms += Hooks.AbstractCreatureHooks.AbstractCreature_ChangeRooms;
         #endregion
 
         #region AbstractRoom Hooks
@@ -71,7 +76,13 @@ public sealed class Plugin : BaseUnityPlugin
         On.ArtificialIntelligence.SetDestination += Hooks.AIHooks.ArtificialIntelligence_SetDestination;
         On.RoomPreprocessor.DecompressStringToAImaps += Hooks.AIHooks.RoomPreprocessor_DecompressStringToAImaps;
         On.AImap.TileCostForCreature_WorldCoordinate_CreatureTemplate += Hooks.AIHooks.AImap_TileCostForCreature;
+        On.RelationshipTracker.DynamicRelationship.Update += Hooks.AIHooks.DynamicRelationship_Update;
+        On.ArtificialIntelligence.Update += Hooks.AIHooks.ArtificialIntelligence_Update;
         On.LizardAI.Update += Hooks.AIHooks.LizardAI_Update;
+        On.VultureAI.Update += Hooks.AIHooks.VultureAI_Update;
+        On.VultureAI.OnlyHurtDontGrab += Hooks.AIHooks.VultureAI_OnlyHurtDontGrab;
+        On.VultureAI.DoIWantToBiteCreature += Hooks.AIHooks.VultureAI_DoIWantToBiteCreature;
+        On.MirosBirdAI.DoIWantToBiteCreature += Hooks.AIHooks.MirosBirdAI_DoIWantToBiteCreature;
         #endregion
 
         #region Creature Hooks
@@ -86,8 +97,9 @@ public sealed class Plugin : BaseUnityPlugin
         On.DevInterface.Panel.CopyToClipboard += Hooks.DevtoolsHooks.Panel_CopyToClipboard;
         On.DevInterface.Panel.PasteFromClipboard += Hooks.DevtoolsHooks.Panel_PasteFromClipboard;
         On.PlacedObject.GenerateEmptyData += Hooks.DevtoolsHooks.PlacedObject_GenerateEmptyData;
-        On.DevInterface.MapPage.CreatureVis.CritString += Hooks.DevtoolsHooks.DevInterface_MapPage_CreatureVis_CritString;
-        On.DevInterface.MapPage.CreatureVis.CritCol += Hooks.DevtoolsHooks.DevInterface_MapPage_CreatureVis_CritCol;
+        On.DevInterface.MapPage.CreatureVis.CritString += Hooks.DevtoolsHooks.MapPage_CreatureVis_CritString;
+        On.DevInterface.MapPage.CreatureVis.CritCol += Hooks.DevtoolsHooks.MapPage_CreatureVis_CritCol;
+        On.DevInterface.Handle.Update += Hooks.DevtoolsHooks.Handle_Update;
         #endregion
 
         #region FLabel Hooks
@@ -99,10 +111,13 @@ public sealed class Plugin : BaseUnityPlugin
         On.RainWorldGame.CommunicateWithUpcomingProcess += Hooks.GameHooks.RainWorldGame_CommunicateWithUpcomingProcess;
         On.RainWorldGame.Win += Hooks.GameHooks.RainWorldGame_Win;
         On.RainWorldGame.SpawnPlayers_bool_bool_bool_bool_WorldCoordinate += Hooks.GameHooks.RainWorldGame_SpawnPlayers;
+        On.RainWorldGame.RawUpdate += Hooks.GameHooks.RainWorldGame_RawUpdate;
 
         On.PlayerProgression.GetOrInitiateSaveState += Hooks.GameHooks.PlayerProgression_GetOrInitiateSaveState;
         On.PlayerProgression.SaveWorldStateAndProgression += Hooks.GameHooks.PlayerProgression_SaveWorldStateAndProgression;
         On.PlayerProgression.ClearOutSaveStateFromMemory += Hooks.GameHooks.PlayerProgression_ClearOutSaveStateFromMemory;
+
+        On.MoreSlugcats.SpeedRunTimer.GetTimerTickIncrement += Hooks.GameHooks.SpeedRunTimer_GetTimerTickIncrement;
         #endregion
 
         #region HUD Hooks
@@ -112,6 +127,8 @@ public sealed class Plugin : BaseUnityPlugin
         On.HUD.HUD.Update += Hooks.HUDHooks.HUD_Update;
         On.HUD.FoodMeter.ctor += Hooks.HUDHooks.FoodMeter_ctor;
         On.HUD.FoodMeter.Update += Hooks.HUDHooks.FoodMeter_Update;
+        On.HUD.FoodMeter.SleepUpdate += Hooks.HUDHooks.FoodMeter_SleepUpdate;
+        On.HUD.FoodMeter.MoveSurvivalLimit += Hooks.HUDHooks.FoodMeter_MoveSurvivalLimit;
         On.HUD.FoodMeter.Draw += Hooks.HUDHooks.FoodMeter_Draw;
         On.HUD.FoodMeter.MeterCircle.Draw += Hooks.HUDHooks.FoodMeter_MeterCircle_Draw;
         #endregion
@@ -152,7 +169,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.Menu.SleepAndDeathScreen.Update += Hooks.MenuHooks.SleepAndDeathScreen_Update;
         On.Menu.SleepAndDeathScreen.GrafUpdate += Hooks.MenuHooks.SleepAndDeathScreen_GrafUpdate;
         On.Menu.SleepAndDeathScreen.AddSubObjects += Hooks.MenuHooks.SleepAndDeathScreen_AddSubOjects;
-        new Hook(typeof(SleepAndDeathScreen).GetMethod("get_AllowFoodMeterTick"), Hooks.MenuHooks.SleepAndDeathScreen_AllowFoodMeterTick);
+        new Hook(typeof(SleepAndDeathScreen).GetMethod("get_AllowFoodMeterTick"), Hooks.MenuHooks.SleepAndDeathScreen_Get_AllowFoodMeterTick);
         On.Menu.SleepAndDeathScreen.FoodCountDownDone += Hooks.MenuHooks.SleepAndDeathScreen_FoodCountDownDone;
         #endregion
 
@@ -184,9 +201,11 @@ public sealed class Plugin : BaseUnityPlugin
         On.PhysicalObject.Update += Hooks.PhysicalObjectHooks.PhysicalObject_Update;
         #endregion
 
-        #region Player
+        #region Player Hooks
         On.Player.Update += Hooks.PlayerHooks.Player_Update;
         On.Player.MovementUpdate += Hooks.PlayerHooks.Player_MovementUpdate;
+        On.Player.checkInput += Hooks.PlayerHooks.Player_checkInput;
+        On.Player.NewRoom += Hooks.PlayerHooks.Player_NewRoom;
         On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
         On.Player.PickupCandidate += Hooks.PlayerHooks.Player_PickupCandidate;
         On.Player.IsCreatureLegalToHoldWithoutStun += Hooks.PlayerHooks.Player_IsCreatureLegalToHoldWithoutStun;
@@ -197,8 +216,10 @@ public sealed class Plugin : BaseUnityPlugin
         On.Player.ThrowObject += Hooks.PlayerHooks.Player_ThrowObject;
         On.Player.ObjectEaten += Hooks.PlayerHooks.Player_ObjectEaten;
         On.Player.AddFood += Hooks.PlayerHooks.Player_AddFood;
+        On.Player.AddQuarterFood += Hooks.PlayerHooks.Player_AddQuarterFood;
         On.PlayerGraphics.Update += Hooks.PlayerHooks.PlayerGraphics_Update;
         On.PlayerGraphics.DrawSprites += Hooks.PlayerHooks.PlayerGraphics_DrawSprites;
+        On.PlayerGraphics.ctor += Hooks.PlayerHooks.PlayerGraphics_ctor;
         On.PlayerGraphics.PlayerObjectLooker.HowInterestingIsThisObject += Hooks.PlayerHooks.PlayerObjectLooker_HowInterestingIsThisObject;
         On.PlayerState.ctor += Hooks.PlayerHooks.PlayerState_ctor;
         On.SlugcatHand.Update += Hooks.PlayerHooks.SlugcatHand_Update;
@@ -207,12 +228,15 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Process Hooks
         On.ProcessManager.Update += Hooks.ProcessHooks.ProcessManager_Update;
+
+        On.MainLoopProcess.RawUpdate += Hooks.ProcessHooks.MainLoopProcess_RawUpdate;
         #endregion
 
         #region Room Hooks
         On.Room.Loaded += Hooks.RoomHooks.Room_Loaded;
-        new Hook(typeof(Room).GetMethod("get_ElectricPower"), Hooks.RoomHooks.Room_ElectricPower);
+        new Hook(typeof(Room).GetMethod("get_ElectricPower"), Hooks.RoomHooks.Room_Get_ElectricPower);
         On.RoomSettings.LoadPlacedObjects_StringArray_Timeline += Hooks.RoomHooks.RoomSettings_LoadPlacedObjects;
+        On.RoomCamera.ChangeRoom += Hooks.RoomHooks.RoomCamera_ChangeRoom;
         #endregion
 
         #region RoomSpecificScript Hooks
@@ -224,16 +248,20 @@ public sealed class Plugin : BaseUnityPlugin
         On.SaveState.LoadGame += Hooks.SaveStateHooks.SaveState_LoadGame;
         On.SaveState.SaveToString += Hooks.SaveStateHooks.SaveState_SaveToString;
         On.SaveState.SessionEnded += Hooks.SaveStateHooks.SaveState_SessionEnded;
+        new Hook(typeof(SaveState).GetMethod("get_SlowFadeIn"), Hooks.SaveStateHooks.SaveState_Get_SlowFadeIn);
         #endregion
 
         #region Scavenger Hooks
+        On.Scavenger.ctor += Hooks.ScavengerHooks.Scavenger_ctor;
+        On.Scavenger.Update += Hooks.ScavengerHooks.Scavenger_Update;
         On.Scavenger.Act += Hooks.ScavengerHooks.Scavenger_Act;
         On.Scavenger.TryThrow_BodyChunk_ViolenceType += Hooks.ScavengerHooks.Scavenger_TryThrow;
         On.Scavenger.TryToMeleeCreature += Hooks.ScavengerHooks.Scavenger_TryToMeleeCreature;
         On.Scavenger.ArrangeInventory += Hooks.ScavengerHooks.Scavenger_ArrangeInventory;
+        On.Scavenger.WantToLethallyAttack += Hooks.ScavengerHooks.Scavenger_WantToLethallyAttack;
         On.ScavengerGraphics.ContainerForHeldItem += Hooks.ScavengerHooks.ScavengerGraphics_ContainerForHeldItem;
-        new Hook(typeof(ScavengerGraphics).GetMethod("ItemPosition"), Hooks.ScavengerHooks.ScavengerGraphics_ItemPosition);
-        new Hook(typeof(ScavengerGraphics).GetMethod("ItemDirection"), Hooks.ScavengerHooks.ScavengerGraphics_ItemDirection);
+        new Hook(typeof(ScavengerGraphics).GetMethod("ItemPosition"), Hooks.ScavengerHooks.ScavengerGraphics_Get_ItemPosition);
+        new Hook(typeof(ScavengerGraphics).GetMethod("ItemDirection"), Hooks.ScavengerHooks.ScavengerGraphics_Get_ItemDirection);
 
         Type[] types =
         [
@@ -244,12 +272,20 @@ public sealed class Plugin : BaseUnityPlugin
         ];
         new Hook(typeof(ScavengerGraphics.ScavengerHand).GetMethod("DrawSprites", types), Hooks.ScavengerHooks.ScavengerHand_DrawSprites);
 
+        On.ScavengerAI.Update += Hooks.ScavengerHooks.ScavengerAI_Update;
         On.ScavengerAI.CollectScore_PhysicalObject_bool += Hooks.ScavengerHooks.ScavengerAI_CollectScore;
         On.ScavengerAI.WeaponScore += Hooks.ScavengerHooks.ScavengerAI_WeaponScore;
         On.ScavengerAI.CheckForScavangeItems += Hooks.ScavengerHooks.ScavengerAI_CheckForScavengeItems;
         On.ScavengerAI.PickUpItemScore += Hooks.ScavengerHooks.ScavengerAI_PickUpItemScore;
         On.ScavengerAI.TravelPreference += Hooks.ScavengerHooks.ScavengerAI_TravelPreference;
         On.ScavengerAI.AttackBehavior += Hooks.ScavengerHooks.ScavengerAI_AttackBehavior;
+        On.ScavengerAI.DecideBehavior += Hooks.ScavengerHooks.ScavengerAI_DecideBehavior;
+        On.ScavengerAI.CurrentPlayerAggression += Hooks.ScavengerHooks.ScavengerAI_CurrentPlayerAggression;
+        new Hook(typeof(ScavengerAI).GetMethod("get_HoldWeapon"), Hooks.ScavengerHooks.ScavengerAI_Get_HoldAWeapon);
+        new Hook(typeof(ScavengerAI).GetMethod("get_NeedAWeapon"), Hooks.ScavengerHooks.ScavengerAI_Get_NeedAWeapon);
+        On.ScavengerAI.MakeLookHere += Hooks.ScavengerHooks.ScavengerAI_MakeLookHere;
+        On.ScavengerAI.SeeThrownWeapon += Hooks.ScavengerHooks.ScavengerAI_SeeThrownWeapon;
+        On.ScavengerAI.SpearThrowPositionScore += Hooks.ScavengerHooks.ScavengerAI_SpearThrowPositionScore;
         On.ScavengerAbstractAI.InitGearUp += Hooks.ScavengerHooks.ScavengerAbstractAI_InitGearUp;
         On.ScavengerAbstractAI.ReGearInDen += Hooks.ScavengerHooks.ScavengerAbstractAI_ReGearInDen;
         On.ScavengerAbstractAI.UpdateMissionAppropriateGear += Hooks.ScavengerHooks.ScavengerabstractAI_UpdateMissionAppropriateGear;
@@ -265,12 +301,6 @@ public sealed class Plugin : BaseUnityPlugin
         On.MoreSlugcats.SlugNPCAI.GetFoodType += Hooks.SlugpupHooks.SlugNPCAI_GetFoodType;
         #endregion
 
-        #region Spear Hooks
-        On.Spear.DrawSprites += Hooks.SpearHooks.Spear_DrawSprites;
-        On.Spear.Update += Hooks.SpearHooks.Spear_Update;
-        On.MoreSlugcats.ElectricSpear.ZapperAttachPos += Hooks.SpearHooks.ElectricSpear_ZapperAttachPos;
-        #endregion
-
         #region Symbol Hooks
         On.ItemSymbol.SpriteNameForItem += Hooks.SymbolHooks.ItemSymbol_SpriteNameForItem;
         On.ItemSymbol.ColorForItem += Hooks.SymbolHooks.ItemSymbol_ColorForItem;
@@ -279,8 +309,11 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         #region Weapon Hooks
+        On.Spear.DrawSprites += Hooks.WeaponHooks.Spear_DrawSprites;
+        On.Spear.Update += Hooks.WeaponHooks.Spear_Update;
+        On.Spear.HitSomething += Hooks.WeaponHooks.Spear_HitSomething;
+        On.MoreSlugcats.ElectricSpear.ZapperAttachPos += Hooks.WeaponHooks.ElectricSpear_ZapperAttachPos;
         On.Weapon.Thrown += Hooks.WeaponHooks.Weapon_Thrown;
-        On.Weapon.HitWall += Hooks.WeaponHooks.Weapon_HitWall;
         On.Weapon.Update += Hooks.WeaponHooks.Weapon_Update;
         #endregion
 
@@ -291,12 +324,5 @@ public sealed class Plugin : BaseUnityPlugin
         On.StaticWorld.InitStaticWorldRelationshipsMSC += Hooks.StaticWorldHooks.InitStaticWorldRelationshipsMSC;
         On.StaticWorld.InitStaticWorldRelationshipsWatcher += Hooks.StaticWorldHooks.InitStaticWorldRelationshipsWatcher;
         #endregion
-
-        //On.Player.Update += Hooks.PlayerHooks.Player_Update;
-    }
-
-    private PathCost PathFinder_CheckConnectionCost(On.PathFinder.orig_CheckConnectionCost orig, PathFinder self, PathFinder.PathingCell start, PathFinder.PathingCell goal, MovementConnection connection, bool followingPath)
-    {
-        throw new NotImplementedException();
     }
 }

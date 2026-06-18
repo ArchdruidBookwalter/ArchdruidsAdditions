@@ -1,14 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
-using RWCustom;
-using HUD;
-using static ArchdruidsAdditions.Methods.Methods;
 using ArchdruidsAdditions.Data;
 using ArchdruidsAdditions.Objects.HUDObjects;
+using HUD;
 using Menu;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -38,6 +32,8 @@ public static class HUDHooks
     }
     internal static void HUD_InitSleepHud(On.HUD.HUD.orig_InitSleepHud orig, HUD.HUD self, SleepAndDeathScreen screen, Map.MapData mapData, SlugcatStats stats)
     {
+        //LogMethodStart("HUD_INITSLEEPHUD");
+
         orig(self, screen, mapData, stats);
 
         if (screen.ID == ProcessManager.ProcessID.SleepScreen)
@@ -57,10 +53,13 @@ public static class HUDHooks
                 self.AddPart(data.parasiteGrowthMeter);
             }
         }
+
+        //LogMethodEnd();
     }
     internal static void HUD_Update(On.HUD.HUD.orig_Update orig, HUD.HUD self)
     {
         orig(self);
+
         if (self.owner.GetOwnerType() == HUD.HUD.OwnerType.Player)
         {
             bool hasPointer = false;
@@ -75,72 +74,91 @@ public static class HUDHooks
             }
         }
     }
+
     internal static void FoodMeter_ctor(On.HUD.FoodMeter.orig_ctor orig, FoodMeter self, HUD.HUD hud, int maxFood, int survivalLimit, Player associatedPup, int pupNumber)
     {
+        //Methods.Methods.LogMethodStart("FOODMETER_CTOR");
+
         orig(self, hud, maxFood, survivalLimit, associatedPup, pupNumber);
 
-        if (hud.owner is Player && associatedPup == null)
+        //Methods.Methods.LogMessage("SURVIVAL LIMIT: " + survivalLimit);
+
+        if (hud.owner is Player player && associatedPup == null)
         {
             SpiceMeter spiceMeter = new(hud, maxFood);
             PlayerData.spiceMeters.Add(hud, spiceMeter);
         }
+
+        //Methods.Methods.LogMethodEnd();
     }
     internal static void FoodMeter_Update(On.HUD.FoodMeter.orig_Update orig, HUD.FoodMeter self)
     {
         orig(self);
 
-        if (self.hud.owner is Player)
+        float section = 1;
+
+        try
         {
-            SpiceMeter spiceMeter = PlayerData.spiceMeters[self.hud];
-            spiceMeter.Update(self);
-
-            PlayerData.AAPlayerState playerState = PlayerData.GetPlayerStateFromAbstractCreature((self.hud.owner as Player).abstractCreature);
-            if (playerState.tooSpicy)
-            { self.visibleCounter = 80; }
-        }
-
-        if (self.hud.owner is SleepAndDeathScreen sleepScreen && sleepScreen.AllowFoodMeterTick && !sleepScreen.karmaLadder.startedAnimating)
-        {
-            /*
-            Debug.Log("");
-            Debug.Log("METHOD FOODMETER_UPDATE WAS CALLED!");
-
-            foreach (FoodMeter.MeterCircle circle in self.circles)
+            if (self.hud.owner is Player player)
             {
-                int index = self.circles.IndexOf(circle);
-                HUDCircle circle1 = circle.circles[0];
-                HUDCircle circle2 = circle.circles[1];
+                section = 2;
 
-                string circleIndexString = "CIRCLE " + index + ": ";
-                string radsString = string.Format("RADS: {0:N2}-{1:N2}", circle1.rad, circle2.rad);
-                string fadesString = string.Format("FADES: {0:N2}-{1:N2}", circle1.fade, circle2.fade);
-                string flopped = string.Format("PLOPPED: {0}", circle.plopped);
+                SpiceMeter spiceMeter = PlayerData.spiceMeters[self.hud];
 
-                Debug.Log(string.Format("{0, -20}{1, -20}{2, -20}{3, -20}", circleIndexString, radsString, fadesString, flopped));
-            }*/
+                section = 3;
+
+                spiceMeter?.Update(self);
+
+                section = 4;
+
+                PlayerData.AAPlayerState playerState = PlayerData.GetPlayerState((self.hud.owner as Player).abstractCreature.ID.number);
+                if (playerState != null && playerState.tooSpicy)
+                { self.visibleCounter = 80; }
+            }
         }
+        catch (Exception e)
+        {
+            Methods.Methods.Log_Exception(e, "FOODMETER_UPDATE", section);
+        }
+    }
+    internal static void FoodMeter_SleepUpdate(On.HUD.FoodMeter.orig_SleepUpdate orig, HUD.FoodMeter self)
+    {
+        //LogMethodStart("FOODMETER_SLEEPUPDATE");
+
+        //LogMessage("MAX FOOD: " + self.maxFood);
+        //LogMessage("SURVIVAL LIMIT: " + self.survivalLimit);
+
+        orig(self);
+
+        //LogMethodEnd();
+    }
+    internal static void FoodMeter_MoveSurvivalLimit(On.HUD.FoodMeter.orig_MoveSurvivalLimit orig, HUD.FoodMeter self, float to, bool smooth)
+    {
+        orig(self, to, smooth);
     }
     internal static void FoodMeter_Draw(On.HUD.FoodMeter.orig_Draw orig, HUD.FoodMeter self, float timeStacker)
     {
         orig(self, timeStacker);
-    }
 
+        if (self.hud.owner is Player player)
+        {
+            SpiceMeter spiceMeter = PlayerData.spiceMeters[self.hud];
+            spiceMeter?.Draw(self, timeStacker);
+        }
+    }
     internal static void FoodMeter_MeterCircle_Draw(On.HUD.FoodMeter.MeterCircle.orig_Draw orig, HUD.FoodMeter.MeterCircle self, float timeStacker)
     {
         orig(self, timeStacker);
 
-        if (self.meter.hud.owner is SleepAndDeathScreen sleepAndDeathScreen)
-        {
-
-        }
-
         if (self.meter.hud.owner is Player)
         {
-            int circleIndex = self.meter.circles.IndexOf(self);
             SpiceMeter spiceMeter = PlayerData.spiceMeters[self.meter.hud];
-            SpiceMeter.SpiceCircle spiceCircle = spiceMeter.circles[circleIndex];
-
-            spiceCircle.Draw(self);
+            if (spiceMeter != null)
+            {
+                int index = self.meter.circles.IndexOf(self);
+                SpiceMeter.SpiceMeterCircle spiceCircle = spiceMeter.circles[index];
+                spiceCircle.Draw(self.circles[0], timeStacker);
+            }
         }
     }
 }

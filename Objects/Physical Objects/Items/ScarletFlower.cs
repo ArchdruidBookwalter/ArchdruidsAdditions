@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using DevInterface;
-using UnityEngine;
-using RWCustom;
-using System.Runtime.CompilerServices;
 
 namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
@@ -145,7 +137,7 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         if (!AbstrConsumable.isConsumed && (Vector2.Distance(firstChunk.pos, homePos) > 5f || grabbedBy.Count > 0))
         {
             frozen = false;
-            room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.8f, 1.6f + UnityEngine.Random.value / 10f);
+            room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.3f, 3f + UnityEngine.Random.value / 10f);
             AbstrConsumable.Consume();
         }
         rotation = (rotation - Custom.PerpendicularVector(rotation) * (firstChunk.ContactPoint.y < 0 ? 0.3f : 0f) * firstChunk.vel.x).normalized;
@@ -470,7 +462,8 @@ public class ScarletFlowerRepresentation : ConsumableRepresentation
 {
     public ScarletFlowerData data;
     public Handle rotationHandle;
-    //public ConsumableControlPanel controlPanel;
+    public FSprite panelLine;
+    public FSprite handleLine;
 
     public ScarletFlowerRepresentation(DevUI owner, string IDstring, DevUINode parentNode, PlacedObject pobj, string name) :
         base(owner, IDstring, parentNode, pobj, name)
@@ -484,25 +477,29 @@ public class ScarletFlowerRepresentation : ConsumableRepresentation
 
         subNodes.Add(rotationHandle);
         subNodes.Add(controlPanel);
-        fSprites.Add(new FSprite("pixel") { anchorY = 0f });
-        fSprites.Add(new FSprite("pixel") { anchorY = 0f });
-        owner.placedObjectsContainer.AddChild(fSprites[1]);
-        owner.placedObjectsContainer.AddChild(fSprites[2]);
+
+        panelLine = new FSprite("pixel") { anchorY = 0f };
+        fSprites.Add(panelLine);
+        owner.placedObjectsContainer.AddChild(panelLine);
+
+        handleLine = new FSprite("pixel") { anchorY = 0f };
+        fSprites.Add(handleLine);
+        owner.placedObjectsContainer.AddChild(handleLine);
     }
 
     public override void Refresh()
     {
         base.Refresh();
 
-        MoveSprite(1, absPos);
-        fSprites[1].scaleY = rotationHandle.pos.magnitude;
-        fSprites[1].rotation = Custom.AimFromOneVectorToAnother(absPos, rotationHandle.absPos);
-        (pObj.data as ScarletFlowerData).rotation = rotationHandle.pos;
-
-        MoveSprite(2, absPos);
-        fSprites[2].scaleY = controlPanel.pos.magnitude;
-        fSprites[2].rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
+        MoveSprite(fSprites.IndexOf(panelLine), absPos);
+        panelLine.scaleY = controlPanel.collapsed ? 0f : controlPanel.pos.magnitude;
+        panelLine.rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
         (pObj.data as ScarletFlowerData).panelPos = controlPanel.pos;
+
+        MoveSprite(fSprites.IndexOf(handleLine), absPos);
+        handleLine.scaleY = rotationHandle.pos.magnitude;
+        handleLine.rotation = Custom.AimFromOneVectorToAnother(absPos, rotationHandle.absPos);
+        (pObj.data as ScarletFlowerData).rotation = rotationHandle.pos;
 
         /*
         UnityEngine.Debug.Log("");

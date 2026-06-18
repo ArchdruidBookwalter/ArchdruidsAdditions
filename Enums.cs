@@ -1,14 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using DevInterface;
-using static ArchdruidsAdditions.Objects.RoomEffects.LightRodPowerEffect;
-
-namespace ArchdruidsAdditions.Enums;
+﻿namespace ArchdruidsAdditions.Enums;
 
 public class AAEnums
 {
@@ -20,6 +10,7 @@ public class AAEnums
         PlacedObjectType.RegisterValues();
         SandboxUnlockID.RegisterValues();
         ScavengerAnimationID.RegisterValues();
+        ScavengerBehavior.RegisterValues();
         CreatureTemplateType.RegisterValues();
         NewSoundID.RegisterValues();
     }
@@ -31,6 +22,7 @@ public class AAEnums
         PlacedObjectType.UnregisterValues();
         SandboxUnlockID.UnregisterValues();
         ScavengerAnimationID.UnregisterValues();
+        ScavengerBehavior.UnregisterValues();
         CreatureTemplateType.UnregisterValues();
         NewSoundID.UnregisterValues();
     }
@@ -43,7 +35,8 @@ public class AbstractObjectType
     public static AbstractPhysicalObject.AbstractObjectType ParrySword;
     public static AbstractPhysicalObject.AbstractObjectType Potato;
     public static AbstractPhysicalObject.AbstractObjectType LightningFruit;
-    public static AbstractPhysicalObject.AbstractObjectType FirePepper;
+    public static AbstractPhysicalObject.AbstractObjectType AshPepper;
+    public static AbstractPhysicalObject.AbstractObjectType ParasiteEgg;
 
     public static void RegisterValues()
     {
@@ -52,7 +45,8 @@ public class AbstractObjectType
         ParrySword = new("ParrySword", true);
         Potato = new("Potato", true);
         LightningFruit = new("LightningFruit", true);
-        FirePepper = new("FirePepper", true);
+        AshPepper = new("AshPepper", true);
+        ParasiteEgg = new("ParasiteEgg", true);
     }
 
     public static void UnregisterValues()
@@ -82,10 +76,15 @@ public class AbstractObjectType
             LightningFruit.Unregister();
             LightningFruit = null;
         }
-        if (FirePepper != null)
+        if (AshPepper != null)
         {
-            FirePepper.Unregister();
-            FirePepper = null;
+            AshPepper.Unregister();
+            AshPepper = null;
+        }
+        if (ParasiteEgg != null)
+        {
+            ParasiteEgg.Unregister();
+            ParasiteEgg = null;
         }
     }
 }
@@ -96,7 +95,7 @@ public class MiscItemType
     public static SLOracleBehaviorHasMark.MiscItemType ParrySword;
     public static SLOracleBehaviorHasMark.MiscItemType Potato;
     public static SLOracleBehaviorHasMark.MiscItemType LightningFruit;
-    public static SLOracleBehaviorHasMark.MiscItemType FirePepper;
+    public static SLOracleBehaviorHasMark.MiscItemType AshPepper;
 
     public static void RegisterValues()
     {
@@ -105,7 +104,7 @@ public class MiscItemType
         ParrySword = new("ParrySword", true);
         Potato = new("Potato", true);
         LightningFruit = new("LightningFruit", true);
-        FirePepper = new("FirePepper", true);
+        AshPepper = new("AshPepper", true);
     }
 
     public static void UnregisterValues()
@@ -135,10 +134,10 @@ public class MiscItemType
             LightningFruit.Unregister();
             LightningFruit = null;
         }
-        if (FirePepper != null)
+        if (AshPepper != null)
         {
-            FirePepper.Unregister();
-            FirePepper = null;
+            AshPepper.Unregister();
+            AshPepper = null;
         }
     }
 }
@@ -149,7 +148,7 @@ public class MultiplayerItemType
     public static PlacedObject.MultiplayerItemData.Type ParrySword;
     public static PlacedObject.MultiplayerItemData.Type Potato;
     public static PlacedObject.MultiplayerItemData.Type LightningFruit;
-    public static PlacedObject.MultiplayerItemData.Type FirePepper;
+    public static PlacedObject.MultiplayerItemData.Type AshPepper;
 
     public static void RegisterValues()
     {
@@ -158,7 +157,7 @@ public class MultiplayerItemType
         ParrySword = new("ParrySword", true);
         Potato = new("Potato", true);
         LightningFruit = new("LightningFruit", true);
-        FirePepper = new("FirePepper", true);
+        AshPepper = new("AshPepper", true);
     }
 
     public static void UnregisterValues()
@@ -188,10 +187,10 @@ public class MultiplayerItemType
             LightningFruit.Unregister();
             LightningFruit = null;
         }
-        if (FirePepper != null)
+        if (AshPepper != null)
         {
-            FirePepper.Unregister();
-            FirePepper = null;
+            AshPepper.Unregister();
+            AshPepper = null;
         }
     }
 }
@@ -201,6 +200,8 @@ public class PlacedObjectType
     public static PlacedObject.Type Potato;
     public static PlacedObject.Type LightningFruit;
     public static PlacedObject.Type DecoLightningVine;
+    public static PlacedObject.Type AshPepperBush;
+    public static PlacedObject.Type InfectedCorpse;
 
     public static void RegisterValues()
     {
@@ -208,6 +209,8 @@ public class PlacedObjectType
         Potato = new("Potato", true);
         LightningFruit = new("LightningFruit", true);
         DecoLightningVine = new("DecoLightningVine", true);
+        AshPepperBush = new("AshPepperBush", true);
+        InfectedCorpse = new("InfectedCorpse", true);
     }
 
     public static void UnregisterValues()
@@ -232,6 +235,16 @@ public class PlacedObjectType
             DecoLightningVine.Unregister();
             DecoLightningVine = null;
         }
+        if (AshPepperBush != null)
+        {
+            AshPepperBush.Unregister();
+            AshPepperBush = null;
+        }
+        if (InfectedCorpse != null)
+        {
+            InfectedCorpse.Unregister();
+            InfectedCorpse = null;
+        }
     }
 }
 public class SandboxUnlockID
@@ -241,7 +254,7 @@ public class SandboxUnlockID
     public static MultiplayerUnlocks.SandboxUnlockID ParrySword;
     public static MultiplayerUnlocks.SandboxUnlockID Potato;
     public static MultiplayerUnlocks.SandboxUnlockID LightningFruit;
-    public static MultiplayerUnlocks.SandboxUnlockID FirePepper;
+    public static MultiplayerUnlocks.SandboxUnlockID AshPepper;
 
     public static void RegisterValues()
     {
@@ -250,7 +263,7 @@ public class SandboxUnlockID
         ParrySword = new("ParrySword", true);
         Potato = new("Potato", true);
         LightningFruit = new("LightningFruit", true);
-        FirePepper = new("FirePepper", true);
+        AshPepper = new("AshPepper", true);
     }
 
     public static void UnregisterValues()
@@ -280,10 +293,10 @@ public class SandboxUnlockID
             LightningFruit.Unregister();
             LightningFruit = null;
         }
-        if (FirePepper != null)
+        if (AshPepper != null)
         {
-            FirePepper.Unregister();
-            FirePepper = null;
+            AshPepper.Unregister();
+            AshPepper = null;
         }
     }
 }
@@ -293,7 +306,7 @@ public class ScavengerAnimationID
 
     public static void RegisterValues()
     {
-        AimBow = new("AimBow", true);
+        AimBow = new("LoadSpearIntoBow", true);
     }
 
     public static void UnregisterValues()
@@ -302,6 +315,23 @@ public class ScavengerAnimationID
         {
             AimBow.Unregister();
             AimBow = null;
+        }
+    }
+}
+public class ScavengerBehavior
+{
+    public static ScavengerAI.Behavior AttackWithBow;
+    public static void RegisterValues()
+    {
+        AttackWithBow = new("AttackWithBow", true);
+    }
+
+    public static void UnregisterValues()
+    {
+        if (AttackWithBow != null)
+        {
+            AttackWithBow.Unregister();
+            AttackWithBow = null;
         }
     }
 }

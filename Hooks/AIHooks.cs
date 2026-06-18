@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
-using ArchdruidsAdditions.Objects;
-using static ArchdruidsAdditions.Methods.Methods;
-using RWCustom;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -23,9 +14,10 @@ public static class AIHooks
     }
     internal static PathCost AImap_TileCostForCreature(On.AImap.orig_TileCostForCreature_WorldCoordinate_CreatureTemplate orig, AImap self, WorldCoordinate pos, CreatureTemplate temp)
     {
+        PathCost cost = orig(self, pos, temp);
+
         if (temp.type == Enums.CreatureTemplateType.CloudFish)
         {
-            PathCost cost = orig(self, pos, temp);
             int terrainProximity = self.getTerrainProximity(pos);
 
             if (terrainProximity < 5)
@@ -42,27 +34,156 @@ public static class AIHooks
             return new PathCost(0f, PathCost.Legality.IllegalTile);
         }
 
-        return orig(self, pos, temp);
+        return cost;
     }
-
-    internal static void LizardAI_Update(On.LizardAI.orig_Update orig, LizardAI self)
+    internal static void DynamicRelationship_Update(On.RelationshipTracker.DynamicRelationship.orig_Update orig, RelationshipTracker.DynamicRelationship self)
     {
         orig(self);
 
-        AIModule highestModule = self.utilityComparer.HighestUtilityModule();
-        float highestModuleAmount = self.utilityComparer.HighestUtility();
+        CreatureTemplate.Relationship parasiteRelationship = self.rt.AI.creature.creatureTemplate.relationships[StaticWorld.GetCreatureTemplate("Parasite").index];
 
-        if (highestModule != null)
+        if (parasiteRelationship.type == CreatureTemplate.Relationship.Type.Afraid)
         {
-            List<string> lines = [];
-            lines.Add(highestModule.GetType().Name);
+            bool creatureIsParasite = false;
+            bool shouldBeAfraid = false;
 
-            if (highestModule is PreyTracker)
+            AbstractCreature repCreature = self.trackerRep.representedCreature;
+
+            if (repCreature.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
             {
-                lines.Add("PREY: " + self.preyTracker.prey.Count.ToString());
-                lines.Add("VIS RAD: " + self.creature.creatureTemplate.visualRadius.ToString());
+                creatureIsParasite = true;
+                if (repCreature.realizedCreature != null && (repCreature.realizedCreature as Parasite).buriedInChunk == null)
+                {
+                    shouldBeAfraid = true;
+                }
             }
-            Create_TextBlock(self.lizard.room, self.lizard.firstChunk.pos, 1, lines.ToArray(), "Red", 0);
+            else if (repCreature.creatureTemplate.type != Enums.CreatureTemplateType.Parasite && self.trackerRep.representedCreature.stuckObjects.Count > 0)
+            {
+                foreach (AbstractPhysicalObject.AbstractObjectStick stick in self.trackerRep.representedCreature.stuckObjects)
+                {
+                    if (stick is AbstractParasiteStick || stick is AbstractParasiteEggStick)
+                    {
+                        shouldBeAfraid = true;
+                    }
+                }
+            }
+
+            if (shouldBeAfraid)
+            {
+                if (self.currentRelationship != parasiteRelationship)
+                {
+                    self.rt.SortCreatureIntoModule(self, parasiteRelationship);
+
+                    self.trackerRep.priority = self.currentRelationship.intensity * self.trackedByModuleWeigth;
+                    self.currentRelationship = parasiteRelationship;
+                }
+            }
+            else if (creatureIsParasite)
+            {
+                CreatureTemplate.Relationship ignore = new(CreatureTemplate.Relationship.Type.Ignores, 0f);
+
+                if (self.currentRelationship != ignore)
+                {
+                    self.rt.SortCreatureIntoModule(self, parasiteRelationship);
+
+                    self.trackerRep.priority = self.currentRelationship.intensity * self.trackedByModuleWeigth;
+                    self.currentRelationship = parasiteRelationship;
+                }
+            }
+
+            if (repCreature.realizedCreature != null)
+            {
+                Room room = repCreature.realizedCreature.room;
+                Vector2 pos = repCreature.realizedCreature.mainBodyChunk.pos;
+
+                if (shouldBeAfraid)
+                {
+                    //Create_Square(room, repCreature.realizedCreature.mainBodyChunk.pos, 20f, 20f, Vec(45), "Red", 0);
+                }
+                else if (creatureIsParasite)
+                {
+                    //Create_Square(room, repCreature.realizedCreature.mainBodyChunk.pos, 20f, 20f, Vec(45), "Green", 0);
+                }
+            }
         }
+    }
+
+    internal static void ArtificialIntelligence_Update(On.ArtificialIntelligence.orig_Update orig, ArtificialIntelligence self)
+    {
+        orig(self);
+    }
+    internal static void LizardAI_Update(On.LizardAI.orig_Update orig, LizardAI self)
+    {
+        orig(self);
+    }
+    internal static void VultureAI_Update(On.VultureAI.orig_Update orig, VultureAI self)
+    {
+        orig(self);
+
+        if (self.vulture.room != null && self.relationshipTracker != null)
+        {
+            foreach (RelationshipTracker.DynamicRelationship relationship in self.relationshipTracker.relationships)
+            {
+                if (relationship.currentRelationship.type == CreatureTemplate.Relationship.Type.Afraid)
+                {
+                    Vector2 bestGuessForPosition = self.vulture.room.MiddleOfTile(relationship.trackerRep.BestGuessForPosition());
+                    self.disencouraged += 1f / Custom.Dist(self.vulture.mainBodyChunk.pos, bestGuessForPosition) * relationship.currentRelationship.intensity * 100;
+
+                    if (self.disencouraged > 10)
+                    {
+                        self.behavior = VultureAI.Behavior.Disencouraged;
+                    }
+                }
+            }
+        }
+    }
+    internal static bool VultureAI_OnlyHurtDontGrab(On.VultureAI.orig_OnlyHurtDontGrab orig, VultureAI self, PhysicalObject testObj)
+    {
+        bool baseGrab = orig(self, testObj);
+
+        if (testObj is Creature creature)
+        {
+            Tracker.CreatureRepresentation creatureRep = self.tracker.RepresentationForCreature(creature.abstractCreature, false);
+            if (creatureRep != null && creatureRep.dynamicRelationship.currentRelationship.type == CreatureTemplate.Relationship.Type.Afraid)
+            {
+                return true;
+            }
+        }
+
+        return baseGrab;
+    }
+    internal static bool VultureAI_DoIWantToBiteCreature(On.VultureAI.orig_DoIWantToBiteCreature orig, VultureAI self, AbstractCreature creature)
+    {
+        bool baseResult = orig(self, creature);
+
+        if (creature.stuckObjects.Count > 0)
+        {
+            foreach (AbstractPhysicalObject.AbstractObjectStick stick in creature.stuckObjects)
+            {
+                if (stick is AbstractParasiteStick || stick is AbstractParasiteEggStick)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return baseResult;
+    }
+    internal static bool MirosBirdAI_DoIWantToBiteCreature(On.MirosBirdAI.orig_DoIWantToBiteCreature orig, MirosBirdAI self, AbstractCreature creature)
+    {
+        bool baseResult = orig(self, creature); 
+
+        if (creature.stuckObjects.Count > 0)
+        {
+            foreach (AbstractPhysicalObject.AbstractObjectStick stick in creature.stuckObjects)
+            {
+                if (stick is AbstractParasiteStick || stick is AbstractParasiteEggStick)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return baseResult;
     }
 }

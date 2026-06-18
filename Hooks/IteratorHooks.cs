@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using RWCustom;
-using UnityEngine;
+﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -21,7 +14,7 @@ public static class IteratorHooks
             {
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
-                    "This is the spore-releasing bulb of a mycelial root network." +
+                    "This is the spore-releasing bulb of a mycelial sideBranch network." +
                     "<LINE>My creators used to call it Monksweed, as it frustrated them to no end whenever it managed to grow inside their old temples and monasteries." +
                     "<LINE>The roots can extend for miles below the surface, and are nearly impossible to remove once they infect an area."
 

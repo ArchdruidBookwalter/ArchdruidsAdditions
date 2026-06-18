@@ -1,26 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using ArchdruidsAdditions.Objects;
-using HUD;
-using UnityEngine;
+﻿using System.Collections.Generic;
 using ArchdruidsAdditions.Objects.HUDObjects;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
 namespace ArchdruidsAdditions.Data;
 
 public static class PlayerData
 {
+    public static bool DisableDevToolsForRainWorldGame = false;
+    public static bool DevToolsOn = false;
+    public static bool TextBeingInputted = false;
+    public static bool DisableLogs = false;
+
     public class AAPlayerState
     {
         public AbstractCreature player;
         public PlayerState basePlayerState;
-        public int playerIndex;
 
+        public bool recordFoodPips;
+        public int foodPipsConsumed;
+        public int quarterFoodPipsConsumed;
         public int spiceAmount;
-        public int tolerance;
         public bool tooSpicy;
 
         public int spicyReactTimer;
@@ -28,11 +28,29 @@ public static class PlayerData
         public bool infected;
         public EntityID parasiteID;
         public SaveState infectedSaveState;
+        public ParasiteIllnessEffect parasiteIllnessEffect;
+        public float parasiteMalnourishment;
+        public bool previousMalnourishment1;
+        public bool previousMalnourishment2;
+        public int parasiteKillCounter;
 
-        public AAPlayerState(AbstractCreature player, PlayerState basePlayerState, int playerIndex)
+        public AbstractParasiteStick parasiteStick
         {
-            this.playerIndex = playerIndex;
+            get
+            {
+                foreach (AbstractPhysicalObject.AbstractObjectStick stick in player.stuckObjects)
+                {
+                    if (stick is AbstractParasiteStick paraStick)
+                    {
+                        return paraStick;
+                    }
+                }
+                return null;
+            }
+        }
 
+        public AAPlayerState(AbstractCreature player, PlayerState basePlayerState)
+        {
             if (player != null && basePlayerState != null)
             {
                 RefreshPlayerState(player, basePlayerState);
@@ -43,7 +61,7 @@ public static class PlayerData
         {
             Dictionary<string, string> saveStrings = [];
 
-            saveStrings.Add("PLAYER", playerIndex.ToString());
+            saveStrings.Add("PLAYER", player.ID.number.ToString());
             saveStrings.Add("INFECTED", infected.ToString());
             saveStrings.Add("PARASITE", parasiteID.ToString());
 
@@ -64,32 +82,108 @@ public static class PlayerData
 
             ResetCycleOnlyData();
 
-            SlugcatStats.Name name = basePlayerState.slugcatCharacter;
-            tolerance = Mathf.Max(Mathf.Min(SlugcatStats.SlugcatFoodMeter(name).x - 4, 4), 2);
-
-            if (ModManager.MSC && name == MoreSlugcats.MoreSlugcatsEnums.SlugcatStatsName.Saint)
-            { tolerance = 4; }
-
-            if (basePlayerState.isPup)
-            { tolerance = 1; }
+            if (parasiteStick != null)
+            {
+                parasiteMalnourishment = 1f;
+            }
         }
 
         public void UpdateValue(string key, string value)
         {
             //Debug.Log("AAPLAYERDATA WAS UPDATED! KEY: " + key + ", VALUE: " + value);
         }
-    }
 
-    public static AAPlayerState GetPlayerStateFromAbstractCreature(AbstractCreature player)
-    {
-        foreach (AAPlayerState state in playerStates.Values)
+        public static bool SlugcatReactsToSpice(SlugcatStats.Name name)
         {
-            if (state.player.ID == player.ID)
-            { return state; }
+            if (ModManager.MSC && name == MoreSlugcats.MoreSlugcatsEnums.SlugcatStatsName.Spear)
+            { return false; }
+            return true;
         }
+
+        public static int SlugcatSpiceTolerance(SlugcatStats.Name name, bool isPup)
+        {
+            if (isPup)
+            { return 1; }
+
+            if (ModManager.MSC && name == MoreSlugcats.MoreSlugcatsEnums.SlugcatStatsName.Saint)
+            { return 4; }
+
+            return Mathf.Max(Mathf.Min(SlugcatStats.SlugcatFoodMeter(name).x - 4, 4), 2);
+        }
+    }
+    public static AAPlayerState GetPlayerState(int id)
+    {
+        if (playerStates.ContainsKey(id)) return playerStates[id];
         return null;
     }
 
+    public class SpearShotByBow
+    {
+        public Room room;
+        public Spear spear;
+        public Vector2 shootDir;
+        public Vector2 lastVel;
+        public int tickCounter;
+
+        public SpearShotByBow(Room room, Spear spear, Vector2 shootDir)
+        {
+            this.room = room;
+            this.spear = spear;
+            this.shootDir = shootDir;
+        }
+    }
+
+    public class SpearLoadedInBow
+    {
+        public Room room;
+        public Spear spear;
+        public Bow bow;
+
+        public SpearLoadedInBow(Room room, Spear spear, Bow bow)
+        {
+            this.room = room;
+            this.spear = spear;
+            this.bow = bow;
+        }
+    }
+
+    public class ScavData
+    {
+        public Scavenger scav;
+
+        public Bow GetBow()
+        {
+            foreach (Creature.Grasp grasp in scav.grasps)
+            {
+                if (grasp != null && grasp.grabbed is Bow bow)
+                {
+                    return bow;
+                }
+            }
+            return null;
+        }
+
+        public Spear GetSpear()
+        {
+            foreach (Creature.Grasp grasp in scav.grasps)
+            {
+                if (grasp != null && grasp.grabbed is Spear spear)
+                {
+                    return spear;
+                }
+            }
+            return null;
+        }
+
+        public ScavData(Scavenger scav)
+        {
+            this.scav = scav;
+        }
+    }
+
+    public static Dictionary<Spear, SpearShotByBow> spearsShotByBows = [];
+    public static Dictionary<Scavenger, ScavData> scavData = [];
+    public static Dictionary<Spear, Bow> spearsLoadedInBows = [];
     public static Dictionary<int, AAPlayerState> playerStates = [];
     public static Dictionary<HUD.HUD, SpiceMeter> spiceMeters = [];
 }

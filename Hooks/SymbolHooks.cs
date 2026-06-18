@@ -1,85 +1,83 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
-using RWCustom;
-
-namespace ArchdruidsAdditions.Hooks;
+﻿namespace ArchdruidsAdditions.Hooks;
 
 public static class SymbolHooks
 {
     internal static string ItemSymbol_SpriteNameForItem(On.ItemSymbol.orig_SpriteNameForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
     {
-        string text;
+        string baseText = orig(itemType, intData);
+
         if (itemType == Enums.AbstractObjectType.ScarletFlowerBulb)
         {
-            text = "Icon_ScarletFlowerBulb";
+            return "Icon_ScarletFlowerBulb";
         }
         else if (itemType == Enums.AbstractObjectType.ParrySword)
         {
-            text = "Icon_ParrySword";
+            return "Icon_ParrySword";
         }
         else if (itemType == Enums.AbstractObjectType.Potato)
         {
-            text = "Icon_Potato";
+            return "Icon_Potato";
         }
         else if (itemType == Enums.AbstractObjectType.Bow)
         {
-            text = "Icon_Bow";
+            return "Icon_Bow";
         }
         else if (itemType == Enums.AbstractObjectType.LightningFruit)
         {
-            text = "Icon_LightningFruit";
+            return "Icon_LightningFruit";
         }
-        else if (itemType == Enums.AbstractObjectType.FirePepper)
+        else if (itemType == Enums.AbstractObjectType.AshPepper)
         {
-            text = "Icon_FirePepper";
+            return "Icon_AshPepper";
         }
-        else
+        else if (itemType == Enums.AbstractObjectType.ParasiteEgg)
         {
-            text = orig.Invoke(itemType, intData);
+            return "Icon_ParasiteEgg";
         }
-        return text;
+
+        return baseText;
     }
 
     internal static Color ItemSymbol_ColorForItem(On.ItemSymbol.orig_ColorForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
     {
-        Color color;
+        Color baseColor = orig(itemType, intData);
+
         if (itemType == Enums.AbstractObjectType.ScarletFlowerBulb)
         {
-            color = new Color(1f, 0f, 0f);
+            return new Color(1f, 0f, 0f);
         }
         else if (itemType == Enums.AbstractObjectType.ParrySword)
         {
-            color = new Color(1f, 0.79f, 0.3f);
+            return new Color(1f, 0.79f, 0.3f);
         }
         else if (itemType == Enums.AbstractObjectType.Potato)
         {
-            color = new Color(1f, 0.8f, 0.6f);
+            return new Color(1f, 0.8f, 0.6f);
         }
         else if (itemType == Enums.AbstractObjectType.Bow)
         {
-            color = new Color(0.5f, 0.5f, 0.5f);
+            return new Color(0.5f, 0.5f, 0.5f);
         }
         else if (itemType == Enums.AbstractObjectType.LightningFruit)
         {
-            color = new Color(0f, 0f, 1f);
+            return new Color(0f, 0f, 1f);
         }
-        else if (itemType == Enums.AbstractObjectType.FirePepper)
+        else if (itemType == Enums.AbstractObjectType.AshPepper)
         {
-            color = new Color(1f, 0f, 0f);
+            return new Color(0.68235296f, 0.15686275f, 0.11764706f);
         }
-        else
+        else if (itemType == Enums.AbstractObjectType.ParasiteEgg)
         {
-            color = orig.Invoke(itemType, intData);
+            return new Color(0.4f, 0.8f, 0f);
         }
-        return color;
+
+        return baseColor;
     }
 
     internal static string CreatureSymbol_SpriteNameOfCreature(On.CreatureSymbol.orig_SpriteNameOfCreature orig, IconSymbol.IconSymbolData iconData)
     {
+        string baseSpriteName = orig(iconData);
+
         if (iconData.critType == Enums.CreatureTemplateType.CloudFish)
         {
             return "CloudFish";
@@ -88,11 +86,14 @@ public static class SymbolHooks
         {
             return "Parasite";
         }
-        return orig(iconData);
+
+        return baseSpriteName;
     }
 
     internal static Color CreatureSymbol_ColorOfCreature(On.CreatureSymbol.orig_ColorOfCreature orig, IconSymbol.IconSymbolData iconData)
     {
+        Color baseColor = orig(iconData);
+
         if (iconData.critType == Enums.CreatureTemplateType.CloudFish)
         {
             return Custom.HSL2RGB(0.5f, 0.8f, 0.8f);
@@ -101,6 +102,7 @@ public static class SymbolHooks
         {
             return Custom.HSL2RGB(1f, 1f, 0.5f);
         }
-        return orig(iconData);
+
+        return baseColor;
     }
 }
