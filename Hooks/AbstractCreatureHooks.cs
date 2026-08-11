@@ -17,7 +17,7 @@ public static class AbstractCreatureHooks
 
             if (self.Room != null && self.realizedCreature == null)
             {
-                //Debug.Log("CREATURE \'" + self.creatureTemplate.name + "\' REALIZED IN ROOM.");
+                Debug.Log("CREATURE \'" + self.creatureTemplate.name + "\' REALIZED IN ROOM.");
                 if (self.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
                 {
                     self.realizedCreature = new CloudFish(self, self.world);
@@ -26,6 +26,11 @@ public static class AbstractCreatureHooks
                 else if (self.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
                 {
                     self.realizedCreature = new Parasite(self, self.world);
+                    self.InitiateAI();
+                }
+                else if (self.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+                {
+                    self.realizedCreature = new MimicCrab(self, self.world);
                     self.InitiateAI();
                 }
             }
@@ -148,6 +153,11 @@ public static class AbstractCreatureHooks
             ParasiteAI newAI = new(self, self.world);
             self.abstractAI.RealAI = newAI;
         }
+        else if (self.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+        {
+            MimicCrabAI newAI = new(self, self.world);
+            self.abstractAI.RealAI = newAI;
+        }
         orig(self);
     }
     internal static void AbstractCreature_ctor(On.AbstractCreature.orig_ctor orig, AbstractCreature self, World world, CreatureTemplate creatureTemplate, Creature realizedCreature, WorldCoordinate pos, EntityID ID)
@@ -186,5 +196,10 @@ public static class AbstractCreatureHooks
                 playerState.parasiteIllnessEffect.NewRoom(newRoom.realizedRoom);
             }
         }*/
+    }
+
+    internal static void AbstractCreature_DropCarriedObject(On.AbstractCreature.orig_DropCarriedObject orig, AbstractCreature self, int graspIndex)
+    {
+        orig(self, graspIndex);
     }
 }

@@ -54,7 +54,10 @@ public sealed class Plugin : BaseUnityPlugin
         #region AbstractPhysicalObject Hooks
         On.AbstractPhysicalObject.Realize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Realize;
         On.AbstractPhysicalObject.Abstractize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Abstractize;
+        On.AbstractPhysicalObject.AddConnected += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_AddConnected;
+        On.AbstractPhysicalObject.LoseAllStuckObjects += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_LoseAllStuckObjects;
         On.AbstractPhysicalObject.AbstractObjectStick.FromString += Hooks.AbstractPhysicalObjectHooks.AbstractObjectStick_FromString;
+        On.AbstractPhysicalObject.AbstractObjectStick.Deactivate += Hooks.AbstractPhysicalObjectHooks.AbstractObjectStick_Deactivate;
         On.AbstractConsumable.IsTypeConsumable += Hooks.AbstractPhysicalObjectHooks.AbstractConsumable_IsTypeConsumable;
         #endregion
 
@@ -65,6 +68,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.AbstractCreature.InDenUpdate += Hooks.AbstractCreatureHooks.AbstractCreature_InDenUpdate;
         On.AbstractCreature.Update += Hooks.AbstractCreatureHooks.AbstractCreature_Update;
         On.AbstractCreature.ChangeRooms += Hooks.AbstractCreatureHooks.AbstractCreature_ChangeRooms;
+        On.AbstractCreature.DropCarriedObject += Hooks.AbstractCreatureHooks.AbstractCreature_DropCarriedObject;
         #endregion
 
         #region AbstractRoom Hooks
@@ -83,6 +87,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.VultureAI.OnlyHurtDontGrab += Hooks.AIHooks.VultureAI_OnlyHurtDontGrab;
         On.VultureAI.DoIWantToBiteCreature += Hooks.AIHooks.VultureAI_DoIWantToBiteCreature;
         On.MirosBirdAI.DoIWantToBiteCreature += Hooks.AIHooks.MirosBirdAI_DoIWantToBiteCreature;
+        On.Watcher.BarnacleAI.SetGroupDiscomfortTick += Hooks.AIHooks.BarnacleAI_SetGroupDiscomfortTick;
         #endregion
 
         #region Creature Hooks
@@ -90,6 +95,9 @@ public sealed class Plugin : BaseUnityPlugin
         On.TailSegment.ctor += Hooks.CreatureHooks.TailSegment_ctor;
         On.Creature.ctor += Hooks.CreatureHooks.Creature_ctor;
         On.Creature.Update += Hooks.CreatureHooks.Creature_Update;
+        On.Creature.Grab += Hooks.CreatureHooks.Creature_Grab;
+        On.Creature.ReleaseGrasp += Hooks.CreatureHooks.Creature_ReleaseGrab;
+        On.Watcher.Barnacle.Collide += Hooks.CreatureHooks.Barnacle_Collide;
         #endregion
 
         #region Devtools Hooks

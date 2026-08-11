@@ -9,6 +9,9 @@ namespace ArchdruidsAdditions.Methods
 {
     public static class Methods
     {
+        public static string methodName;
+        public static int methodSection;
+
         public static int tab = 0;
         public static void LogMethodStart(string methodName)
         {
@@ -197,10 +200,10 @@ namespace ArchdruidsAdditions.Methods
 
                 if (dist < rad)
                 {
-                    //Create_LineBetweenTwoPoints(room, adjPos, lightPos + camera.pos, 2f, sprite.color, 1);
+                    //Create_LineBetweenTwoPoints(room, adjPos, lightPos + camera.pos, 2f, sprite.shellColor, 1);
                 }
 
-                //Create_Square(room, lightPos + camera.pos, scale, scale, Vec(0), sprite.color, 1);
+                //Create_Square(room, lightPos + camera.pos, scale, scale, Vec(0), sprite.shellColor, 1);
             }
 
             lightSourceExposure = Mathf.Max(lightSourceExposure, 1f - adjustedDarkness) + addBrightness;
@@ -225,7 +228,7 @@ namespace ArchdruidsAdditions.Methods
         }
 
         #region Debug Shapes
-        public static bool DebugShapes = false;
+        public static bool DebugShapes = true;
         public static bool HideDebugShapes(Room room)
         {
             if (room == null || !DebugShapes || !room.BeingViewed || !room.game.devToolsActive)

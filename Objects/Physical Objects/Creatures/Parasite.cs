@@ -1553,13 +1553,6 @@ public class AbstractParasiteStick : AbstractPhysicalObject.AbstractObjectStick
     {
         this.chunk = chunk;
         this.growth = growth;
-
-        AbstractCreature p = parasite as AbstractCreature;
-        AbstractCreature o = otherCreature as AbstractCreature;
-
-        //Debug.Log("");
-        //Debug.Log("ABSTRACTPARASITESTICK CREATED. CREATURES: " + p.creatureTemplate.name + " : " + p.ID.ToString() + " - " + o.creatureTemplate.name + " : " + o.ID.ToString());
-        //Debug.Log("");
     }
 
     public override string SaveToString(int roomIndex)

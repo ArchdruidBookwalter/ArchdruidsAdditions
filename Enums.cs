@@ -37,6 +37,7 @@ public class AbstractObjectType
     public static AbstractPhysicalObject.AbstractObjectType LightningFruit;
     public static AbstractPhysicalObject.AbstractObjectType AshPepper;
     public static AbstractPhysicalObject.AbstractObjectType ParasiteEgg;
+    public static AbstractPhysicalObject.AbstractObjectType CrabShell;
 
     public static void RegisterValues()
     {
@@ -47,6 +48,7 @@ public class AbstractObjectType
         LightningFruit = new("LightningFruit", true);
         AshPepper = new("AshPepper", true);
         ParasiteEgg = new("ParasiteEgg", true);
+        CrabShell = new("CrabShell", true);
     }
 
     public static void UnregisterValues()
@@ -86,6 +88,11 @@ public class AbstractObjectType
             ParasiteEgg.Unregister();
             ParasiteEgg = null;
         }
+        if (CrabShell != null)
+        {
+            CrabShell.Unregister();
+            CrabShell = null;
+        }
     }
 }
 public class MiscItemType
@@ -96,6 +103,7 @@ public class MiscItemType
     public static SLOracleBehaviorHasMark.MiscItemType Potato;
     public static SLOracleBehaviorHasMark.MiscItemType LightningFruit;
     public static SLOracleBehaviorHasMark.MiscItemType AshPepper;
+    public static SLOracleBehaviorHasMark.MiscItemType CrabShell;
 
     public static void RegisterValues()
     {
@@ -105,6 +113,7 @@ public class MiscItemType
         Potato = new("Potato", true);
         LightningFruit = new("LightningFruit", true);
         AshPepper = new("AshPepper", true);
+        CrabShell = new("CrabShell", true);
     }
 
     public static void UnregisterValues()
@@ -138,6 +147,11 @@ public class MiscItemType
         {
             AshPepper.Unregister();
             AshPepper = null;
+        }
+        if (CrabShell != null)
+        {
+            CrabShell.Unregister();
+            CrabShell = null;
         }
     }
 }
@@ -149,6 +163,7 @@ public class MultiplayerItemType
     public static PlacedObject.MultiplayerItemData.Type Potato;
     public static PlacedObject.MultiplayerItemData.Type LightningFruit;
     public static PlacedObject.MultiplayerItemData.Type AshPepper;
+    public static PlacedObject.MultiplayerItemData.Type CrabShell;
 
     public static void RegisterValues()
     {
@@ -158,6 +173,7 @@ public class MultiplayerItemType
         Potato = new("Potato", true);
         LightningFruit = new("LightningFruit", true);
         AshPepper = new("AshPepper", true);
+        CrabShell = new("CrabShell", true);
     }
 
     public static void UnregisterValues()
@@ -191,6 +207,11 @@ public class MultiplayerItemType
         {
             AshPepper.Unregister();
             AshPepper = null;
+        }
+        if (CrabShell != null)
+        {
+            CrabShell.Unregister();
+            CrabShell = null;
         }
     }
 }
@@ -255,6 +276,7 @@ public class SandboxUnlockID
     public static MultiplayerUnlocks.SandboxUnlockID Potato;
     public static MultiplayerUnlocks.SandboxUnlockID LightningFruit;
     public static MultiplayerUnlocks.SandboxUnlockID AshPepper;
+    public static MultiplayerUnlocks.SandboxUnlockID CrabShell;
 
     public static void RegisterValues()
     {
@@ -264,6 +286,7 @@ public class SandboxUnlockID
         Potato = new("Potato", true);
         LightningFruit = new("LightningFruit", true);
         AshPepper = new("AshPepper", true);
+        CrabShell = new("CrabShell", true);
     }
 
     public static void UnregisterValues()
@@ -297,6 +320,11 @@ public class SandboxUnlockID
         {
             AshPepper.Unregister();
             AshPepper = null;
+        }
+        if (CrabShell != null)
+        {
+            CrabShell.Unregister();
+            CrabShell = null;
         }
     }
 }
@@ -339,11 +367,13 @@ public class CreatureTemplateType
 {
     public static CreatureTemplate.Type CloudFish;
     public static CreatureTemplate.Type Parasite;
+    public static CreatureTemplate.Type MimicCrab;
 
     public static void RegisterValues()
     {
         CloudFish = new("CloudFish", true);
         Parasite = new("Parasite", true);
+        MimicCrab = new("MimicCrab", true);
     }
 
     public static void UnregisterValues()
@@ -357,6 +387,11 @@ public class CreatureTemplateType
         {
             Parasite.Unregister();
             Parasite = null;
+        }
+        if (MimicCrab != null)
+        {
+            MimicCrab.Unregister();
+            MimicCrab = null;
         }
     }
 }

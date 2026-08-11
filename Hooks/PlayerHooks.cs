@@ -12,23 +12,53 @@ public static class PlayerHooks
 {
     #region Player Hooks
 
-    static int clearConsoleCooldown = 0;
-    static bool playingSounds = false;
-    static int soundIndex = 0;
-    static int soundTimer = 0;
-    static List<string> soundIDs;
+    static int debugCooldown = 0;
+    static bool recordCreatureRelationships = false;
+    static int templateID = 0;
+
     internal static void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
     {
         orig(self, eu);
 
-        /*
-        List<string> strings = [];
-        foreach (PlayerData.SpearShotByBow spearData in PlayerData.spearsShotByBows.Values)
+        if (debugCooldown > 0)
+        { debugCooldown--; }
+        else
         {
-            strings.Add("SPEAR: " + spearData.spear.abstractPhysicalObject.ID.number);
+            if (self.input[0].spec)
+            {
+                if (self.input[0].thrw)
+                {
+                    recordCreatureRelationships = true;
+                }
+            }
         }
-        Methods.Methods.Create_TextBlock(self.room, self.room.game.cameras[0].pos + new Vector2(100f, 100f), 1, [.. strings], "Red", 0);
-        */
+
+        if (recordCreatureRelationships)
+        {
+            if (templateID == StaticWorld.creatureTemplates.Length)
+            {
+                recordCreatureRelationships = false;
+                templateID = 0;
+            }
+            else
+            {
+                Debug.Log("");
+
+                CreatureTemplate creature = StaticWorld.creatureTemplates[templateID];
+
+                Debug.Log("-" + creature.name.ToUpper() + " RELATIONSHIPS: ");
+
+                for (int i = 0; i < creature.relationships.Length; i++)
+                {
+                    CreatureTemplate otherCreature = StaticWorld.creatureTemplates[i];
+
+                    Debug.Log("   " + otherCreature.name.ToUpper() + " - " + creature.relationships[i].type.value + " : " + creature.relationships[i].intensity);
+                }
+
+                templateID++;
+            }
+            debugCooldown = 200;
+        }
 
         AAPlayerState playerState = GetPlayerState(self.abstractCreature.ID.number);
         if (playerState != null)
@@ -210,6 +240,13 @@ public static class PlayerHooks
         {
             return Player.ObjectGrabability.OneHand;
         }
+        if (obj is MimicCrab crab)
+        {
+            if (crab.ShellStick != null)
+            { return Player.ObjectGrabability.CantGrab; }
+            else
+            { return Player.ObjectGrabability.TwoHands; }
+        }
 
         return baseGrabability;
     }
@@ -333,12 +370,14 @@ public static class PlayerHooks
     }
     internal static void Player_ThrowObject(On.Player.orig_ThrowObject orig, Player self, int grasp, bool eu)
     {
-        if (self.grasps[grasp].grabbed is ParrySword sword)
+        PhysicalObject obj = self.grasps[grasp].grabbed;
+
+        if (obj is ParrySword sword)
         {
             sword.Use();
             return;
         }
-        else if (self.grasps[grasp].grabbed is Bow bow)
+        else if (obj is Bow bow)
         {
             int otherGrasp = grasp == 0 ? 1 : 0;
             if (self.grasps[otherGrasp] is not null &&
@@ -350,7 +389,7 @@ public static class PlayerHooks
             }
             return;
         }
-        else if (self.grasps[grasp].grabbed is Spear spear2)
+        else if (obj is Spear spear2)
         {
             int otherGrasp = grasp == 0 ? 1 : 0;
             if (self.grasps[otherGrasp] is not null &&
@@ -364,6 +403,7 @@ public static class PlayerHooks
                 return;
             }
         }
+
         orig(self, grasp, eu);
     }
 

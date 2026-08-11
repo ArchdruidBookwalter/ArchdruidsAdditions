@@ -3,6 +3,8 @@ using System.Globalization;
 using ArchdruidsAdditions.Enums;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+using System.Collections.Generic;
+using ArchdruidsAdditions.Data;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -68,6 +70,10 @@ public static class AbstractPhysicalObjectHooks
 
                 self.realizedObject = new ParasiteEgg(self, growOnStartup);
             }
+            else if (self.type == AbstractObjectType.CrabShell)
+            {
+                self.realizedObject = new CrabShell(self, self.world);
+            }
         }
     }
 
@@ -84,6 +90,24 @@ public static class AbstractPhysicalObjectHooks
         }
 
         orig(self, coord);
+    }
+
+    internal static void AbstractPhysicalObject_AddConnected(On.AbstractPhysicalObject.orig_AddConnected orig, AbstractPhysicalObject self, ref List<AbstractPhysicalObject> list)
+    {
+        orig(self, ref list);
+
+        /*
+        Debug.Log("METHOD ABSTRACTPHYSICALOBJECT_ADDCONNECTED WAS CALLED BY: " + self.type.value);
+        Debug.Log("   ITEMS: ");
+        foreach (AbstractPhysicalObject item in list)
+        {
+            Debug.Log("   " + item.type.value.ToUpper());
+        }*/
+    }
+
+    internal static void AbstractPhysicalObject_LoseAllStuckObjects(On.AbstractPhysicalObject.orig_LoseAllStuckObjects orig, AbstractPhysicalObject self)
+    {
+        orig(self);
     }
 
     internal static bool AbstractConsumable_IsTypeConsumable(On.AbstractConsumable.orig_IsTypeConsumable orig, AbstractPhysicalObject.AbstractObjectType type)
@@ -173,5 +197,21 @@ public static class AbstractPhysicalObjectHooks
         {
             orig(splitString, room);
         }
+    }
+
+    internal static void AbstractObjectStick_Deactivate(On.AbstractPhysicalObject.AbstractObjectStick.orig_Deactivate orig, AbstractPhysicalObject.AbstractObjectStick self)
+    {
+        if (MiscData.stopAbsStkDeactivation)
+        { return; }
+
+        if (self is AbstractCrabShellStick shellStick)
+        {
+            if (shellStick.Crab.realizedCreature != null && shellStick.Crab.realizedCreature is MimicCrab crab)
+            { crab.shellStick = null; }
+            if (shellStick.Shell.realizedObject != null && shellStick.Shell.realizedObject is CrabShell shell)
+            { shell.shellStick = null; }
+        }
+
+        orig(self);
     }
 }

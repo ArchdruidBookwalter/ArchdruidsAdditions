@@ -75,6 +75,10 @@ public static class MainHooks
         {
             Futile.atlasManager.LoadAtlas("atlases/ParasiteEgg");
         }
+        if (!Futile.atlasManager.DoesContainAtlas("SnailShell"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/SnailShell");
+        }
         #endregion
 
         #region Creatures
@@ -85,6 +89,10 @@ public static class MainHooks
         if (!Futile.atlasManager.DoesContainAtlas("Parasite"))
         {
             Futile.atlasManager.LoadAtlas("atlases/Parasite");
+        }
+        if (!Futile.atlasManager.DoesContainAtlas("MimicCrab"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/MimicCrab");
         }
         #endregion
 
@@ -193,6 +201,10 @@ public static class MainHooks
         {
             Futile.atlasManager.UnloadAtlas("ParasiteEgg");
         }
+        if (Futile.atlasManager.DoesContainAtlas("SnailShell"))
+        {
+            Futile.atlasManager.UnloadAtlas("SnailShell");
+        }
         #endregion
 
         #region Creature Sprites
@@ -203,6 +215,10 @@ public static class MainHooks
         if (Futile.atlasManager.DoesContainAtlas("Parasite"))
         {
             Futile.atlasManager.UnloadAtlas("Parasite");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("MimicCrab"))
+        {
+            Futile.atlasManager.UnloadAtlas("MimicCrab");
         }
         #endregion
 

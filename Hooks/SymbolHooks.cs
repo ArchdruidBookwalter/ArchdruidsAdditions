@@ -34,6 +34,10 @@ public static class SymbolHooks
         {
             return "Icon_ParasiteEgg";
         }
+        else if (itemType == Enums.AbstractObjectType.CrabShell)
+        {
+            return "Icon_SnailShell";
+        }
 
         return baseText;
     }
@@ -70,6 +74,10 @@ public static class SymbolHooks
         {
             return new Color(0.4f, 0.8f, 0f);
         }
+        else if (itemType == Enums.AbstractObjectType.CrabShell)
+        {
+            return Custom.HSL2RGB(0.04f, 0.4f, 0.6f);
+        }
 
         return baseColor;
     }
@@ -86,6 +94,10 @@ public static class SymbolHooks
         {
             return "Parasite";
         }
+        else if (iconData.critType == Enums.CreatureTemplateType.MimicCrab)
+        {
+            return "MimicCrab";
+        }
 
         return baseSpriteName;
     }
@@ -98,9 +110,9 @@ public static class SymbolHooks
         {
             return Custom.HSL2RGB(0.5f, 0.8f, 0.8f);
         }
-        if (iconData.critType == Enums.CreatureTemplateType.CloudFish)
+        if (iconData.critType == Enums.CreatureTemplateType.MimicCrab)
         {
-            return Custom.HSL2RGB(1f, 1f, 0.5f);
+            return Custom.HSL2RGB(0f, 0.5f, 0.4f);
         }
 
         return baseColor;

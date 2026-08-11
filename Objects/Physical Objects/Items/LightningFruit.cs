@@ -577,7 +577,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         }
         catch (Exception e)
         {
-            Debug.LogWarning("Exception occured when trying to get the region color data for Lightning Fruit in section: " + section + "! Is the region properties file formatted correctly? Check the Steam Workshop page for more information.");
+            Debug.LogWarning("Exception occured when trying to get the region shellColor data for Lightning Fruit in section: " + section + "! Is the region properties file formatted correctly? Check the Steam Workshop page for more information.");
             Debug.LogException(e);
         }
 

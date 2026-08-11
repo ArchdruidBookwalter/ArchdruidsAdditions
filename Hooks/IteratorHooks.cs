@@ -1,4 +1,6 @@
-﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+﻿using System.Threading;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+using UnityEngine.Rendering;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -14,7 +16,7 @@ public static class IteratorHooks
             {
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
-                    "This is the spore-releasing bulb of a mycelial sideBranch network." +
+                    "This is the spore-releasing bulb of a mycelial root network." +
                     "<LINE>My creators used to call it Monksweed, as it frustrated them to no end whenever it managed to grow inside their old temples and monasteries." +
                     "<LINE>The roots can extend for miles below the surface, and are nearly impossible to remove once they infect an area."
 
@@ -30,20 +32,20 @@ public static class IteratorHooks
             {
                 self.events.Add(new Conversation.TextEvent(self, 80, self.Translate(
 
-                    "Oh, what a curious find, <PLAYERNAME>... This weapon was once the personal item of one of my long-departed creators." +
-                    "<LINE>Its purpose was for self-defence, as its curved design and superior durability enables it to absorb and deflect blows from superior opponents."
+                    "Oh, what a curious find, <PLAYERNAME>... This weapon was once a personal item of one of my long-departed creators." +
+                    "<LINE>Its purpose was for self-defence, as its curved design and superior durability enables it to absorb and deflect blows from stronger opponents."
 
                     ), 0));
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
                     "You see, my creators believed that violence was the most base and unforgivable of all vices. Conflict was rare but not unheard of," +
-                    "<LINE>and so weapons like these were made to protect important persons from harm without comitting such harm in return."
+                    "<LINE>so weapons like these were made to protect important persons from harm without comitting such harm in return."
 
                     ), 0));
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
-                    "This one was even equipped with a primitive AI module, to prevent it from being used for evil I assume." +
-                    "<LINE>It must trust you, if you were able to touch it and bring it all the way here. Perhaps it considers you its new wielder, even."
+                    "This one was even equipped with a primitive AI module, to prevent it from being used for evil, I assume." +
+                    "<LINE>It must trust you, if you were able to touch it and bring it all the way here. Perhaps it even considers you to be its new master."
 
                     ), 0));
             }
@@ -64,6 +66,30 @@ public static class IteratorHooks
 
                     ), 0));
             }
+            else if (item == Enums.MiscItemType.AshPepper)
+            {
+                self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
+
+                    "It looks like some kind of hot pepper, no doubt loaded with capsaicin." +
+                    "<LINE>...I would be careful eating this if I were you."
+
+                    ), 0));
+            }
+            else if (item == Enums.MiscItemType.LightningFruit)
+            {
+                self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
+
+                    "What sort of fruit is this? It seems to contain some kind of electrical charge..." +
+                    "<LINE>Perhaps it is an odd defence mechanism against predatory insects."
+
+                    ), 0));
+                self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
+
+                    "My creators left behind so many strange things when they departed. Plants, animals, machines... Sometimes a mix of all three." +
+                    "<LINE>It's hard to imagine all the different ways they could have evolved since then."
+
+                    ), 0));
+            }
         }
     }
     internal static SLOracleBehaviorHasMark.MiscItemType On_SLOracleBehaviorHasMark_TypeOfMiscItem(On.SLOracleBehaviorHasMark.orig_TypeOfMiscItem orig, SLOracleBehaviorHasMark self, PhysicalObject obj)
@@ -79,6 +105,12 @@ public static class IteratorHooks
 
         if (obj is Bow)
         { return Enums.MiscItemType.Bow; }
+
+        if (obj is AshPepper)
+        { return Enums.MiscItemType.AshPepper; }
+
+        if (obj is LightningFruit)
+        { return Enums.MiscItemType.LightningFruit; }
 
         return orig(self, obj);
     }

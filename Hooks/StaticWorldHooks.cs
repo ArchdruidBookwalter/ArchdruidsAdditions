@@ -14,20 +14,20 @@ public static class StaticWorldHooks
         CreatureTemplate lizardTemplate = StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.GreenLizard);
         CreatureTemplate cicadaTemplate = StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.CicadaA);
 
-        List<TileTypeResistance> tileTypeResistances = [];
-        List<TileConnectionResistance> tileConnectionResistances = [];
+        List<TileTypeResistance> tileTRs = [];
+        List<TileConnectionResistance> tileCRs = [];
 
         #region CloudFish
-        tileTypeResistances.Add(new TileTypeResistance(AItile.Accessibility.OffScreen, 1f, PathCost.Legality.Allowed));
-        tileTypeResistances.Add(new TileTypeResistance(AItile.Accessibility.Air, 1f, PathCost.Legality.Allowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.OffScreen, 1f, PathCost.Legality.Allowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.Air, 1f, PathCost.Legality.Allowed));
 
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.Standard, 1f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.ShortCut, 1f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.NPCTransportation, 10f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.OffScreenMovement, 1f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.BetweenRooms, 10f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.Standard, 1f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.ShortCut, 1f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.NPCTransportation, 10f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.OffScreenMovement, 1f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.BetweenRooms, 10f, PathCost.Legality.Allowed));
 
-        CreatureTemplate cloudFish = new CreatureTemplate(Enums.CreatureTemplateType.CloudFish, null, tileTypeResistances, tileConnectionResistances,
+        CreatureTemplate cloudFish = new CreatureTemplate(Enums.CreatureTemplateType.CloudFish, null, tileTRs, tileCRs,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f))
         {
             bodySize = 0.4f,
@@ -42,30 +42,71 @@ public static class StaticWorldHooks
             canSwim = true
         };
 
-        tileTypeResistances.Clear();
-        tileConnectionResistances.Clear();
+        tileTRs.Clear();
+        tileCRs.Clear();
+        #endregion
+
+        #region MimicCrab
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.OffScreen, 3f, PathCost.Legality.Allowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.Floor, 1.5f, PathCost.Legality.Allowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.Corridor, 3f, PathCost.Legality.Unwanted));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.Climb, 2f, PathCost.Legality.Allowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.Wall, 1.5f, PathCost.Legality.Allowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.Ceiling, 2f, PathCost.Legality.Allowed));
+
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.Standard, 1f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.OpenDiagonal, 3f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.DropToFloor, 10f, PathCost.Legality.Unwanted));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.DropToWater, 10f, PathCost.Legality.Unwanted));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.DropToClimb, 10f, PathCost.Legality.Unwanted));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.ShortCut, 1.5f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.NPCTransportation, 20f, PathCost.Legality.Unwanted));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.OffScreenMovement, 1f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.BetweenRooms, 5f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.Slope, 1.5f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.CeilingSlope, 1.5f, PathCost.Legality.Allowed));
+
+        CreatureTemplate mimicCrab = new CreatureTemplate(Enums.CreatureTemplateType.MimicCrab, null, tileTRs, tileCRs, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 1f))
+        {
+            bodySize = 0.3f,
+            AI = true,
+            requireAImap = true,
+            doPreBakedPathing = false,
+            smallCreature = true,
+            name = "MimicCrab",
+            preBakedPathingAncestor = StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.BlueLizard),
+            visualRadius = 300,
+            socialMemory = true,
+            grasps = 1,
+            waterRelationship = CreatureTemplate.WaterRelationship.Amphibious,
+            waterPathingResistance = 1f,
+            canSwim = true
+        };
+
+        tileTRs.Clear();
+        tileCRs.Clear();
         #endregion
 
         #region Parasite
-        tileTypeResistances.Add(new TileTypeResistance(AItile.Accessibility.OffScreen, 1f, PathCost.Legality.Allowed));
-        tileTypeResistances.Add(new TileTypeResistance(AItile.Accessibility.Floor, 1f, PathCost.Legality.Allowed));
-        tileTypeResistances.Add(new TileTypeResistance(AItile.Accessibility.Corridor, 1f, PathCost.Legality.Unallowed));
-        tileTypeResistances.Add(new TileTypeResistance(AItile.Accessibility.CurvedFloor, 1f, PathCost.Legality.Allowed));
-        tileTypeResistances.Add(new TileTypeResistance(AItile.Accessibility.Climb, 1f, PathCost.Legality.Unallowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.OffScreen, 1f, PathCost.Legality.Allowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.Floor, 1f, PathCost.Legality.Allowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.Corridor, 1f, PathCost.Legality.Unallowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.CurvedFloor, 1f, PathCost.Legality.Allowed));
+        tileTRs.Add(new TileTypeResistance(AItile.Accessibility.Climb, 1f, PathCost.Legality.Unallowed));
 
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.Standard, 1f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.OpenDiagonal, 3f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.ReachUp, 2f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.ReachDown, 2f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.SemiDiagonalReach, 2f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.DropToFloor, 20f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.ShortCut, 1.5f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.NPCTransportation, 25f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.OffScreenMovement, 1f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.Slope, 1.5f, PathCost.Legality.Allowed));
-        tileConnectionResistances.Add(new TileConnectionResistance(MovementConnection.MovementType.DropToWater, 20f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.Standard, 1f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.OpenDiagonal, 3f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.ReachUp, 2f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.ReachDown, 2f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.SemiDiagonalReach, 2f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.DropToFloor, 20f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.ShortCut, 1.5f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.NPCTransportation, 25f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.OffScreenMovement, 1f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.Slope, 1.5f, PathCost.Legality.Allowed));
+        tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.DropToWater, 20f, PathCost.Legality.Allowed));
 
-        CreatureTemplate parasite = new(Enums.CreatureTemplateType.Parasite, null, tileTypeResistances, tileConnectionResistances,
+        CreatureTemplate parasite = new(Enums.CreatureTemplateType.Parasite, null, tileTRs, tileCRs,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.5f))
         {
             bodySize = 0.1f,
@@ -83,8 +124,8 @@ public static class StaticWorldHooks
             canSwim = true
         };
 
-        tileTypeResistances.Clear();
-        tileConnectionResistances.Clear();
+        tileTRs.Clear();
+        tileCRs.Clear();
         #endregion
 
         ExtEnumType type = ExtEnum<CreatureTemplate.Type>.values;
@@ -105,6 +146,14 @@ public static class StaticWorldHooks
                 { StaticWorld.creatureTemplates[index] = parasite; }
                 else
                 { Debug.Log("FAILED TO ADD PARASITE TO STATICWORLD!"); }
+            }
+            if (name == "MimicCrab")
+            {
+                int index = type.entries.IndexOf(name);
+                if (StaticWorld.creatureTemplates[index] == null)
+                { StaticWorld.creatureTemplates[index] = mimicCrab; }
+                else
+                { Debug.Log("FAILED TO ADD MIMICCRAB TO STATICWORLD!"); }
             }
         }
 
@@ -128,10 +177,12 @@ public static class StaticWorldHooks
         CreatureTemplate.Relationship.Type Antagonizes = CreatureTemplate.Relationship.Type.Attacks;
         CreatureTemplate.Relationship.Type Rivals = CreatureTemplate.Relationship.Type.Attacks;
         CreatureTemplate.Relationship.Type Eats = CreatureTemplate.Relationship.Type.Eats;
+        CreatureTemplate.Relationship.Type Pack = CreatureTemplate.Relationship.Type.Pack;
 
         CreatureTemplate cloudFishTemplate = StaticWorld.GetCreatureTemplate(Enums.CreatureTemplateType.CloudFish);
         CreatureTemplate parasiteTemplate = StaticWorld.GetCreatureTemplate(Enums.CreatureTemplateType.Parasite);
-        CreatureTemplate[] newTemplates = [cloudFishTemplate, parasiteTemplate];
+        CreatureTemplate mimicCrabTemplate = StaticWorld.GetCreatureTemplate(Enums.CreatureTemplateType.MimicCrab);
+        CreatureTemplate[] newTemplates = [cloudFishTemplate, parasiteTemplate, mimicCrabTemplate];
 
         for (int i = 0; i < StaticWorld.creatureTemplates.Length; i++)
         {
@@ -139,7 +190,14 @@ public static class StaticWorldHooks
 
             if (newTemplates.Contains(otherCreature))
             {
-                StaticWorld.EstablishRelationship(otherCreature.type, otherCreature.type, new CreatureTemplate.Relationship(Ignores, 0f));
+                if (otherCreature == mimicCrabTemplate || otherCreature == cloudFishTemplate)
+                {
+                    StaticWorld.EstablishRelationship(otherCreature.type, otherCreature.type, new CreatureTemplate.Relationship(Pack, 0.8f));
+                }
+                else
+                {
+                    StaticWorld.EstablishRelationship(otherCreature.type, otherCreature.type, new CreatureTemplate.Relationship(Ignores, 0f));
+                }
             }
 
             CreatureTemplate.Relationship flyRelationship = otherCreature.relationships[flyTemplate.index];
@@ -180,8 +238,8 @@ public static class StaticWorldHooks
                 }
                 else if (otherCreature.type == CreatureTemplate.Type.Overseer)
                 {
-                    StaticWorld.EstablishRelationship(otherCreature.type, cloudFishTemplate.type, new CreatureTemplate.Relationship(Ignores, 0f));
-                    StaticWorld.EstablishRelationship(cloudFishTemplate.type, otherCreature.type, new CreatureTemplate.Relationship(Ignores, 0f));
+                    StaticWorld.EstablishRelationship(otherCreature.type, parasiteTemplate.type, new CreatureTemplate.Relationship(Ignores, 0f));
+                    StaticWorld.EstablishRelationship(parasiteTemplate.type, otherCreature.type, new CreatureTemplate.Relationship(Ignores, 0f));
                 }
                 else if (otherCreature.bodySize > 0.5)
                 {
@@ -197,6 +255,31 @@ public static class StaticWorldHooks
                 }
             }
             #endregion
+
+            #region MimicCrab
+            if (otherCreature.type != mimicCrabTemplate.type)
+            {
+                if (flyRelationship.type == Eats)
+                {
+                    float intensity = Mathf.Clamp(1 / otherCreature.bodySize, 0, 1);
+
+                    StaticWorld.EstablishRelationship(otherCreature.type, mimicCrabTemplate.type, new CreatureTemplate.Relationship(Eats, intensity));
+                    StaticWorld.EstablishRelationship(mimicCrabTemplate.type, otherCreature.type, new CreatureTemplate.Relationship(Afraid, intensity));
+                }
+                else if (ModManager.Watcher && otherCreature.type == Watcher.WatcherEnums.CreatureTemplateType.Barnacle)
+                {
+                    StaticWorld.EstablishRelationship(otherCreature.type, mimicCrabTemplate.type, new CreatureTemplate.Relationship(Ignores, 0f));
+                    StaticWorld.EstablishRelationship(mimicCrabTemplate.type, otherCreature.type, new CreatureTemplate.Relationship(Pack, 1f));
+                }
+                else
+                {
+                    float intensity = Mathf.Clamp(otherCreature.bodySize / 4, 0, 1);
+
+                    StaticWorld.EstablishRelationship(otherCreature.type, mimicCrabTemplate.type, new CreatureTemplate.Relationship(Ignores, 0f));
+                    StaticWorld.EstablishRelationship(mimicCrabTemplate.type, otherCreature.type, new CreatureTemplate.Relationship(Uncomfortable, intensity));
+                }
+            }
+            #endregion
         }
     }
 
@@ -204,6 +287,7 @@ public static class StaticWorldHooks
     {
         orig();
 
+        /*
         #region CloudFish - This Creature
 
         #region Afraid
@@ -271,7 +355,7 @@ public static class StaticWorldHooks
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 1f));
         #endregion
 
-        #endregion
+        #endregion*/
 
     }
 
@@ -279,6 +363,7 @@ public static class StaticWorldHooks
     {
         orig();
 
+        /*
         #region CloudFish - This Creature
 
         #region Afraid
@@ -302,7 +387,7 @@ public static class StaticWorldHooks
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
         #endregion
 
-        #endregion
+        #endregion*/
 
     }
 }

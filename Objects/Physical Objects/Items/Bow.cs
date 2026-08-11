@@ -85,8 +85,6 @@ public class Bow : Weapon, IDrawable
 
         soundLoop.Update();
 
-        rotationSpeed = Mathf.Clamp(rotationSpeed, -10f, 10f);
-
         if (loadedSpear is not null)
         {
             if (loadedSpear.grabbedBy.Count == 0)
@@ -214,6 +212,12 @@ public class Bow : Weapon, IDrawable
             CollideWithTerrain = true;
 
             UnloadSpearFromBow();
+
+            if (firstChunk.ContactPoint.y == 0)
+            {
+                rotationSpeed = Mathf.Clamp(rotationSpeed, -10f, 10f);
+                rotation = Custom.rotateVectorDeg(rotation, rotationSpeed);
+            }
         }
 
         float clampedAimCharge = Mathf.Clamp((float)aimCharge / shootThreshold, 0f, 1f);

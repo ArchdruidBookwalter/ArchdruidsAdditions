@@ -560,10 +560,7 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
 
     public override void InitiateGraphicsModule()
     {
-        if (graphicsModule == null)
-        {
-            graphicsModule = new CloudFishGraphics(this);
-        }
+        graphicsModule ??= new CloudFishGraphics(this);
     }
 
     public class GasJet : UpdatableAndDeletable
@@ -1557,7 +1554,7 @@ public class CloudFishGraphics : GraphicsModule
 
             bodyPart.ConnectToPoint(connectPos, 0f, false, 0.2f, connectedChunk.vel, 0.5f, 0.1f);
 
-            //Create_Square(connectedChunk.owner.room, connectPos, 1f, 1f, Vec(45), color, 1);
+            //Create_Square(connectedChunk.owner.room, connectPos, 1f, 1f, Vec(45), shellColor, 1);
         }
 
         public void DrawSprite(Vector2 camPos, float timeStacker, Vector2 startPos, Vector2 bodyRot, bool flip, string color)
@@ -1585,7 +1582,7 @@ public class CloudFishGraphics : GraphicsModule
 
                         Vector2 pos = Vector2.Lerp(startPos, endPos, j / 14f) - perpRot * curve;
 
-                        //Create_Square(connectedChunk.owner.room, pos + camPos, 1f, 1f, Vec(45), color, 1);
+                        //Create_Square(connectedChunk.owner.room, pos + camPos, 1f, 1f, Vec(45), shellColor, 1);
 
                         triMesh.MoveVertice(j, pos + perpRot * width);
                         triMesh.MoveVertice(j + 1, pos - perpRot * width);
@@ -1977,7 +1974,7 @@ public class CloudFishAI : ArtificialIntelligence
                     }
                 }
 
-                //Create_Square(room, Vector2.Lerp(creaturePos, segPos, 0.5f), 0.1f, Custom.Dist(creaturePos, segPos), Custom.DirVec(creaturePos, segPos), color, 1);
+                //Create_Square(room, Vector2.Lerp(creaturePos, segPos, 0.5f), 0.1f, Custom.Dist(creaturePos, segPos), Custom.DirVec(creaturePos, segPos), shellColor, 1);
             }
 
             section = 5;
@@ -2832,8 +2829,6 @@ public class CloudFishAI : ArtificialIntelligence
             }
             #endregion
 
-            if (!pathfinding)
-
             section = 40;
 
             #region Migration Control
@@ -3085,7 +3080,7 @@ public class CloudFishAI : ArtificialIntelligence
                 if (circleCounter > 0)
                 { circleCounter--; }
 
-                //List<BodyChunk> nearbyChunks = [];
+                //List<firstChunk> nearbyChunks = [];
                 bool findNewDest = false;
 
                 if (temporaryWanderDestination == null)

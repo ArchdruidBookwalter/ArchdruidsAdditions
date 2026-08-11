@@ -1,4 +1,6 @@
-﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+﻿using System;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+using Watcher;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -68,28 +70,58 @@ public static class CreatureHooks
         /*
         if (self.room != null)
         {
-            foreach (BodyChunk chunk in self.bodyChunks)
+            foreach (firstChunk chunk in self.bodyChunks)
             {
                 Create_Square(self.room, chunk.segPos, chunk.rad * 2f, chunk.rad * 2f, Vector2.up, "Red", 0);
             }
             foreach (PhysicalObject.BodyChunkConnection connection in self.bodyChunkConnections)
             {
-                string color = "Red";
+                string shellColor = "Red";
                 switch (connection.type.value)
                 {
                     case "Normal":
-                        color = "Red";
+                        shellColor = "Red";
                         break;
                     case "Push":
-                        color = "Blue";
+                        shellColor = "Blue";
                         break;
                     case "Pull":
-                        color = "Purple";
+                        shellColor = "Purple";
                         break;
                 }
 
-                Create_LineBetweenTwoPoints(self.room, connection.chunk1.segPos, connection.chunk2.segPos, color, 0);
+                Create_LineBetweenTwoPoints(self.room, connection.chunk1.segPos, connection.chunk2.segPos, shellColor, 0);
             }
         }*/
+    }
+
+    internal static bool Creature_Grab(On.Creature.orig_Grab orig, Creature self, PhysicalObject obj, int graspUsed, int chunkGrabbed, Creature.Grasp.Shareability sh, float dom, bool ovr, bool pas)
+    {
+        //LogMethodStart("CREATURE_GRASP");
+
+        bool value = orig(self, obj, graspUsed, chunkGrabbed, sh, dom, ovr, pas);
+
+        //LogMethodEnd();
+
+        return value;
+    }
+
+    internal static void Creature_ReleaseGrab(On.Creature.orig_ReleaseGrasp orig, Creature self, int grasp)
+    {
+        //LogMethodStart("CREATURE_RELEASEGRASP");
+
+        orig(self, grasp);
+
+        //LogMethodEnd();
+    }
+
+    internal static void Barnacle_Collide(On.Watcher.Barnacle.orig_Collide orig, Watcher.Barnacle self, PhysicalObject otherObj, int myChunk, int otherChunk)
+    {
+        if (otherObj is MimicCrab)
+        {
+            return;
+        }
+
+        orig(self, otherObj, myChunk, otherChunk);
     }
 }
