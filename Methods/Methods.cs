@@ -321,7 +321,9 @@ namespace ArchdruidsAdditions.Methods
         public static void Log_Exception(Exception e, string methodName, float section)
         {
             Debug.Log("");
-            Debug.Log("EXCEPTION OCCURED IN METHOD: " + methodName + " IN CODE SECTION: " + section);
+            Debug.Log("<Archduid's Additions> EXCEPTION OCCURED IN METHOD: " + methodName + " IN CODE SECTION: " + section);
+            Debug.Log("   TYPE: " + e.Message);
+            Debug.Log("   METHOD: " + e.TargetSite);
             Debug.Log("");
 
             throw e;

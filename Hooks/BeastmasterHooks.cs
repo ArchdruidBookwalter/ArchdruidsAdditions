@@ -36,10 +36,7 @@ public static class BeastmasterHooks
             try { new Hook(typeof(BeastMaster.BeastMaster).GetMethod("RainWorldOnUpdate", ALL_FLAGS), BeastmasterHooks.BeastMaster_OnRainWorldUpdate); }
             catch (Exception ex)
             {
-                Debug.Log("");
-                Debug.Log("Couldn't find Beastmaster Update Method?");
-                Debug.Log("");
-                Debug.LogException(ex);
+                Log_Exception(ex, "CREATEBEASTMASTERHOOKS", 0);
             }
             createdHooks = true;
         }

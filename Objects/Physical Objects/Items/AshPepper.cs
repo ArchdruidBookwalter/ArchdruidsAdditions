@@ -682,8 +682,6 @@ public class AshPepperBushData : PlacedObject.ConsumableObjectData
     }
     new protected string BaseSaveString()
     {
-        Debug.Log("ASHPEPPERBUSH DATA SAVED");
-
         return string.Format(CultureInfo.InvariantCulture, "{0}~{1}~{2}~{3}~{4}~{5}", new object[]
         {
             panelPos.x,
@@ -841,21 +839,5 @@ public class AshPepperBushRepresentation : ConsumableRepresentation
                 Refresh();
             }
         }
-    }
-}
-
-public class AbstractMultiConsumable : AbstractConsumable
-{
-    public PhysicalObject[] realizedObjects;
-
-    public AbstractMultiConsumable(
-        World world,
-        AbstractPhysicalObject.AbstractObjectType type,
-        PhysicalObject[] realizedObjects,
-        WorldCoordinate pos, EntityID ID,
-        int originRoom, int placedObjectIndex,
-        PlacedObject.ConsumableObjectData consumableData) : base(world, type, null, pos, ID, originRoom, placedObjectIndex, consumableData)
-    {
-        this.realizedObjects = realizedObjects;
     }
 }

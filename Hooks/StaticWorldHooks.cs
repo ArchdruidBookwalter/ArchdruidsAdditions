@@ -80,7 +80,8 @@ public static class StaticWorldHooks
             grasps = 1,
             waterRelationship = CreatureTemplate.WaterRelationship.Amphibious,
             waterPathingResistance = 1f,
-            canSwim = true
+            canSwim = true,
+            offScreenSpeed = 0.1f
         };
 
         tileTRs.Clear();
@@ -137,7 +138,7 @@ public static class StaticWorldHooks
                 if (StaticWorld.creatureTemplates[index] == null)
                 { StaticWorld.creatureTemplates[index] = cloudFish; }
                 else
-                { Debug.Log("FAILED TO ADD CLOUDFISH TO STATICWORLD!"); }
+                { Debug.Log("<Archduid's Additions> FAILED TO ADD CLOUDFISH TO STATICWORLD!"); }
             }
             if (name == "Parasite")
             {
@@ -145,7 +146,7 @@ public static class StaticWorldHooks
                 if (StaticWorld.creatureTemplates[index] == null)
                 { StaticWorld.creatureTemplates[index] = parasite; }
                 else
-                { Debug.Log("FAILED TO ADD PARASITE TO STATICWORLD!"); }
+                { Debug.Log("<Archduid's Additions> FAILED TO ADD PARASITE TO STATICWORLD!"); }
             }
             if (name == "MimicCrab")
             {
@@ -153,7 +154,7 @@ public static class StaticWorldHooks
                 if (StaticWorld.creatureTemplates[index] == null)
                 { StaticWorld.creatureTemplates[index] = mimicCrab; }
                 else
-                { Debug.Log("FAILED TO ADD MIMICCRAB TO STATICWORLD!"); }
+                { Debug.Log("<Archduid's Additions> FAILED TO ADD MIMICCRAB TO STATICWORLD!"); }
             }
         }
 

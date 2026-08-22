@@ -152,7 +152,6 @@ public static class WeaponHooks
                     if (value && recordFoodToRecords)
                     {
                         foodPips = playerState.foodPipsConsumed - foodPips;
-                        Debug.Log("SPEARMASTER ATE FOOD: " + foodPips);
 
                         if (playerState.spiceAmount > 0)
                         {

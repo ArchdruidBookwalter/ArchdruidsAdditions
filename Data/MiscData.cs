@@ -8,5 +8,11 @@ namespace ArchdruidsAdditions.Data;
 
 public static class MiscData
 {
+    #region Shaders
+
+    public static int CircleHue = Shader.PropertyToID("_circleHue");
+
+    #endregion
+
     public static bool stopAbsStkDeactivation;
 }

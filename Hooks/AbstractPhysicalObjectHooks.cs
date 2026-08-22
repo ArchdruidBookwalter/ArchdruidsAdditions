@@ -10,8 +10,20 @@ namespace ArchdruidsAdditions.Hooks;
 
 public static class AbstractPhysicalObjectHooks
 {
+    internal static void AbstractPhysicalObject_Update(On.AbstractPhysicalObject.orig_Update orig, AbstractPhysicalObject self, int time)
+    {
+        if (self.type == Enums.AbstractObjectType.CrabShell)
+        {
+            //Debug.Log("ABSTRACT CRABSHELL UPDATED IN ROOM: " + self.Room.name);
+        }
+
+        orig(self, time);
+    }
     internal static void AbstractPhysicalObject_Realize(On.AbstractPhysicalObject.orig_Realize orig, AbstractPhysicalObject self)
     {
+        //Debug.Log("");
+        //Debug.Log("OBJECT \'" + self.type.ToString() + "\' TRIED TO REALIZE IN ROOM");
+
         orig(self);
 
         if (self.realizedObject is null)
@@ -73,10 +85,12 @@ public static class AbstractPhysicalObjectHooks
             else if (self.type == AbstractObjectType.CrabShell)
             {
                 self.realizedObject = new CrabShell(self, self.world);
-            }
+            }   
         }
-    }
 
+        //if (self.realizedObject != null)
+        //{ Debug.Log("OBJECT \'" + self.type.ToString() + "\' WAS REALIZED"); }
+    }
     internal static void AbstractPhysicalObject_Abstractize(On.AbstractPhysicalObject.orig_Abstractize orig, AbstractPhysicalObject self, WorldCoordinate coord)
     {
         if (self.realizedObject is LightningFruit fruit)
@@ -89,9 +103,18 @@ public static class AbstractPhysicalObjectHooks
             self.unrecognizedAttributes[1] = fruit.power.ToString();
         }
 
+        /*
+        if (self is not AbstractCreature)
+        {
+            Debug.Log("OBJECT \'" + self.type.ToString() + "\' ABSTRACTIZED");
+        }
+        else
+        {
+            Debug.Log("CREATURE \'" + (self as AbstractCreature).creatureTemplate.type.ToString() + "\' ABSTRACTIZED");
+        }*/
+
         orig(self, coord);
     }
-
     internal static void AbstractPhysicalObject_AddConnected(On.AbstractPhysicalObject.orig_AddConnected orig, AbstractPhysicalObject self, ref List<AbstractPhysicalObject> list)
     {
         orig(self, ref list);
@@ -104,8 +127,11 @@ public static class AbstractPhysicalObjectHooks
             Debug.Log("   " + item.type.value.ToUpper());
         }*/
     }
-
     internal static void AbstractPhysicalObject_LoseAllStuckObjects(On.AbstractPhysicalObject.orig_LoseAllStuckObjects orig, AbstractPhysicalObject self)
+    {
+        orig(self);
+    }
+    internal static void AbstractPhysicalObject_Destroy(On.AbstractPhysicalObject.orig_Destroy orig, AbstractPhysicalObject self)
     {
         orig(self);
     }
@@ -198,7 +224,6 @@ public static class AbstractPhysicalObjectHooks
             orig(splitString, room);
         }
     }
-
     internal static void AbstractObjectStick_Deactivate(On.AbstractPhysicalObject.AbstractObjectStick.orig_Deactivate orig, AbstractPhysicalObject.AbstractObjectStick self)
     {
         if (MiscData.stopAbsStkDeactivation)
@@ -206,6 +231,8 @@ public static class AbstractPhysicalObjectHooks
 
         if (self is AbstractCrabShellStick shellStick)
         {
+            //Debug.Log("SHELLSTICK WAS DEACTIVATED!");
+
             if (shellStick.Crab.realizedCreature != null && shellStick.Crab.realizedCreature is MimicCrab crab)
             { crab.shellStick = null; }
             if (shellStick.Shell.realizedObject != null && shellStick.Shell.realizedObject is CrabShell shell)

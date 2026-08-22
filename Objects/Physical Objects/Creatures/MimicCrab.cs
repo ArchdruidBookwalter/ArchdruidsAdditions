@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+using DevInterface;
+using IL.Watcher;
+using Unity.Mathematics;
+using static System.Collections.Specialized.BitVector32;
 
 namespace ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
-public class MimicCrab : Creature, IPlayerEdible
+public class MimicCrab : InsectoidCreature, IPlayerEdible
 {
     public MimicCrabAI AI;
 
@@ -67,6 +68,7 @@ public class MimicCrab : Creature, IPlayerEdible
     }
 
     public Vector2 bodyRot, lastBodyRot;
+    public Vector2 shellAttachPos, lastShellPos;
     public float roll, lastRoll;
     public float touchingGround;
 
@@ -98,18 +100,38 @@ public class MimicCrab : Creature, IPlayerEdible
 
     public int bites;
 
+    new public float VisibilityBonus
+    {
+        get
+        {
+            float baseVisiblity = base.VisibilityBonus;
+
+            if (Hidden)
+            { return -0.9f; }
+            else if (AttachedToObject != null)
+            {
+                if (firstChunk.vel.magnitude > 0.1f)
+                { return -0.5f; }
+                else
+                { return -0.25f; }
+            }
+
+            return baseVisiblity;
+        }
+    }
+
     new public MimicCrabGraphics graphicsModule
     {
         get
         {
-            return base.graphicsModule as MimicCrabGraphics;
+            return base.graphicsModule == null ? null : base.graphicsModule as MimicCrabGraphics;
         }
     }
 
     public MimicCrab(AbstractCreature creature, World world) : base(creature, world)
     {
         bodyChunks = new BodyChunk[1];
-        bodyChunks[0] = new(this, 0, default, 5f, 0.5f);
+        bodyChunks[0] = new(this, 0, default, 3.5f, 0.5f);
         bodyChunkConnections = [];
 
         gravity = 0.9f;
@@ -129,14 +151,15 @@ public class MimicCrab : Creature, IPlayerEdible
 
         try
         {
-            //LogMethodStart("MIMICCRAB_UPDATE");
-
             base.Update(eu);
 
             section = 1;
 
             lastBodyRot = bodyRot;
+            lastShellPos = shellAttachPos;
             lastRoll = roll;
+
+            (abstractCreature.abstractAI as MimicCrabAbstractAI).hidden = Hidden;
 
             if (Consious)
             {
@@ -211,7 +234,7 @@ public class MimicCrab : Creature, IPlayerEdible
 
                     section = 1.3f;
 
-                    if (room.aimap.TileAccessibleToCreature(firstChunk.pos, Template) || room.aimap.getAItile(firstChunk.pos).acc == AItile.Accessibility.Solid)
+                    if (room.aimap.TileAccessibleToCreature(firstChunk.pos, Template) || room.HasAnySolid(room.GetTilePosition(firstChunk.pos)))
                     {
                         if (footing < 20)
                         { footing++; }
@@ -231,48 +254,107 @@ public class MimicCrab : Creature, IPlayerEdible
 
             if (room != null)
             {
-                roll = Mathf.Lerp(roll, Mathf.Lerp(0.4f, 0.6f, touchingGround) + (graphicsModule.wobbleAmount * 0.1f), 0.9f);
+                float wobble = graphicsModule != null ? graphicsModule.wobbleAmount : 0f;
 
-                if (AttachedToObject != null && AttachedToObject.room != null && graphicsModule != null)
+                roll = Mathf.Lerp(roll, Mathf.Lerp(0.4f, 0.6f, touchingGround) + (wobble * 0.1f), 0.9f);
+
+                if (AttachedToObject != null && AttachedToObject.room != null)
                 {
-                    section = 1.21f;
+                    section = 2.11f;
 
                     ReleaseGrasp(0);
 
-                    Vector2 shellRot = Custom.DegToVec(Custom.VecToDeg(bodyRot) + 20f + graphicsModule.wobbleAmount * 10f);
-
-                    if (AttachedToObject is CrabShell shell)
+                    if (!ObjectIsPlant(AttachedToObject.abstractPhysicalObject.type))
                     {
-                        if (!Hidden)
+                        Vector2 shellRot = Custom.DegToVec(Custom.VecToDeg(bodyRot) + 20f + wobble * 10f);
+                        float baseAttachDist = AttachedToObject.firstChunk.rad * 2f;
+
+                        section = 2.12f;
+
+                        if (AttachedToObject is Weapon weapon)
                         {
-                            shell.ChangeRotation(Custom.PerpendicularVector(Custom.DirVec(firstChunk.pos, shell.firstChunk.pos)), 0.9f);
-                            shell.roll = roll;
+                            if (weapon.mode == Weapon.Mode.Thrown)
+                            { Stun(10); }
+
+                            if (weapon is CrabShell shell)
+                            {
+                                shell.crab = this;
+
+                                if (!Hidden)
+                                {
+                                    shell.rotation = Custom.PerpendicularVector(shellRot);
+                                    shell.roll = roll;
+                                }
+
+                                baseAttachDist = 20f;
+                            }
+                            else
+                            {
+                                if (!Hidden) { weapon.rotation = Custom.rotateVectorDeg(Custom.DirVec(firstChunk.pos, weapon.firstChunk.pos), 45); }
+                            }
                         }
 
-                        if (shell.mode == Weapon.Mode.Thrown)
-                        { Stun(10); }
+                        float attachDist = Hidden ? 0f : Mathf.Lerp(0f, baseAttachDist, roll);
+
+                        Vector2 shellAttachPos = firstChunk.pos + shellRot * attachDist;
+                        Vector2 bodyAttachPos = AttachedToObject.firstChunk.pos - shellRot * attachDist;
+
+                        section = 2.13f;
+
+                        Vector2 dirVec = Custom.DirVec(firstChunk.pos, bodyAttachPos);
+                        float dist = Custom.Dist(firstChunk.pos, bodyAttachPos);
+                        Vector2 dirVec2 = Custom.DirVec(AttachedToObject.firstChunk.pos, shellAttachPos);
+                        float dist2 = Custom.Dist(AttachedToObject.firstChunk.pos, shellAttachPos);
+
+                        firstChunk.vel += dirVec * dist * 0.5f;
+                        firstChunk.pos += dirVec * dist * 0.5f;
+                        if (AttachedToObject.grabbedBy.Count == 0)
+                        {
+                            AttachedToObject.firstChunk.vel += dirVec2 * dist2 * 0.5f;
+                            AttachedToObject.firstChunk.pos += dirVec2 * dist2 * 0.5f;
+                        }
                     }
-
-                    float attachDist = 10f * (Hidden ? 0 : Mathf.InverseLerp(0f, 0.5f, roll));
-                    Vector2 shellAttachPos = firstChunk.pos + shellRot * attachDist;
-                    Vector2 bodyAttachPos = AttachedToObject.firstChunk.pos - shellRot * attachDist;
-
-                    Vector2 dirVec2 = Custom.DirVec(firstChunk.pos, bodyAttachPos);
-                    float dist2 = Custom.Dist(firstChunk.pos, bodyAttachPos);
-                    Vector2 dirVec3 = Custom.DirVec(AttachedToObject.firstChunk.pos, shellAttachPos);
-                    float dist3 = Custom.Dist(AttachedToObject.firstChunk.pos, shellAttachPos);
-
-                    firstChunk.vel += dirVec2 * dist2 * 0.5f;
-                    firstChunk.pos += dirVec2 * dist2 * 0.5f;
-
-                    section = 1.22f;
-
-                    if (AttachedToObject.grabbedBy.Count == 0)
+                    else
                     {
-                        AttachedToObject.firstChunk.vel += dirVec3 * dist3 * 0.5f;
-                        AttachedToObject.firstChunk.pos += dirVec3 * dist3 * 0.5f;
+                        if (AttachedToObject.grabbedBy.Count > 0)
+                        {
+                            ShellStick.Deactivate();
+                        }
+                        else
+                        {
+                            if (AttachedToObject is KarmaFlower flower)
+                            {
+                                flower.growPos = firstChunk.pos;
+                                flower.hoverPos = firstChunk.pos + new Vector2(0f, 20f);
+                            }
+                            else if (AttachedToObject is Mushroom mushroom)
+                            {
+                                mushroom.growPos = firstChunk.pos;
+                                mushroom.hoverPos = firstChunk.pos + new Vector2(0f, 20f);
+                            }
+                            else if (AttachedToObject is FlyLure lure)
+                            {
+                                lure.growPos = firstChunk.pos;
+                            }
+                            else if (AttachedToObject is BubbleGrass grass)
+                            {
+                                grass.growPos = firstChunk.pos;
+                            }
+                            else if (AttachedToObject is FirecrackerPlant plant)
+                            {
+                                plant.growPos = firstChunk.pos;
+                            }
+
+                            Vector2 dir = Custom.DirVec(AttachedToObject.firstChunk.pos, firstChunk.pos);
+                            float dist = Mathf.Max(0f, Custom.Dist(AttachedToObject.firstChunk.pos, firstChunk.pos) - 20f);
+
+                            AttachedToObject.firstChunk.vel += dir * dist * 0.1f;
+                            AttachedToObject.firstChunk.pos += dir * dist * 0.1f;
+                        }
                     }
                 }
+
+                section = 2.2f;
 
                 if (room.aimap.getTerrainProximity(firstChunk.pos) < 2)
                 { touchingGround = Mathf.Lerp(touchingGround, 1f, 0.1f); }
@@ -298,11 +380,14 @@ public class MimicCrab : Creature, IPlayerEdible
                         }
                     }
 
+                    bodyRot = Custom.rotateVectorDeg(bodyRot, 0.05f);
                     bodyRot = Vector3.Slerp(bodyRot, bestDir.ToVector2().normalized, 0.1f).normalized;
                 }
                 else if (firstChunk.vel.magnitude > 1f)
                 { bodyRot = Vector3.Slerp(bodyRot, firstChunk.vel.normalized, 0.1f); }
             }
+
+            section = 3;
 
             if (grabbedBy.Count > 0 || AttachedToObject != null)
             {
@@ -313,24 +398,77 @@ public class MimicCrab : Creature, IPlayerEdible
                 CollideWithObjects = true;
             }
 
-            //LogMethodEnd();
-
-            //Create_LineBetweenTwoPoints(room, firstChunk.creaturePos, firstChunk.creaturePos + moveDir * 40f, 1f, "Red", 0);
+            //Create_Text(room, firstChunk.pos, touchingGround, "Red", 0);
+            //Create_LineBetweenTwoPoints(room, firstChunk.pos, firstChunk.pos + bodyRot * 30f, 2f, "Red", 0);
         }
         catch (Exception e)
         {
             Log_Exception(e, "MIMICCRAB_UPDATE", section);
         }
     }
+    public override void SpitOutOfShortCut(IntVector2 pos, Room newRoom, bool spitOutAllSticks)
+    {
+        base.SpitOutOfShortCut(pos, newRoom, spitOutAllSticks);
+
+        if (AttachedToObject != null)
+        {
+            if (AttachedToObject is Mushroom mushroom)
+            {
+                mushroom.growPos = firstChunk.pos;
+                mushroom.hoverPos = firstChunk.pos;
+            }
+            else if (AttachedToObject is KarmaFlower flower)
+            {
+                flower.growPos = firstChunk.pos;
+                flower.hoverPos = firstChunk.pos;
+            }
+        }
+    }
     public override void PlaceInRoom(Room placeRoom)
     {
         base.PlaceInRoom(placeRoom);
 
-        //Create_Square(room, firstChunk.creaturePos, 10f, 10f, Vector2.up, "Green", 100);
+        if ((abstractCreature.abstractAI as MimicCrabAbstractAI).hidden)
+        {
+            //Debug.Log("MIMIC CRAB PLACED HIDDEN");
+
+            IntVector2 startPos = coord.Tile;
+            for (int i = startPos.y; i > 0; i--)
+            {
+                IntVector2 testPos = new(startPos.x, i);
+                if (room.GetTile(testPos.x, testPos.y - 1).Solid || (room.terrain != null && room.terrain.ObstructsTile(testPos.x, testPos.y - 1)))
+                {
+                    ForceHidden(room.GetWorldCoordinate(testPos));
+                    break;
+                }
+            }
+        }
     }
     public override void InitiateGraphicsModule()
     {
         base.graphicsModule ??= new MimicCrabGraphics(this);
+    }
+    public void ForceHidden(WorldCoordinate newHideCoord)
+    {
+        Vector2 tilePos = room.MiddleOfTile(newHideCoord);
+        firstChunk.HardSetPosition(new Vector2(tilePos.x + Random.Range(-20f, 20f), tilePos.y));
+        hideInShellCounter = maxHideCounter;
+        AI.hideCoord = newHideCoord;
+        AI.behavior = MimicCrabAI.Behavior.Hide;
+        AI.pathFinder.AssignNewDestination(newHideCoord);
+    }
+
+    public bool ObjectIsPlant(AbstractPhysicalObject.AbstractObjectType type)
+    {
+        if (type == AbstractPhysicalObject.AbstractObjectType.KarmaFlower || 
+            type == AbstractPhysicalObject.AbstractObjectType.FlyLure ||
+            type == AbstractPhysicalObject.AbstractObjectType.FirecrackerPlant ||
+            type == AbstractPhysicalObject.AbstractObjectType.BubbleGrass ||
+            type == AbstractPhysicalObject.AbstractObjectType.Mushroom)
+        {
+            return true;
+        }
+        return false;
     }
 
     #region Edible Stuff
@@ -368,24 +506,18 @@ public class MimicCrab : Creature, IPlayerEdible
 public class MimicCrabGraphics : GraphicsModule
 {
     public MimicCrab crab;
-
     public Leg[] legs;
-
     public FSprite bodySprite;
     public TriangleMesh shellMesh;
-
     public Color blackColor;
     public Color bodyColor;
     public bool albino;
-
-    //public Vector2 bodyRot, lastBodyRot;
-    //public float touchingGround;
-
     public float roll, lastRoll;
     public float wobbleAmount, lastWobbleAmount;
     public int wobbleTimer;
-
     public int grabbedObjectSLeaserIndex;
+    public bool ClingToWall
+    { get { return crab.room.aimap.getAItile(crab.coord).acc == AItile.Accessibility.Wall; } }
 
     public MimicCrabGraphics(PhysicalObject ow) : base(ow, true)
     {
@@ -412,9 +544,7 @@ public class MimicCrabGraphics : GraphicsModule
         for (int i = 0; i < legs.Length; i++)
         {
             if (i >= crab.bites)
-            {
-                legs[i].hide = true;
-            }
+            { legs[i].eaten = true; }
 
             legs[i].Update(GetLegAttachPos(crab.firstChunk.pos, i), GetLegGoalPos(i));
         }
@@ -465,7 +595,7 @@ public class MimicCrabGraphics : GraphicsModule
             wobbleAmount = (Mathf.PingPong(wobbleTimer, wobbleLength) - wobbleLength) / wobbleLength;
         }
 
-        //Create_LineBetweenTwoPoints(otherCrab.room, otherCrab.firstChunk.creaturePos, otherCrab.firstChunk.creaturePos + otherCrab.bodyRot * 40f, 1f, "Red", 0);
+        //Create_LineBetweenTwoPoints(otherCrab.room, otherCrab.firstChunk.creaturePos, otherCrab.firstChunk.creaturePos + otherCrab.spriteRot * 40f, 1f, "Red", 0);
         //Create_Square(otherCrab.room, otherCrab.firstChunk.creaturePos, otherCrab.firstChunk.rad * 2f, otherCrab.firstChunk.rad * 2f, Vec(45), "Red", 0);
         //Create_Text(otherCrab.room, otherCrab.firstChunk.creaturePos, wobbleAmount, "Red", 0);
     }
@@ -477,7 +607,7 @@ public class MimicCrabGraphics : GraphicsModule
         {
             shader = rCam.room.game.rainWorld.Shaders["JaggedCircle"],
             alpha = 0.5f,
-            scale = crab.firstChunk.rad / 8f
+            scale = crab.firstChunk.rad / 6f
         };
         sprites.Add(bodySprite);
 
@@ -510,47 +640,82 @@ public class MimicCrabGraphics : GraphicsModule
             }
             else
             {
-                Vector2 bodyPos;
-                Vector2 bodyRot = Vector2.Lerp(crab.lastBodyRot, crab.bodyRot, timeStacker);
+                section = 1;
 
-                if (crab.AttachedToObject == null && crab.grasps[0] == null)
-                {
-                    ReleaseAllInternallyContainedSprites();
-                }
+                Vector2 bodyPos = Vector2.Lerp(crab.firstChunk.lastPos, crab.firstChunk.pos, timeStacker) - camPos;
+                Vector2 spritePos;
 
                 if (crab.AttachedToObject != null && !crab.AttachedToObject.slatedForDeletetion)
                 {
                     Vector2 shellPos = Vector2.Lerp(crab.AttachedToObject.firstChunk.lastPos, crab.AttachedToObject.firstChunk.pos, timeStacker) - camPos;
                     float roll = Mathf.Lerp(crab.lastRoll, crab.roll, timeStacker);
 
-                    if (crab.AttachedToObject is CrabShell shell)
-                    {
-                        AddObjectToInternalContainer(shell, 1);
-                        shell.shellShape.UpdateSpriteLayers(shell.shellShape.z);
-                    }
-
                     if (crab.Hidden)
-                    { bodyPos = shellPos; }
+                    {
+                        if (!crab.ObjectIsPlant(crab.AttachedToObject.abstractPhysicalObject.type))
+                        {
+                            spritePos = shellPos;
+
+                            bodySprite.alpha = 0f;
+                            bodySprite.scale = 0f;
+                        }
+                        else
+                        {
+                            spritePos = bodyPos;
+
+                            bodySprite.alpha = 1f;
+                            bodySprite.scale = crab.firstChunk.rad / 6f;
+                        }
+
+                        shellMesh.alpha = 0f;
+                    }
                     else
-                    { bodyPos = shellPos - bodyRot * 10f * Mathf.InverseLerp(0f, 0.5f, roll); }
+                    {
+                        if (!crab.ObjectIsPlant(crab.AttachedToObject.abstractPhysicalObject.type))
+                        {
+                            Vector2 spriteRot = Custom.DirVec(shellPos, bodyPos);
+
+                            spritePos = bodyPos;
+
+                            bodySprite.alpha = 1f;
+                            bodySprite.scale = crab.firstChunk.rad / 6f;
+                            shellMesh.alpha = 1f;
+                        }
+                        else
+                        {
+                            spritePos = bodyPos;
+
+                            bodySprite.alpha = 1f;
+                            bodySprite.scale = crab.firstChunk.rad / 6f;
+                            shellMesh.alpha = 0f;
+                        }
+                    }
                 }
                 else
                 {
-                    bodyPos = Vector2.Lerp(crab.firstChunk.lastPos, crab.firstChunk.pos, timeStacker) - camPos;
+                    spritePos = bodyPos;
 
+                    bodySprite.alpha = 1f;
+                    bodySprite.scale = crab.firstChunk.rad / 6f;
                     shellMesh.alpha = 0f;
                 }
 
-                bodySprite.SetPosition(bodyPos);
+                section = 2;
+
+                bodySprite.SetPosition(spritePos);
                 for (int i = 0; i < legs.Length; i++)
                 {
-                    Vector2 legAttachPos = GetLegAttachPos(bodyPos, i);
+                    Vector2 legAttachPos = GetLegAttachPos(spritePos, i);
 
                     legs[i].DrawSprites(legAttachPos, timeStacker, camPos, blackColor);
                 }
 
+                section = 3;
+
                 if (camera == null)
                 { UpdateLighting(rCam); }
+
+                section = 4;
 
                 Color lightColor = Color.Lerp(lastLightColor, this.lightColor, timeStacker);
                 float lightExposure = Mathf.Lerp(lastLightExposure, this.lightExposure, timeStacker);
@@ -560,19 +725,11 @@ public class MimicCrabGraphics : GraphicsModule
                 Color finalBodyColor = Color.Lerp(blackColor, tintedBodyColor, lightExposure);
 
                 bodySprite.color = blackColor;
-
-                if (crab.grasps[0] != null && crab.grasps[0].grabbed is IDrawable iDrawable2)
-                {
-                    AddObjectToInternalContainer(iDrawable2, 1);
-
-                    if (crab.grasps[0].grabbed is CrabShell shell2)
-                    { shell2.shellShape.UpdateSpriteLayers(shell2.shellShape.z); }
-                }
             }
         }
         catch (Exception e)
         {
-            Log_Exception(e, "DRAWSPRITES", section);
+            Log_Exception(e, "MIMICCRAB_DRAWSPRITES", section);
         }
     }
     public override void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
@@ -652,21 +809,14 @@ public class MimicCrabGraphics : GraphicsModule
     {
         public MimicCrab crab;
         public MimicCrabGraphics graphics;
-
         public Limb limb;
         public FSprite sprite1, sprite2;
-
         public float length;
         public float flip, lastFlip;
-
         public bool stepSound;
-
         public bool forceGrab;
-
         public SoundID stepSoundID;
-
-        public bool hide;
-        public bool pullIntoShell;
+        public bool eaten;
 
         public Leg(MimicCrabGraphics graphics, int index)
         {
@@ -688,17 +838,12 @@ public class MimicCrabGraphics : GraphicsModule
 
         public void Update(Vector2 attachPos, Vector2 goalPos)
         {
-            if (crab.hideInShellCounter == crab.maxHideCounter)
-            {
-                pullIntoShell = true;
-            }
-
-            if (hide)
-            {
-                limb.mode = Limb.Mode.Dangle;
-            }
+            if (eaten)
+            { limb.mode = Limb.Mode.Dangle; }
             else
             {
+                limb.huntSpeed = Mathf.Max(limb.defaultHuntSpeed, crab.firstChunk.vel.magnitude * 2f);
+
                 limb.Update();
                 limb.ConnectToPoint(attachPos, length, false, 0f, crab.firstChunk.vel, 0.1f, 0f);
 
@@ -714,12 +859,12 @@ public class MimicCrabGraphics : GraphicsModule
                     else if (!crab.AI.moving)
                     {
                         if (!limb.reachedSnapPosition || !Custom.DistLess(limb.pos, goalPos, 2f))
-                        { limb.FindGrip(crab.room, attachPos, goalPos, length * 1.5f, goalPos, -2, -2, true); }
+                        { limb.FindGrip(crab.room, attachPos, goalPos, length * 1.5f, goalPos, -2, -2, graphics.ClingToWall); }
                     }
                     else
                     {
                         if (!limb.reachedSnapPosition || !Custom.DistLess(limb.pos, limb.absoluteHuntPos, length * 0.5f))
-                        { limb.FindGrip(crab.room, attachPos, goalPos, length * 1.5f, goalPos, -2, -2, true); stepSound = false; }
+                        { limb.FindGrip(crab.room, attachPos, goalPos, length * 1.5f, goalPos, -2, -2, graphics.ClingToWall); stepSound = false; }
                     }
 
                     if (limb.reachedSnapPosition && !stepSound)
@@ -734,13 +879,14 @@ public class MimicCrabGraphics : GraphicsModule
                     limb.vel.y -= crab.gravity;
                 }
 
-                flip = Mathf.Lerp(flip, Custom.Angle(Custom.DirVec(crab.firstChunk.pos, limb.pos), crab.bodyRot) > 0 ? -1f : 1f, 0.1f) * Mathf.Lerp(0.5f, 1f, crab.touchingGround);
+                float newFlip = (Custom.Angle(Custom.DirVec(crab.firstChunk.pos, limb.pos), crab.bodyRot) > 0 ? -1f : 1f) * Mathf.Lerp(0.75f, 1f, crab.touchingGround);
+                flip = Mathf.Lerp(flip, newFlip, 0.1f);
             }
 
             //Create_Text(otherCrab.room, limb.creaturePos + Custom.DirVec(otherCrab.firstChunk.creaturePos, limb.creaturePos) * 50f, string.Format("{0:N2}", flip), "Green", 0);
-            Create_Square(crab.room, attachPos, 2f, 2f, Vec(0), "Green", 0);
-            Create_Square(crab.room, limb.absoluteHuntPos, 2f, 2f, Vec(0), "Blue", 0);
-            Create_Square(crab.room, goalPos, 2f, 2f, Vec(0), "Green", 0);
+            //Create_Square(crab.room, attachPos, 2f, 2f, Vec(0), "Green", 0);
+            //Create_Square(crab.room, limb.absoluteHuntPos, 2f, 2f, Vec(0), "Blue", 0);
+            //Create_Square(crab.room, goalPos, 2f, 2f, Vec(0), "Green", 0);
         }
 
         public void InitSprites(List<FSprite> sprites)
@@ -756,32 +902,37 @@ public class MimicCrabGraphics : GraphicsModule
 
         public void DrawSprites(Vector2 attachPos, float timeStacker, Vector2 camPos, Color blackColor)
         {
-            if (hide)
+            Vector2 limbPos = Vector2.Lerp(limb.lastPos, limb.pos, timeStacker) - camPos;
+            float flip = Mathf.Lerp(lastFlip, this.flip, timeStacker);
+
+            float segmentLength = crab.Hidden ? 0f : length / 2f;
+            Vector2 elbowPos = Custom.InverseKinematic(attachPos, limbPos, segmentLength, segmentLength, flip);
+
+            //Debug.Log(Custom.Dist(attachPos, limbPos));
+
+            if (eaten || (crab.Hidden && Custom.DistLess(attachPos, limbPos, 1f)))
             {
+                sprite1.SetPosition(attachPos);
                 sprite1.alpha = 0f;
+
+                sprite2.SetPosition(elbowPos);
                 sprite2.alpha = 0f;
             }
             else
             {
-                Vector2 limbPos = Vector2.Lerp(limb.lastPos, limb.pos, timeStacker) - camPos;
-
-                float flip = Mathf.Lerp(lastFlip, this.flip, timeStacker);
-
-                float segmentLength = crab.Hidden ? 0f : length / 2f;
-
-                Vector2 elbowPos = Custom.InverseKinematic(attachPos, limbPos, segmentLength, segmentLength, flip);
-
                 sprite1.SetPosition(attachPos);
                 sprite1.rotation = Custom.AimFromOneVectorToAnother(attachPos, elbowPos);
                 sprite1.scaleY = Custom.Dist(attachPos, elbowPos) / 27f;
                 sprite1.scaleX = -1f * Mathf.Sign(flip);
                 sprite1.color = blackColor;
+                sprite1.alpha = 1f;
 
                 sprite2.SetPosition(elbowPos);
                 sprite2.rotation = Custom.AimFromOneVectorToAnother(elbowPos, limbPos);
                 sprite2.scaleY = Custom.Dist(elbowPos, limbPos) / 25f;
                 sprite2.scaleX = -1f * Mathf.Sign(flip);
                 sprite2.color = blackColor;
+                sprite2.alpha = 1f;
             }
         }
     }
@@ -799,6 +950,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
     public int fleeCounter;
     public WorldCoordinate lastDangerCoord;
     public WorldCoordinate hideCoord;
+    public WorldCoordinate lastShortcutExit;
 
     public MimicCrabAI(AbstractCreature creature, World world) : base(creature, world)
     {
@@ -817,11 +969,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
         utilityComparer.AddComparedModule(threatTracker, null, 1f, 1.1f);
 
         pathFinder.stepsPerFrame = 20;
-
-        //pathFinder.visualize = true;
-        //pathFinder.Reset(creature.Room.realizedRoom);
     }
-
 
     public override void Update()
     {
@@ -854,7 +1002,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
         {
             float tileThreat = threatTracker.ThreatOfTile(coord.destinationCoord, false);
 
-            Create_Text(crab.room, crab.room.MiddleOfTile(coord.destinationCoord), tileThreat.ToString("0"), "Red", 0);
+            //Create_Text(crab.room, crab.room.MiddleOfTile(coord.destinationCoord), tileThreat.ToString("0"), "Red", 0);
 
             cost += new PathCost(tileThreat, PathCost.Legality.Allowed);
         }
@@ -921,9 +1069,9 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
 
             section = 2;
 
-            if (behavior == Behavior.Hide && crab.AttachedToObject != null && (crab.firstChunk.vel.magnitude < 1f || crab.hideInShellCounter == 200) && (Custom.DistLess(crab.firstChunk.pos, room.MiddleOfTile(pathFinder.destination), 50f) || crab.AttachedToFruitVine))
+            if (behavior == Behavior.Hide && crab.AttachedToObject != null && (crab.firstChunk.vel.magnitude < 2f || crab.hideInShellCounter == crab.maxHideCounter) && (Custom.DistLess(crab.firstChunk.pos, room.MiddleOfTile(pathFinder.destination), 50f) || crab.AttachedToFruitVine))
             {
-                if (crab.hideInShellCounter < 200)
+                if (crab.hideInShellCounter < crab.maxHideCounter)
                 { crab.hideInShellCounter++; }
             }
             else
@@ -931,7 +1079,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
                 crab.hideInShellCounter = 0;
             }
 
-            //Create_Text(room, crab.firstChunk.pos, behavior.value, "Yellow", 0);
+            //Create_Text(room, crab.firstChunk.pos + new Vector2(0f, -20f), behavior.value, "Red", 0);
 
             //LogMethodEnd();
         }
@@ -952,7 +1100,15 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
             Vector2 pos = crab.firstChunk.pos;
             Vector2 destination = room.MiddleOfTile(pathFinder.destination);
 
-            PathFinder.PathingCell cell = pathFinder.PathingCellAtWorldCoordinate(crab.coord);
+            WorldCoordinate startCoord = crab.coord;
+            for (int i = 0; i < 3; i++)
+            {
+                startCoord = room.GetWorldCoordinate(new IntVector2(crab.coord.x, crab.coord.y + i));
+                if (room.aimap.getAItile(startCoord).acc != AItile.Accessibility.Sand)
+                { break; }
+            }
+
+            PathFinder.PathingCell cell = pathFinder.PathingCellAtWorldCoordinate(startCoord);
             if (!cell.reachable || !cell.possibleToGetBackFrom)
             { pathFinder.OutOfElement(); }
 
@@ -960,6 +1116,18 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
             bool goToObject = false;
             bool fleeFromEnemy = false;
             Vector2 moveDir = Vector2.zero;
+
+            Vector2 terrainDir = Vector2.zero;
+            bool standingOnCurvedTerrain = room.aimap.getAItile(crab.coord).acc == AItile.Accessibility.Sand || room.aimap.getAItile(crab.coord).acc == AItile.Accessibility.CurvedFloor;
+            if (standingOnCurvedTerrain)
+            {
+                Vector2 terrainPos1 = room.terrain.roomTerrain.SnapToTerrain(pos.x - 1);
+                Vector2 terrainPos2 = room.terrain.roomTerrain.SnapToTerrain(pos.x + 1);
+
+                terrainDir = Custom.DirVec(terrainPos1, terrainPos2);
+
+                //Create_LineBetweenTwoPoints(room, pos, pos + terrainDir * 30f, 2f, "Red", 0);
+            }
 
             section = 1;
 
@@ -970,9 +1138,27 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
 
                 Vector2 enemyDir = Custom.DirVec(pos, room.MiddleOfTile(lastDangerCoord.Tile.x, lastDangerCoord.Tile.y - 2));
 
-                moveDir.x = -Mathf.Sign(enemyDir.x);
-                if (crab.IsTileSolid(0, -Math.Sign(enemyDir.x), 0))
-                { moveDir.y = -Mathf.Sign(enemyDir.y); }
+                if (standingOnCurvedTerrain)
+                {
+                    if (enemyDir.x > 0)
+                    { moveDir = (-Custom.PerpendicularVector(terrainDir) * 0.25f - terrainDir).normalized; }
+                    else
+                    { moveDir = (-Custom.PerpendicularVector(terrainDir) * 0.25f + terrainDir).normalized; }
+                }
+                else
+                {
+                    moveDir.x = -Mathf.Sign(enemyDir.x);
+                    if (crab.IsTileSolid(0, -Math.Sign(enemyDir.x), 0))
+                    { moveDir.y = -Mathf.Sign(enemyDir.y); }
+                }
+
+                ShortcutData data = room.shortcutData(crab.coord.Tile);
+                if (data.destNode != -1 && data.startCoord != lastShortcutExit)
+                {
+                    crab.enteringShortCut = data.StartTile;
+                    crab.NPCTransportationDestination = data.destinationCoord;
+                    lastShortcutExit = data.destinationCoord;
+                }
             }
 
             section = 2;
@@ -993,11 +1179,16 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
                         pathFinder.AssignNewDestination(itemCoord);
                     }
 
-                    if (Custom.DistLess(pos, objPos, 20f))
+                    if (shellCanidate.VisualContact && Custom.DistLess(pos, shellCanidate.representedItem.realizedObject.firstChunk.pos, 20f))
                     {
                         crab.Grab(shellCanidate.representedItem.realizedObject, 0, 0, Creature.Grasp.Shareability.NonExclusive, 1000f, true, false);
 
                         room.PlaySound(SoundID.Vulture_Mask_Pick_Up, crab.firstChunk);
+                    }
+                    else if (shellCanidate.VisualContact && Custom.DistLess(pos, shellCanidate.representedItem.realizedObject.firstChunk.pos, 40f))
+                    {
+                        goToObject = true;
+                        moveDir = Custom.DirVec(pos, shellCanidate.representedItem.realizedObject.firstChunk.pos);
                     }
                     else
                     {
@@ -1066,24 +1257,48 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
 
                         section = 2.32f;
 
-                        if (!pathFinder.CoordinateViable(hideCoord) || Custom.WorldCoordFloatDist(crab.coord, hideCoord) > 40)
+                        bool hideFromEnemy = false;
+                        foreach (Tracker.CreatureRepresentation rep in tracker.creatures)
+                        {
+                            if (rep.dynamicRelationship.currentRelationship.type == CreatureTemplate.Relationship.Type.Afraid && rep.VisualContact)
+                            {
+                                hideFromEnemy = true; return;
+                            }
+                        }
+
+                        bool findNewPos = !pathFinder.CoordinateViable(hideCoord) ||
+                            Custom.WorldCoordFloatDist(crab.coord, hideCoord) > 40 ||
+                            (leaderCanidate != null && Custom.WorldCoordFloatDist(crab.coord, hideCoord) < 5 && Custom.WorldCoordFloatDist(leaderCanidate.BestGuessForPosition(), hideCoord) > 40);
+
+                        if (!hideFromEnemy && findNewPos)
                         {
                             WorldCoordinate bestHideCoord = crab.coord;
                             float bestScore = float.MinValue;
                             for (int i = 0; i < 20; i++)
                             {
-                                IntVector2 randomTile = new(crab.coord.x + Random.Range(-20, 21), crab.coord.y + Random.Range(-20, 21));
+                                IntVector2 randomTile = leaderCanidate == null ? 
+                                    new(crab.coord.x + Random.Range(-20, 21), crab.coord.y + Random.Range(-20, 21)) : 
+                                    new(leaderCanidate.BestGuessForPosition().x + Random.Range(-20, 21), leaderCanidate.BestGuessForPosition().y + Random.Range(-20, 21));
 
                                 for (int j = 0; j < 20; j++)
                                 {
                                     IntVector2 testTile = new(randomTile.x, randomTile.y - j);
                                     WorldCoordinate testCoord = room.GetWorldCoordinate(testTile);
-                                    if (room.aimap.getAItile(testCoord).acc == AItile.Accessibility.Floor && room.aimap.getAItile(new IntVector2(testCoord.x, testCoord.y - 1)).acc == AItile.Accessibility.Solid)
+                                    if (!room.HasAnySolid(testTile) && room.HasAnySolid(testTile.x, testTile.y - 1))
                                     {
                                         float testScore = -pathFinder.CoordinateCost(testCoord).resistance;
 
-                                        if (leaderCanidate != null && Custom.DistLess(room.MiddleOfTile(testTile), room.MiddleOfTile(leaderCanidate.BestGuessForPosition()), 100f))
+                                        if (leaderCanidate != null && Custom.DistLess(room.MiddleOfTile(testTile), room.MiddleOfTile(leaderCanidate.BestGuessForPosition()), 100f) && VisualContact(leaderCanidate.BestGuessForPosition(), 10f))
                                         { testScore += 1000f; }
+
+                                        foreach (ItemTracker.ItemRepresentation rep in itemTracker.items)
+                                        {
+                                            if (rep.representedItem.realizedObject != null && rep.representedItem.realizedObject != crab.AttachedToObject)
+                                            {
+                                                if (ValueOfObject(rep) > 0 && Custom.DistLess(room.MiddleOfTile(testTile), rep.representedItem.realizedObject.firstChunk.pos, 50f))
+                                                { testScore += 100f; }
+                                            }
+                                        }
 
                                         if (testScore > bestScore)
                                         {
@@ -1121,16 +1336,45 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
 
             if (goToDestination && !fleeFromEnemy)
             {
-                PathFinder.PathingCell cell2 = pathFinder.PathingCellAtWorldCoordinate(room.GetWorldCoordinate(pos));
+                PathFinder.PathingCell cell2 = pathFinder.PathingCellAtWorldCoordinate(startCoord);
                 if (cell2.generation == pathFinder.pathGeneration)
                 {
-                    MovementConnection connect1 = (pathFinder as StandardPather).FollowPath(room.GetWorldCoordinate(pos), false);
+                    MovementConnection connect1 = (pathFinder as StandardPather).FollowPath(startCoord, false);
                     MovementConnection connect2 = (pathFinder as StandardPather).FollowPath(connect1.destinationCoord, false);
                     MovementConnection connect3 = (pathFinder as StandardPather).FollowPath(connect2.destinationCoord, false);
 
-                    if (connect1 != default && connect1.StartTile != connect2.DestTile && VisualContact(room.MiddleOfTile(connect1.DestTile), 10f))
+                    section = 3.1f;
+
+                    Vector2 pathDir = Vector2.zero;
+                    if (connect1.StartTile != connect2.DestTile)
                     {
-                        moveDir = Custom.DirVec(pos, room.MiddleOfTile(connect1.DestTile));
+                        if (VisualContact(room.MiddleOfTile(connect3.DestTile), 10f) &&
+                            !TileIsPrecarious(crab.coord.Tile) && !TileIsPrecarious(connect1.DestTile) && 
+                            !TileIsPrecarious(connect2.DestTile) && !TileIsPrecarious(connect3.DestTile))
+                        { pathDir = Custom.DirVec(pos, room.MiddleOfTile(connect3.DestTile)); }
+                        else
+                        { pathDir = Custom.DirVec(pos, room.MiddleOfTile(connect1.DestTile)); }
+                    }
+
+                    section = 3.2f;
+
+                    if (standingOnCurvedTerrain && room.aimap.getAItile(connect2.DestTile).acc == AItile.Accessibility.CurvedFloor)
+                    {
+                        if (pathDir.x > 0)
+                        { moveDir = (-Custom.PerpendicularVector(terrainDir) * 0.25f + terrainDir).normalized; }
+                        else if (pathDir.x < 0)
+                        { moveDir = (-Custom.PerpendicularVector(terrainDir) * 0.25f - terrainDir).normalized; }
+                    }
+                    else
+                    { moveDir = pathDir; }
+
+                    section = 3.3f;
+
+                    if (connect1.type == MovementConnection.MovementType.ShortCut || connect1.type == MovementConnection.MovementType.NPCTransportation)
+                    {
+                        crab.enteringShortCut = connect1.StartTile;
+                        crab.NPCTransportationDestination = connect1.destinationCoord;
+                        lastShortcutExit = connect1.destinationCoord;
                     }
 
                     //Create_LineBetweenTwoPoints(room, room.MiddleOfTile(connect1.StartTile), room.MiddleOfTile(connect1.DestTile), 1f, "Green", 0);
@@ -1155,14 +1399,37 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
                     float xSpeed = 1f;
                     float ySpeed = 1f;
 
+                    if (crab.AttachedToObject != null && !crab.ObjectIsPlant(crab.AttachedToObject.abstractPhysicalObject.type))
+                    { xSpeed *= 2f; ySpeed *= 2f; }
+
                     if (behavior == Behavior.Flee)
-                    { xSpeed *= 3f; }
+                    { xSpeed *= 2f; }
 
                     crab.firstChunk.vel.x += moveDir.x * xSpeed;
                     crab.firstChunk.vel.y += moveDir.y * ySpeed;
 
-                    if (room.aimap.getAItile(crab.coord).acc != AItile.Accessibility.Floor)
-                    { crab.firstChunk.vel *= 0.8f; }
+                    if (TileIsNextToWall(crab.coord.Tile))
+                    {
+                        if (crab.IsTileSolid(0, 1, 0) && moveDir.x > 0.1f)
+                        { crab.firstChunk.vel.x += 1f; }
+                        else if (crab.IsTileSolid(0, -1, 0) && moveDir.x < -0.1f)
+                        { crab.firstChunk.vel.x -= 1f; }
+
+                        if (crab.IsTileSolid(0, 0, 1) && moveDir.y > 0.1f)
+                        { crab.firstChunk.vel.y += 1f; }
+                    }
+
+                    foreach (Tracker.CreatureRepresentation rep in tracker.creatures)
+                    {
+                        if (rep.representedCreature.realizedCreature != null && rep.VisualContact)
+                        {
+                            foreach (BodyChunk chunk in rep.representedCreature.realizedCreature.bodyChunks)
+                            {
+                                if (Custom.DistLess(pos, chunk.pos, chunk.rad + crab.firstChunk.rad * 10f))
+                                { crab.firstChunk.vel.y += Random.value > 0 ? 0.1f : -0.1f; }
+                            }
+                        }
+                    }
                 }
 
                 crab.firstChunk.vel *= 0.8f;
@@ -1184,7 +1451,10 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
 
             section = 5;
 
-            Vector2 newDestination = room.MiddleOfTile(pathFinder.destination);
+            //if (leaderCanidate != null)
+            //{ Create_LineAndDot(room, pos, room.MiddleOfTile(leaderCanidate.BestGuessForPosition()), "Red", 0); }
+
+            //Vector2 newDestination = room.MiddleOfTile(pathFinder.destination);
             //Create_LineAndDot(room, pos, newDestination, "Yellow", 0);
 
             //LogMethodEnd();
@@ -1193,6 +1463,32 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
         {
             Log_Exception(e, "MIMICCRABAI_UPDATEMOVEMENT", section);
         }
+    }
+
+    public bool TileIsNextToWall(IntVector2 tile)
+    {
+        Room room = crab.room;
+        AItile.Accessibility acc = room.aimap.getAItile(tile).acc;
+
+        if (acc == AItile.Accessibility.Climb || (acc == AItile.Accessibility.Wall && !room.GetTile(tile).wallbehind))
+        {
+            return true;
+        }
+        return false;
+    }
+    public bool TileIsPrecarious(IntVector2 tile)
+    {
+        if (TileIsNextToWall(tile))
+        { return true; }
+
+        for (int i = 0; i < 8; i++)
+        {
+            IntVector2 testPos = tile + Custom.eightDirectionsDiagonalsLast[i];
+            if (!crab.room.GetTile(testPos).wallbehind)
+            { return true; }
+        }
+
+        return false;
     }
 
     public void UpdateShellCanidate()
@@ -1204,8 +1500,8 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
         {
             float score = ValueOfObject(item);
 
-            if (item.representedItem.realizedObject != null)
-            { Create_Text(item.representedItem.realizedObject.room, item.representedItem.realizedObject.firstChunk.pos, score, "Red", 0); }
+            //if (item.representedItem.realizedObject != null)
+            //{ Create_Text(item.representedItem.realizedObject.room, item.representedItem.realizedObject.firstChunk.pos, score, "Red", 0); }
 
             if (score >= 0 && (shellCanidate is null || score > ValueOfObject(shellCanidate)))
             { shellCanidate = item; }
@@ -1245,7 +1541,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
     }
     public float ValueOfObject(ItemTracker.ItemRepresentation obj)
     {
-        if (!pathFinder.CoordinateViable(obj.representedItem.pos))
+        if (!pathFinder.CoordinateViable(obj.representedItem.pos) && crab.room.aimap.getAItile(obj.representedItem.pos).acc != AItile.Accessibility.Sand)
         {
             return -200;
         }
@@ -1276,20 +1572,71 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
     }
     public float ValueOfObject(AbstractPhysicalObject.AbstractObjectType type)
     {
-        if (type == Enums.AbstractObjectType.CrabShell)
+        if (type == Enums.AbstractObjectType.CrabShell)                         
         { return 10f; }
-        else if (type == AbstractPhysicalObject.AbstractObjectType.Rock)
+        if (type == AbstractPhysicalObject.AbstractObjectType.ScavengerBomb)    
         { return 5f; }
-        else if (type == AbstractPhysicalObject.AbstractObjectType.ScavengerBomb)
+        if (type == AbstractPhysicalObject.AbstractObjectType.Lantern)          
         { return 5f; }
-        else if (type == AbstractPhysicalObject.AbstractObjectType.Lantern)
-        { return 4f; }
-        else if (type == AbstractPhysicalObject.AbstractObjectType.DangleFruit)
-        { return 4f; }
-        else if (type == AbstractPhysicalObject.AbstractObjectType.DataPearl)
-        { return 3f; }
-        else if (type == AbstractPhysicalObject.AbstractObjectType.WaterNut)
-        { return 3f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.DangleFruit)      
+        { return 5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.WaterNut)         
+        { return 5f; }
+        if (crab.ObjectIsPlant(type))                                           
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.Rock)             
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.DataPearl)        
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.Spear)            
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.FlareBomb)        
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.GraffitiBomb)     
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.NeedleEgg)        
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.OverseerCarcass)  
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.PebblesPearl)     
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.PuffBall)         
+        { return 2.5f; }
+        if (type == AbstractPhysicalObject.AbstractObjectType.EggBugEgg)
+        { return 2.5f; }
+
+        if (ModManager.DLCShared)
+        {
+            if (type == DLCSharedEnums.AbstractObjectType.SingularityBomb)      
+            { return 5f; }
+            if (type == DLCSharedEnums.AbstractObjectType.LillyPuck)            
+            { return 2.5f; }
+            if (type == DLCSharedEnums.AbstractObjectType.GooieDuck)            
+            { return 2.5f; }
+            if (type == DLCSharedEnums.AbstractObjectType.GlowWeed)             
+            { return 2.5f; }
+            if (type == DLCSharedEnums.AbstractObjectType.DandelionPeach)       
+            { return 2.5f; }
+        }
+
+        if (ModManager.MSC)
+        {
+            if (type == MoreSlugcats.MoreSlugcatsEnums.AbstractObjectType.FireEgg)
+            { return 2.5f; }
+            if (type == MoreSlugcats.MoreSlugcatsEnums.AbstractObjectType.Spearmasterpearl)
+            { return 2.5f; }
+            if (type == MoreSlugcats.MoreSlugcatsEnums.AbstractObjectType.HalcyonPearl)
+            { return 2.5f; }
+        }
+
+        if (ModManager.Watcher)
+        {
+            if (type == Watcher.WatcherEnums.AbstractObjectType.Boomerang)
+            { return 2.5f; }
+            if (type == Watcher.WatcherEnums.AbstractObjectType.FireSpriteLarva)
+            { return 2.5f; }
+        }
+
         return 0f;
     }
 
@@ -1381,10 +1728,25 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
     }
 }
 
+public class MimicCrabAbstractAI : AbstractCreatureAI
+{
+    public bool hidden;
+    public MimicCrabAbstractAI(World world, AbstractCreature crab) : base(world, crab)
+    {
+    }
+
+    new public WorldCoordinate RandomizeSpawnPositionInRoom(WorldCoordinate spawnPos, int repeats)
+    {
+        if (hidden) { return spawnPos; }
+        return base.RandomizeSpawnPositionInRoom(spawnPos, repeats);
+    }
+}
+
 public class CrabShell : Weapon
 {
     public float roll, lastRoll;
     new public Vector2 rotation, lastRotation;
+    public Quaternion quatRotation, lastQuatRotation;
 
     public Color shellColor, blackColor;
 
@@ -1428,7 +1790,10 @@ public class CrabShell : Weapon
         waterFriction = 0.92f;
         buoyancy = 1.2f;
         gravity = 0.9f;
-        collisionLayer = 1;
+        collisionLayer = 2;
+
+        Random.State state = Random.state;
+        Random.InitState(absObj.ID.number);
 
         int shape = Random.Range(0, 3);
         switch (shape)
@@ -1441,6 +1806,8 @@ public class CrabShell : Weapon
         roll = Random.Range(-2f, 2f);
 
         shellColor = Custom.HSL2RGB(Custom.WrappedRandomVariation(0.04f, 0.1f, 0.1f), Custom.ClampedRandomVariation(0.5f, 0.2f, 0.3f), Custom.ClampedRandomVariation(0.75f, 0.2f, 1.5f));
+
+        Random.state = state;
 
         clinkSound = ModManager.Watcher ? Watcher.WatcherEnums.WatcherSoundID.Barnacle_Shell_Clink : SoundID.Snail_Warning_Click;
     }
@@ -1458,8 +1825,9 @@ public class CrabShell : Weapon
 
         lastRoll = roll;
         lastRotation = rotation;
+        lastQuatRotation = quatRotation;
 
-        if (grabbedBy.Count == 0 && firstChunk.vel.magnitude > 5f)
+        if (crab == null && grabbedBy.Count == 0 && firstChunk.vel.magnitude > 5f)
         {
             if (roll > 2)
             { roll = -2; lastRoll = roll; }
@@ -1490,6 +1858,8 @@ public class CrabShell : Weapon
         {
             UpdateLighting(camera);
         }
+
+        quatRotation = Quaternion.AngleAxis(Vector2.SignedAngle(Vector2.right, rotation), Vector3.forward) * Quaternion.AngleAxis(roll * 90f + 90f, Vector3.right);
 
         if (crab != null && (crab.dead || crab.slatedForDeletetion))
         { crab = null; }
@@ -1617,17 +1987,14 @@ public class CrabShell : Weapon
     }
     public override void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {
-        if (slatedForDeletetion)
+        if (slatedForDeletetion || room != rCam.room)
         {
             sLeaser.CleanSpritesAndRemove();
         }
         else
         {
             Vector2 pos = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker) - camPos;
-            Vector2 rot = Vector2.Lerp(lastRotation, rotation, timeStacker).normalized;
-            float roll = Mathf.Lerp(lastRoll, this.roll, timeStacker);
-
-            Quaternion quaternion = Quaternion.AngleAxis(Vector2.SignedAngle(Vector2.right, rot), Vector3.forward) * Quaternion.AngleAxis(roll * 90f + 90f, Vector3.right);
+            Quaternion quatRot = Quaternion.Lerp(lastQuatRotation, quatRotation, timeStacker);
 
             if (camera != rCam)
             {
@@ -1641,7 +2008,7 @@ public class CrabShell : Weapon
             Color tintedBodyColor = Color.Lerp(shellColor, lightColor, colorExposure);
             Color finalBodyColor = blink > 0 ? Color.white : Color.Lerp(blackColor, Color.Lerp(blackColor, tintedBodyColor, lightExposure), 0.5f);
 
-            shellShape.DrawSprites(pos, rot, quaternion, blackColor, finalBodyColor, lightExposure);
+            shellShape.DrawSprites(pos, quatRot, blackColor, finalBodyColor, lightExposure);
         }
     }
     public override void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
@@ -1652,7 +2019,7 @@ public class CrabShell : Weapon
     }
     public override void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContainer)
     {
-        newContainer ??= rCam.ReturnFContainer("Midground");
+        newContainer ??= rCam.ReturnFContainer("Items");
 
         foreach (FSprite fsprite in sLeaser.sprites)
         {
@@ -1691,11 +2058,14 @@ public class CrabShell : Weapon
         public virtual void InitSprites(List<FSprite> sprites)
         { }
 
-        public virtual void DrawSprites(Vector2 pos, Vector2 rot, Quaternion quaternion, Color blackColor, Color shellColor, float lightExposure)
+        public virtual void DrawSprites(Vector2 pos, Quaternion quatRot, Color blackColor, Color shellColor, float lightExposure)
         { }
 
-        public virtual void UpdateSpriteLayers(float z)
-        { this.z = z; }
+        public virtual void UpdateSpriteLayers(params float[] zs)
+        { this.z = zs[0]; }
+
+        public virtual string GetSpriteName(int index)
+        { return ""; }
     }
 
     public class BarnacleCone : ShellSprite
@@ -1731,10 +2101,10 @@ public class CrabShell : Weapon
             sprites.Add(circles[3]);
         }
 
-        public override void DrawSprites(Vector2 pos, Vector2 rot, Quaternion quaternion, Color blackColor, Color shellColor, float lightExposure)
+        public override void DrawSprites(Vector2 pos, Quaternion quatRot, Color blackColor, Color shellColor, float lightExposure)
         {
-            Vector3 basePos = quaternion * new Vector3(0, -coneLength / 2f, 0);
-            Vector3 tipPos = quaternion * new Vector3(0, coneLength / 2f, 0);
+            Vector3 basePos = quatRot * new Vector3(0, -coneLength / 2f, 0);
+            Vector3 tipPos = quatRot * new Vector3(0, coneLength / 2f, 0);
 
             Vector2 circle0Pos = pos + (Vector2)basePos;
             Vector2 circle1Pos = pos + (Vector2)tipPos;
@@ -1787,11 +2157,11 @@ public class CrabShell : Weapon
             shellMesh.color = shellColor;
         }
 
-        public override void UpdateSpriteLayers(float z)
+        public override void UpdateSpriteLayers(float[] zs)
         {
-            base.UpdateSpriteLayers(z);
+            base.UpdateSpriteLayers(zs[0]);
 
-            if (z > 0)
+            if (zs[0] > 0)
             {
                 circles[0].MoveBehindOtherNode(circles[2]);
                 circles[1].MoveBehindOtherNode(circles[0]);
@@ -1805,6 +2175,20 @@ public class CrabShell : Weapon
 
                 circles[1].MoveInFrontOfOtherNode(circles[0]);
             }
+        }
+
+        public override string GetSpriteName(int index)
+        {
+            switch (index)
+            {
+                case 0: return "Shell Mesh";
+                case 1: return "Shell Circle 1";
+                case 2: return "Black Circle 1";
+                case 3: return "Shell Circle 2";
+                case 4: return "Black Circle 2";
+                default: break;
+            }
+            return base.GetSpriteName(index);
         }
     }
 
@@ -1834,8 +2218,6 @@ public class CrabShell : Weapon
             circles[2] = new FSprite("Circle20", false);
             circles[3] = new FSprite("Circle20", false);
 
-            Debug.Log("CIRCLE20 DATA: " + circles[0].element.sourcePixelSize);
-
             sprites.Add(shellMesh);
             sprites.Add(mouthMesh);
             sprites.Add(circles[0]);
@@ -1844,7 +2226,7 @@ public class CrabShell : Weapon
             sprites.Add(circles[3]);
         }
 
-        public override void DrawSprites(Vector2 pos, Vector2 rot, Quaternion quaternion, Color blackColor, Color shellColor, float lightExposure)
+        public override void DrawSprites(Vector2 pos, Quaternion quaternion, Color blackColor, Color shellColor, float lightExposure)
         {
             Vector3 basePos1 = quaternion * new Vector3(0, -sideRad, 0);
             Vector3 tipPos1 = quaternion * new Vector3(0, sideRad, 0);
@@ -1910,7 +2292,7 @@ public class CrabShell : Weapon
                 mouthMesh.MoveVertice(i + 1, tubePos - perpTubeDir2 * rad);
             }
 
-            UpdateSpriteLayers(side1Z);
+            UpdateSpriteLayers(side1Z, baseZ);
 
             Color lightColor = Color.Lerp(shellColor, Color.white, lightExposure * 0.25f);
 
@@ -1928,20 +2310,45 @@ public class CrabShell : Weapon
             circles[1].element = side1Z >= 0 ? Futile.atlasManager.GetElementWithName("Circle20") : Futile.atlasManager.GetElementWithName("SnailShell");
         }
 
-        public override void UpdateSpriteLayers(float z)
+        public override void UpdateSpriteLayers(float[] axes)
         {
-            base.UpdateSpriteLayers(z);
+            base.UpdateSpriteLayers(axes);
 
-            if (z < 0)
+            if (axes[0] < 0)
             {
-                circles[0].MoveToBack();
-                circles[1].MoveToFront();
+                circles[0].MoveBehindOtherNode(circles[1]);
+
+                if (axes[1] > 0)
+                { circles[2].MoveInFrontOfOtherNode(circles[1]); }
+                else
+                { circles[2].MoveBehindOtherNode(circles[0]); }
             }
             else
             {
-                circles[0].MoveToFront();
-                circles[1].MoveToBack();
+                circles[1].MoveBehindOtherNode(circles[0]);
+
+                if (axes[1] > 0)
+                { circles[2].MoveInFrontOfOtherNode(circles[0]); }
+                else
+                { circles[2].MoveBehindOtherNode(circles[1]); }
             }
+
+            circles[3].MoveInFrontOfOtherNode(circles[2]);
+        }
+
+        public override string GetSpriteName(int index)
+        {
+            switch (index)
+            {
+                case 0: return "Shell Mesh";
+                case 1: return "Mouth Mesh";
+                case 2: return "Spiral 1";
+                case 3: return "Spiral 2";
+                case 4: return "Mouth Circle";
+                case 5: return "Black Circle";
+                default: break;
+            }
+            return base.GetSpriteName(index);
         }
     }
 }
@@ -1970,5 +2377,125 @@ public class AbstractCrabShellStick : AbstractPhysicalObject.AbstractObjectStick
             "<stkA>",
             B.ID.ToString()
         ]);
+    }
+}
+
+public class CrabShellCircleData : PlacedObject.ResizableObjectData
+{
+    public Vector2 panelPos;
+    new public Vector2 handlePos;
+    public float density;
+
+    public CrabShellCircleData(PlacedObject owner) : base(owner)
+    {
+        panelPos = new Vector2(0f, 100f);
+        handlePos = new Vector2(0f, 100f);
+        density = 0f;
+    }
+
+    new protected string BaseSaveString()
+    {
+        return string.Format(CultureInfo.InvariantCulture, "{0}~{1}~{2}~{3}~{4}", new object[]
+        {
+            panelPos.x,
+            panelPos.y,
+            handlePos.x,
+            handlePos.y,
+            density,
+        });
+    }
+
+    public override void FromString(string s)
+    {
+        string[] array = Regex.Split(s, "~");
+        panelPos.x = float.Parse(array[0], NumberStyles.Any, CultureInfo.InvariantCulture);
+        panelPos.y = float.Parse(array[1], NumberStyles.Any, CultureInfo.InvariantCulture);
+        handlePos.x = float.Parse(array[2], NumberStyles.Any, CultureInfo.InvariantCulture);
+        handlePos.y = float.Parse(array[3], NumberStyles.Any, CultureInfo.InvariantCulture);
+        density = float.Parse(array[4], NumberStyles.Any, CultureInfo.InvariantCulture);
+        unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 5);
+    }
+
+    public override string ToString()
+    {
+        string text = BaseSaveString();
+        text = SaveState.SetCustomData(this, text);
+        return SaveUtils.AppendUnrecognizedStringAttrs(text, "~", unrecognizedAttributes);
+    }
+}
+
+public class CrabShellCircleRepresentation : ResizeableObjectRepresentation
+{
+    public CrabShellCircleData Data
+    { get { return pObj.data as CrabShellCircleData; } }
+
+    public CrabShellCirclePanel controlPanel;
+    public FSprite line;
+    public Handle Handle
+    { get { return subNodes[0] as Handle; } }
+
+    public CrabShellCircleRepresentation(DevUI owner, string IDstring, DevUINode parentNode, PlacedObject pObj, string name) : base(owner, IDstring, parentNode, pObj, name, true)
+    {
+        Handle.pos = Data.handlePos;
+
+        controlPanel = new(owner, "CrabShellCircle_Panel", this, new Vector2(0f, 25f))
+        { pos = Data.panelPos };
+        subNodes.Add(controlPanel);
+
+        line = new("pixel", true)
+        { anchorY = 0f };
+        fSprites.Add(line);
+        owner.placedObjectsContainer.AddChild(line);
+    }
+
+    public override void Refresh()
+    {
+        base.Refresh();
+
+        MoveSprite(fSprites.IndexOf(line), absPos);
+        line.scaleY = controlPanel.collapsed ? 0f : controlPanel.pos.magnitude;
+        line.rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
+        Data.panelPos = controlPanel.pos;
+
+        Data.handlePos = Handle.pos;
+    }
+
+    public class CrabShellCirclePanel : Panel
+    {
+        public CrabShellCircleData Data
+        { get { return (parentNode as CrabShellCircleRepresentation).Data; } }
+
+        public DensitySlider slider;
+
+        public CrabShellCirclePanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos) : base(owner, IDstring, parentNode, pos, new Vector2(250f, 25f), "CrabShellCircle")
+        {
+            subNodes.Add(new DensitySlider(owner, "Density_Slider", this, new Vector2(5f, 5f), "Density:"));
+        }
+
+        public class DensitySlider : Slider
+        {
+            public CrabShellCircleData Data
+            { get { return (parentNode as CrabShellCirclePanel).Data; } }
+
+            public DensitySlider(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string title) : base(owner, IDstring, parentNode, pos, title, false, 110f)
+            {
+            }
+
+            public override void Refresh()
+            {
+                base.Refresh();
+                NumberText = Mathf.RoundToInt(Data.density * 100f).ToString() + "%";
+                RefreshNubPos(Data.density);
+            }
+
+            public override void NubDragged(float nubPos)
+            {
+                base.NubDragged(nubPos);
+
+                Data.density = nubPos;
+                parentNode.parentNode.Refresh();
+                Refresh();
+            }
+        }
     }
 }

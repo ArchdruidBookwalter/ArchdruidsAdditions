@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -8,58 +9,69 @@ public static class AbstractCreatureHooks
 {
     internal static void AbstractCreature_Realize(On.AbstractCreature.orig_Realize orig, AbstractCreature self)
     {
-        //Methods.Methods.LogMethodStart("ABSTRACTCREATURE_REALIZE");
+        //Debug.Log("");
+        //Debug.Log("CREATURE \'" + self.creatureTemplate.values.ToString() + "\' TRIED TO REALIZE IN ROOM");
 
         float section = 0;
 
         try
         {
+            section = 1;
 
             if (self.Room != null && self.realizedCreature == null)
             {
-                Debug.Log("CREATURE \'" + self.creatureTemplate.name + "\' REALIZED IN ROOM.");
+                bool AAcreature = false;
                 if (self.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
                 {
                     self.realizedCreature = new CloudFish(self, self.world);
-                    self.InitiateAI();
+                    AAcreature = true;
                 }
                 else if (self.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
                 {
                     self.realizedCreature = new Parasite(self, self.world);
-                    self.InitiateAI();
+                    AAcreature = true;
                 }
                 else if (self.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
                 {
                     self.realizedCreature = new MimicCrab(self, self.world);
+                    AAcreature = true;
+                }
+
+                if (AAcreature)
+                {
                     self.InitiateAI();
+
+                    foreach (AbstractPhysicalObject.AbstractObjectStick stick in self.stuckObjects)
+                    {
+                        if (stick.A.realizedObject == null) { stick.A.Realize(); }
+                        if (stick.B.realizedObject == null) { stick.B.Realize(); }
+                    }
                 }
             }
 
-            section = 1;
+            section = 2;
 
             orig(self);
 
-            section = 2;
+            section = 4;
 
             if (self.realizedCreature != null && self.Room.realizedRoom != null)
             {
+                Room room = self.Room.realizedRoom;
+
                 bool rotten = false;
                 if (self.unrecognizedAttributes != null && self.unrecognizedAttributes.Length > 0)
                 {
-                    //Debug.Log("");
-                    //Debug.Log("UNRECOGNIZED STRING ATTRIBUTES: ");
                     foreach (string unrecognizedString in self.unrecognizedAttributes)
                     {
                         if (unrecognizedString == "INFECTED")
                         {
                             rotten = true;
                         }
-
-                        //Debug.Log(unrecognizedString);
                     }
                 }
 
-                section = 3;
+                section = 4.1f;
 
                 List<AbstractPhysicalObject> eggs = [];
                 foreach (AbstractPhysicalObject.AbstractObjectStick stick in self.stuckObjects)
@@ -70,14 +82,14 @@ public static class AbstractCreatureHooks
                     }
                 }
 
-                section = 4;
+                section = 4.2f;
 
                 if (rotten || eggs.Count > 0)
                 {
                     InfectedCorpse corpse = new(self, eggs, false);
-                    self.Room.realizedRoom.AddObject(corpse);
+                    room.AddObject(corpse);
 
-                    section = 5;
+                    section = 4.21f;
 
                     foreach (AbstractPhysicalObject egg in eggs)
                     {
@@ -87,7 +99,7 @@ public static class AbstractCreatureHooks
                         }
                     }
 
-                    section = 6;
+                    section = 4.22f;
 
                     if (!rotten)
                     {
@@ -111,10 +123,33 @@ public static class AbstractCreatureHooks
                         }
                     }
 
-                    section = 7;
+                    section = 4.23f;
 
                     self.realizedCreature.Die();
                 }
+
+                section = 4.3f;
+
+                /*
+                if (self.realizedCreature is MimicCrab crab && self.abstractAI is MimicCrabAbstractAI AI && AI.hidden)
+                {
+                    section = 4.31f;
+
+                    IntVector2 startPos = self.realizedCreature.coord.Tile;
+                    for (int i = startPos.y; i > 0; i--)
+                    {
+                        section = 4.32f;
+
+                        IntVector2 testPos = new(startPos.x, i);
+                        if (room.GetTile(testPos.x, testPos.y - 1).Solid || (room.terrain != null && room.terrain.ObstructsTile(testPos.x, testPos.y - 1)))
+                        {
+                            section = 4.33f;
+
+                            crab.ForceHidden(room.GetWorldCoordinate(testPos));
+                            break;
+                        }
+                    }
+                }*/
             }
 
         }
@@ -168,6 +203,10 @@ public static class AbstractCreatureHooks
         {
             self.abstractAI = new CloudFishAbstractAI(world, self);
         }
+        else if (creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+        {
+            self.abstractAI = new MimicCrabAbstractAI(world, self);
+        }
         else if (creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
         {
             ParasiteState newState = new(self);
@@ -197,9 +236,28 @@ public static class AbstractCreatureHooks
             }
         }*/
     }
-
     internal static void AbstractCreature_DropCarriedObject(On.AbstractCreature.orig_DropCarriedObject orig, AbstractCreature self, int graspIndex)
     {
         orig(self, graspIndex);
+    }
+    internal static void AbstractCreature_SetCustomFlags(On.AbstractCreature.orig_setCustomFlags orig, AbstractCreature self)
+    {
+        orig(self);
+
+        if (self.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab && self.unrecognizedFlags.Count > 0)
+        {
+            AbstractPhysicalObject.AbstractObjectType type = new(self.unrecognizedFlags[0]);
+            if (type.index != -1)
+            {
+                AbstractPhysicalObject shell = new(self.world, type, null, self.pos, self.world.game.GetNewID());
+                self.Room.AddEntity(shell);
+
+                new AbstractCrabShellStick(self, shell);
+            }
+            else
+            {
+                Debug.Log("<Archdruid's Additions> Error while spawning Shell for Mimic Crab. Type was, \'" + type.value + "\'. Is the Type formatted correctly? Check the Steam Workshop page for more information.");
+            }
+        }
     }
 }

@@ -758,8 +758,6 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
     }
 }
 
-
-
 public class CloudFishGraphics : GraphicsModule
 {
     public CloudFish cloudFish;
@@ -877,7 +875,7 @@ public class CloudFishGraphics : GraphicsModule
             }
             catch (Exception e)
             {
-                Debug.Log("---CREATURE \'CLOUDFISH\' EXPERIENCED AN EXCEPTION WHILE TRYING TO GET REGION PROPERTIES DATA. IS THE FILE FORMATTED CORRECTLY?---");
+                Debug.Log("<Archduid's Additions> ---CREATURE \'CLOUDFISH\' EXPERIENCED AN EXCEPTION WHILE TRYING TO GET REGION PROPERTIES DATA. IS THE FILE FORMATTED CORRECTLY?---");
                 Debug.LogException(e);
             }
 
@@ -1606,8 +1604,6 @@ public class CloudFishGraphics : GraphicsModule
         }
     }
 }
-
-
 
 public class CloudFishAI : ArtificialIntelligence
 {
@@ -3494,8 +3490,6 @@ public class CloudFishAI : ArtificialIntelligence
         }
     }
 }
-
-
 
 public class CloudFishAbstractAI : AbstractCreatureAI
 {

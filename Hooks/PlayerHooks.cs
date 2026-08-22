@@ -20,6 +20,7 @@ public static class PlayerHooks
     {
         orig(self, eu);
 
+        /*
         if (debugCooldown > 0)
         { debugCooldown--; }
         else
@@ -58,7 +59,7 @@ public static class PlayerHooks
                 templateID++;
             }
             debugCooldown = 200;
-        }
+        }*/
 
         AAPlayerState playerState = GetPlayerState(self.abstractCreature.ID.number);
         if (playerState != null)
@@ -245,7 +246,7 @@ public static class PlayerHooks
             if (crab.ShellStick != null)
             { return Player.ObjectGrabability.CantGrab; }
             else
-            { return Player.ObjectGrabability.TwoHands; }
+            { return Player.ObjectGrabability.OneHand; }
         }
 
         return baseGrabability;

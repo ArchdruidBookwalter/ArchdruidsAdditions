@@ -111,27 +111,27 @@ public class SpiceMeter
 
                     if (foodPips >= maxPips - 1 && spicePips > 0)
                     {
-                        spiceCircle.hide = true;
+                        spiceCircle.eaten = true;
                     }
                     else
                     {
                         if (i < foodPips && foodCircle.foodPlopped)
                         {
-                            spiceCircle.hide = true;
+                            spiceCircle.eaten = true;
                         }
-                        else if (spicePips > 0 && i < foodPips + spicePips || i < foodPips && !spiceCircle.hide)
+                        else if (spicePips > 0 && i < foodPips + spicePips || i < foodPips && !spiceCircle.eaten)
                         {
-                            spiceCircle.hide = false;
+                            spiceCircle.eaten = false;
                         }
                         else
                         {
-                            spiceCircle.hide = true;
+                            spiceCircle.eaten = true;
                         }
                     }
 
                     section = 4;
 
-                    if (spiceCircle.hide)
+                    if (spiceCircle.eaten)
                     {
                         if (spiceCircle.circleAlpha > 0f)
                         { spiceCircle.circleAlpha -= 0.1f; }
@@ -184,7 +184,6 @@ public class SpiceMeter
     public class SpiceMeterCircle
     {
         public SpiceMeter meter;
-        public static MaterialPropertyBlock propertyBlock = new();
         public FSprite circle;
         public float rad;
 
@@ -194,6 +193,10 @@ public class SpiceMeter
 
         public FShader customShader;
         public Color spiceColor;
+
+        public Material circleMaterial;
+
+        //private static MaterialPropertyBlock _materialProps = new MaterialPropertyBlock();
 
         public SpiceMeterCircle(SpiceMeter meter, float startRad)
         {
@@ -209,6 +212,8 @@ public class SpiceMeter
 
             rad = startRad;
             spiceColor = Custom.HSL2RGB(0f, 0.6f, 0.5f);
+
+            circleMaterial = new(customShader.shader);
         }
         public void Update()
         {
@@ -234,6 +239,8 @@ public class SpiceMeter
         }
         public void Draw(HUDCircle foodCircle, float timeStacker)
         {
+            float section = 0;
+
             try
             {
                 circle.x = foodCircle.sprite.x;
@@ -265,10 +272,14 @@ public class SpiceMeter
                     circle.scale = foodCircle.sprite.scale + meter.pulse + 0.2f;
                     circle.alpha = Mathf.Min(foodCircle.visible ? 1f : 0f, foodCircle.sprite.alpha, circleAlpha);
                 }
+
+                section = 1;
+
+                circleMaterial.SetFloat(Data.MiscData.CircleHue, Random.Range(0f, 1f));
             }
             catch (Exception e)
             {
-                Methods.Methods.Log_Exception(e, "SPICEMETERCIRCLE_DRAW", 0);
+                Methods.Methods.Log_Exception(e, "SPICEMETERCIRCLE_DRAW", section);
             }
         }
     }

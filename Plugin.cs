@@ -39,23 +39,29 @@ public sealed class Plugin : BaseUnityPlugin
         catch (Exception ex) { Debug.LogException(ex); }
     }
 
-
     public void OnEnable()
     {
-        EffectDefinitionBuilder builder = new EffectDefinitionBuilder("ForceRoomEnergy");
-        builder.SetEffectInitializer(LightRodPowerEffect.EffectSpawner);
-        builder.AddFloatField("DriftStrength", 0f, 0.1f, 0f, 0f, "DriftStrength");
-        builder.AddIntField("DriftMode", 0, 2, 0, "DriftMode");
-        builder.AddFloatField("ResetChance", 0f, 100f, 0f, 0f, "ResetChance");
-        builder.AddFloatField("ResetCooldown", 0f, 2000f, 0f, 0f, "ResetCD");
-        builder.SetCategory("AAEffects");
-        builder.Register();
+        EffectDefinitionBuilder builder1 = new("ForceRoomEnergy");
+        builder1.SetEffectInitializer(LightRodPowerEffect.EffectSpawner);
+        builder1.AddFloatField("DriftStrength", 0f, 0.1f, 0f, 0f, "DriftStrength");
+        builder1.AddIntField("DriftMode", 0, 2, 0, "DriftMode");
+        builder1.AddFloatField("ResetChance", 0f, 100f, 0f, 0f, "ResetChance");
+        builder1.AddFloatField("ResetCooldown", 0f, 2000f, 0f, 0f, "ResetCD");
+        builder1.SetCategory("AAEffects");
+        builder1.Register();
+
+        EffectDefinitionBuilder builder2 = new("RandomShells");
+        builder2.SetEffectInitializer(RandomShells.EffectSpawner);
+        builder2.SetCategory("AAEffects");
+        builder2.Register();
 
         #region AbstractPhysicalObject Hooks
+        On.AbstractPhysicalObject.Update += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Update;
         On.AbstractPhysicalObject.Realize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Realize;
         On.AbstractPhysicalObject.Abstractize += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Abstractize;
         On.AbstractPhysicalObject.AddConnected += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_AddConnected;
         On.AbstractPhysicalObject.LoseAllStuckObjects += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_LoseAllStuckObjects;
+        On.AbstractPhysicalObject.Destroy += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Destroy;
         On.AbstractPhysicalObject.AbstractObjectStick.FromString += Hooks.AbstractPhysicalObjectHooks.AbstractObjectStick_FromString;
         On.AbstractPhysicalObject.AbstractObjectStick.Deactivate += Hooks.AbstractPhysicalObjectHooks.AbstractObjectStick_Deactivate;
         On.AbstractConsumable.IsTypeConsumable += Hooks.AbstractPhysicalObjectHooks.AbstractConsumable_IsTypeConsumable;
@@ -69,6 +75,7 @@ public sealed class Plugin : BaseUnityPlugin
         On.AbstractCreature.Update += Hooks.AbstractCreatureHooks.AbstractCreature_Update;
         On.AbstractCreature.ChangeRooms += Hooks.AbstractCreatureHooks.AbstractCreature_ChangeRooms;
         On.AbstractCreature.DropCarriedObject += Hooks.AbstractCreatureHooks.AbstractCreature_DropCarriedObject;
+        On.AbstractCreature.setCustomFlags += Hooks.AbstractCreatureHooks.AbstractCreature_SetCustomFlags;
         #endregion
 
         #region AbstractRoom Hooks
@@ -207,6 +214,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region PhysicalObject Hooks
         On.PhysicalObject.Update += Hooks.PhysicalObjectHooks.PhysicalObject_Update;
+        On.Mushroom.DrawSprites += Hooks.PhysicalObjectHooks.Mushroom_DrawSprites;
         #endregion
 
         #region Player Hooks
@@ -267,6 +275,9 @@ public sealed class Plugin : BaseUnityPlugin
         On.Scavenger.TryToMeleeCreature += Hooks.ScavengerHooks.Scavenger_TryToMeleeCreature;
         On.Scavenger.ArrangeInventory += Hooks.ScavengerHooks.Scavenger_ArrangeInventory;
         On.Scavenger.WantToLethallyAttack += Hooks.ScavengerHooks.Scavenger_WantToLethallyAttack;
+        new Hook(typeof(Scavenger).GetMethod("get_HeadLookPoint"), Hooks.ScavengerHooks.Scavenger_Get_HeadLookPoint);
+        new Hook(typeof(Scavenger).GetMethod("get_EyesLookPoint"), Hooks.ScavengerHooks.Scavenger_Get_EyesLookPoint);
+
         On.ScavengerGraphics.ContainerForHeldItem += Hooks.ScavengerHooks.ScavengerGraphics_ContainerForHeldItem;
         new Hook(typeof(ScavengerGraphics).GetMethod("ItemPosition"), Hooks.ScavengerHooks.ScavengerGraphics_Get_ItemPosition);
         new Hook(typeof(ScavengerGraphics).GetMethod("ItemDirection"), Hooks.ScavengerHooks.ScavengerGraphics_Get_ItemDirection);

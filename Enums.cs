@@ -1,9 +1,20 @@
-﻿namespace ArchdruidsAdditions.Enums;
+﻿using System.Collections.Generic;
+using System.Linq;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Decoration;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+using JetBrains.Annotations;
+using Newtonsoft.Json.Linq;
+using UnityEngine;
+
+namespace ArchdruidsAdditions.Enums;
 
 public class AAEnums
 {
     public static void RegisterAllEnums()
     {
+        Debug.Log("<Archduid's Additions> REGISTERING ENUMS");
+
         AbstractObjectType.RegisterValues();
         MiscItemType.RegisterValues();
         MultiplayerItemType.RegisterValues();
@@ -13,9 +24,13 @@ public class AAEnums
         ScavengerBehavior.RegisterValues();
         CreatureTemplateType.RegisterValues();
         NewSoundID.RegisterValues();
+
+        Debug.Log("<Archduid's Additions> REGISTERED ENUMS");
     }
     public static void UnregisterAllEnums()
     {
+        Debug.Log("<Archduid's Additions> UNREGISTERING ENUMS");
+
         AbstractObjectType.UnregisterValues();
         MiscItemType.UnregisterValues();
         MultiplayerItemType.UnregisterValues();
@@ -25,376 +40,340 @@ public class AAEnums
         ScavengerBehavior.UnregisterValues();
         CreatureTemplateType.UnregisterValues();
         NewSoundID.UnregisterValues();
+
+        Debug.Log("<Archduid's Additions> UNREGISTERED ENUMS");
     }
 }
 
 public class AbstractObjectType
 {
-    public static AbstractPhysicalObject.AbstractObjectType Bow;
-    public static AbstractPhysicalObject.AbstractObjectType ScarletFlowerBulb;
-    public static AbstractPhysicalObject.AbstractObjectType ParrySword;
-    public static AbstractPhysicalObject.AbstractObjectType Potato;
-    public static AbstractPhysicalObject.AbstractObjectType LightningFruit;
-    public static AbstractPhysicalObject.AbstractObjectType AshPepper;
-    public static AbstractPhysicalObject.AbstractObjectType ParasiteEgg;
-    public static AbstractPhysicalObject.AbstractObjectType CrabShell;
+    public static AbstractPhysicalObject.AbstractObjectType
+        Bow,
+        ScarletFlowerBulb, 
+        ParrySword,
+        Potato,
+        LightningFruit,
+        AshPepper,
+        ParasiteEgg,
+        CrabShell;
+
+    public static List<AbstractPhysicalObject.AbstractObjectType> values = [];
 
     public static void RegisterValues()
     {
-        Bow = new("Bow", true);
-        ScarletFlowerBulb = new("ScarletFlowerBulb", true);
-        ParrySword = new("ParrySword", true);
-        Potato = new("Potato", true);
-        LightningFruit = new("LightningFruit", true);
-        AshPepper = new("AshPepper", true);
-        ParasiteEgg = new("ParasiteEgg", true);
-        CrabShell = new("CrabShell", true);
-    }
+        Bow = Register(nameof(Bow));
+        ScarletFlowerBulb = Register(nameof(ScarletFlowerBulb));
+        ParrySword = Register(nameof(ParrySword));
+        Potato = Register(nameof(Potato));
+        LightningFruit = Register(nameof(LightningFruit));
+        AshPepper = Register(nameof(AshPepper));
+        ParasiteEgg = Register(nameof(ParasiteEgg));
+        CrabShell = Register(nameof(CrabShell));
 
+        values.Add(Bow);
+        values.Add(ScarletFlowerBulb);
+        values.Add(ParrySword);
+        values.Add(Potato);
+        values.Add(LightningFruit);
+        values.Add(AshPepper);
+        values.Add(ParasiteEgg);
+        values.Add(CrabShell);
+    }
     public static void UnregisterValues()
     {
-        if (Bow != null)
-        {
-            Bow.Unregister();
-            Bow = null;
-        }
-        if (ScarletFlowerBulb != null)
-        {
-            ScarletFlowerBulb.Unregister();
-            ScarletFlowerBulb = null;
-        }
-        if (ParrySword != null)
-        {
-            ParrySword.Unregister();
-            ParrySword = null;
-        }
-        if (Potato != null)
-        {
-            Potato.Unregister();
-            Potato = null;
-        }
-        if (LightningFruit != null)
-        {
-            LightningFruit.Unregister();
-            LightningFruit = null;
-        }
-        if (AshPepper != null)
-        {
-            AshPepper.Unregister();
-            AshPepper = null;
-        }
-        if (ParasiteEgg != null)
-        {
-            ParasiteEgg.Unregister();
-            ParasiteEgg = null;
-        }
-        if (CrabShell != null)
-        {
-            CrabShell.Unregister();
-            CrabShell = null;
-        }
+        Bow = Unregister(Bow);
+        ScarletFlowerBulb = Unregister(ScarletFlowerBulb);
+        ParrySword = Unregister(ParrySword);
+        Potato = Unregister(Potato);
+        LightningFruit = Unregister(LightningFruit);
+        AshPepper = Unregister(AshPepper);
+        ParasiteEgg = Unregister(ParasiteEgg);
+        CrabShell = Unregister(CrabShell);
+
+        values.Clear();
     }
+
+    public static AbstractPhysicalObject.AbstractObjectType Register(string name)
+    { return new AbstractPhysicalObject.AbstractObjectType(name, true); }
+    public static AbstractPhysicalObject.AbstractObjectType Unregister(AbstractPhysicalObject.AbstractObjectType type)
+    { type?.Unregister(); return null; }
 }
+
 public class MiscItemType
 {
-    public static SLOracleBehaviorHasMark.MiscItemType Bow;
-    public static SLOracleBehaviorHasMark.MiscItemType ScarletFlowerBulb;
-    public static SLOracleBehaviorHasMark.MiscItemType ParrySword;
-    public static SLOracleBehaviorHasMark.MiscItemType Potato;
-    public static SLOracleBehaviorHasMark.MiscItemType LightningFruit;
-    public static SLOracleBehaviorHasMark.MiscItemType AshPepper;
-    public static SLOracleBehaviorHasMark.MiscItemType CrabShell;
+    public static SLOracleBehaviorHasMark.MiscItemType
+        Bow,
+        ScarletFlowerBulb,
+        ParrySword,
+        Potato,
+        LightningFruit,
+        AshPepper,
+        CrabShell;
+
+    public static List<SLOracleBehaviorHasMark.MiscItemType> values = [];
 
     public static void RegisterValues()
     {
-        Bow = new("Bow", true);
-        ScarletFlowerBulb = new("ScarletFlowerBulb", true);
-        ParrySword = new("ParrySword", true);
-        Potato = new("Potato", true);
-        LightningFruit = new("LightningFruit", true);
-        AshPepper = new("AshPepper", true);
-        CrabShell = new("CrabShell", true);
-    }
+        Bow = Register(nameof(Bow));
+        ScarletFlowerBulb = Register(nameof(ScarletFlowerBulb));
+        ParrySword = Register(nameof(ParrySword));
+        Potato = Register(nameof(Potato));
+        LightningFruit = Register(nameof(LightningFruit));
+        AshPepper = Register(nameof(AshPepper));
+        CrabShell = Register(nameof(CrabShell));
 
+        values.Add(Bow);
+        values.Add(ScarletFlowerBulb);
+        values.Add(ParrySword);
+        values.Add(Potato);
+        values.Add(LightningFruit);
+        values.Add(AshPepper);
+        values.Add(CrabShell);
+    }
     public static void UnregisterValues()
     {
-        if (Bow != null)
-        {
-            Bow.Unregister();
-            Bow = null;
-        }
-        if (ScarletFlowerBulb != null)
-        {
-            ScarletFlowerBulb.Unregister();
-            ScarletFlowerBulb = null;
-        }
-        if (ParrySword != null)
-        {
-            ParrySword.Unregister();
-            ParrySword = null;
-        }
-        if (Potato != null)
-        {
-            Potato.Unregister();
-            Potato = null;
-        }
-        if (LightningFruit != null)
-        {
-            LightningFruit.Unregister();
-            LightningFruit = null;
-        }
-        if (AshPepper != null)
-        {
-            AshPepper.Unregister();
-            AshPepper = null;
-        }
-        if (CrabShell != null)
-        {
-            CrabShell.Unregister();
-            CrabShell = null;
-        }
+        Bow = Unregister(Bow);
+        ScarletFlowerBulb = Unregister(ScarletFlowerBulb);
+        ParrySword = Unregister(ParrySword);
+        Potato = Unregister(Potato);
+        LightningFruit = Unregister(LightningFruit);
+        AshPepper = Unregister(AshPepper);
+        CrabShell = Unregister(CrabShell);
+
+        values.Clear();
     }
+
+    public static SLOracleBehaviorHasMark.MiscItemType Register(string name)
+    { return new SLOracleBehaviorHasMark.MiscItemType(name, true); }
+    public static SLOracleBehaviorHasMark.MiscItemType Unregister(SLOracleBehaviorHasMark.MiscItemType type)
+    { type?.Unregister(); return null; }
 }
+
 public class MultiplayerItemType
 {
-    public static PlacedObject.MultiplayerItemData.Type Bow;
-    public static PlacedObject.MultiplayerItemData.Type ScarletFlowerBulb;
-    public static PlacedObject.MultiplayerItemData.Type ParrySword;
-    public static PlacedObject.MultiplayerItemData.Type Potato;
-    public static PlacedObject.MultiplayerItemData.Type LightningFruit;
-    public static PlacedObject.MultiplayerItemData.Type AshPepper;
-    public static PlacedObject.MultiplayerItemData.Type CrabShell;
+    public static PlacedObject.MultiplayerItemData.Type
+        Bow,
+        ScarletFlowerBulb,
+        ParrySword,
+        Potato,
+        LightningFruit,
+        AshPepper,
+        CrabShell;
+
+    public static List<PlacedObject.MultiplayerItemData.Type> values = [];
 
     public static void RegisterValues()
     {
-        Bow = new("Bow", true);
-        ScarletFlowerBulb = new("ScarletFlowerBulb", true);
-        ParrySword = new("ParrySword", true);
-        Potato = new("Potato", true);
-        LightningFruit = new("LightningFruit", true);
-        AshPepper = new("AshPepper", true);
-        CrabShell = new("CrabShell", true);
-    }
+        Bow = Register(nameof(Bow));
+        ScarletFlowerBulb = Register(nameof(ScarletFlowerBulb));
+        ParrySword = Register(nameof(ParrySword));
+        Potato = Register(nameof(Potato));
+        LightningFruit = Register(nameof(LightningFruit));
+        AshPepper = Register(nameof(AshPepper));
+        CrabShell = Register(nameof(CrabShell));
 
+        values.Add(Bow);
+        values.Add(ScarletFlowerBulb);
+        values.Add(ParrySword);
+        values.Add(Potato);
+        values.Add(LightningFruit);
+        values.Add(AshPepper);
+        values.Add(CrabShell);
+    }
     public static void UnregisterValues()
     {
-        if (Bow != null)
-        {
-            Bow.Unregister();
-            Bow = null;
-        }
-        if (ScarletFlowerBulb != null)
-        {
-            ScarletFlowerBulb.Unregister();
-            ScarletFlowerBulb = null;
-        }
-        if (ParrySword != null)
-        {
-            ParrySword.Unregister();
-            ParrySword = null;
-        }
-        if (Potato != null)
-        {
-            Potato.Unregister();
-            Potato = null;
-        }
-        if (LightningFruit != null)
-        {
-            LightningFruit.Unregister();
-            LightningFruit = null;
-        }
-        if (AshPepper != null)
-        {
-            AshPepper.Unregister();
-            AshPepper = null;
-        }
-        if (CrabShell != null)
-        {
-            CrabShell.Unregister();
-            CrabShell = null;
-        }
+        Bow = Unregister(Bow);
+        ScarletFlowerBulb = Unregister(ScarletFlowerBulb);
+        ParrySword = Unregister(ParrySword);
+        Potato = Unregister(Potato);
+        LightningFruit = Unregister(LightningFruit);
+        AshPepper = Unregister(AshPepper);
+        CrabShell = Unregister(CrabShell);
+
+        values.Clear();
     }
+
+    public static PlacedObject.MultiplayerItemData.Type Register(string name)
+    { return new PlacedObject.MultiplayerItemData.Type(name, true); }
+    public static PlacedObject.MultiplayerItemData.Type Unregister(PlacedObject.MultiplayerItemData.Type type)
+    { type?.Unregister(); return null; }
 }
+
 public class PlacedObjectType
 {
-    public static PlacedObject.Type ScarletFlower;
-    public static PlacedObject.Type Potato;
-    public static PlacedObject.Type LightningFruit;
-    public static PlacedObject.Type DecoLightningVine;
-    public static PlacedObject.Type AshPepperBush;
-    public static PlacedObject.Type InfectedCorpse;
+    public static PlacedObject.Type 
+        ScarletFlower,
+        Potato,
+        LightningFruit,
+        DecoLightningVine,
+        AshPepperBush,
+        InfectedCorpse,
+        CrabShellCircle,
+        RopeObject;
+
+    public static List<PlacedObject.Type> values = [];
 
     public static void RegisterValues()
     {
-        ScarletFlower = new("ScarletFlower", true);
-        Potato = new("Potato", true);
-        LightningFruit = new("LightningFruit", true);
-        DecoLightningVine = new("DecoLightningVine", true);
-        AshPepperBush = new("AshPepperBush", true);
-        InfectedCorpse = new("InfectedCorpse", true);
-    }
+        ScarletFlower = Register(nameof(ScarletFlower));
+        Potato = Register(nameof(Potato));
+        LightningFruit = Register(nameof(LightningFruit));
+        DecoLightningVine = Register(nameof(DecoLightningVine));
+        AshPepperBush = Register(nameof(AshPepperBush));
+        InfectedCorpse = Register(nameof(InfectedCorpse));
+        CrabShellCircle = Register(nameof(CrabShellCircle));
+        RopeObject = Register(nameof(RopeObject));
 
+        values.Add(ScarletFlower);
+        values.Add(Potato);
+        values.Add(LightningFruit);
+        values.Add(DecoLightningVine);
+        values.Add(AshPepperBush);
+        values.Add(InfectedCorpse);
+        values.Add(CrabShellCircle);
+        values.Add(RopeObject);
+    }
     public static void UnregisterValues()
     {
-        if (ScarletFlower != null)
-        {
-            ScarletFlower.Unregister();
-            ScarletFlower = null;
-        }
-        if (Potato != null)
-        {
-            Potato.Unregister();
-            Potato = null;
-        }
-        if (LightningFruit != null)
-        {
-            LightningFruit.Unregister();
-            LightningFruit = null;
-        }
-        if (DecoLightningVine != null)
-        {
-            DecoLightningVine.Unregister();
-            DecoLightningVine = null;
-        }
-        if (AshPepperBush != null)
-        {
-            AshPepperBush.Unregister();
-            AshPepperBush = null;
-        }
-        if (InfectedCorpse != null)
-        {
-            InfectedCorpse.Unregister();
-            InfectedCorpse = null;
-        }
+        ScarletFlower = Unregister(ScarletFlower);
+        Potato = Unregister(Potato);
+        LightningFruit = Unregister(LightningFruit);
+        DecoLightningVine = Unregister(DecoLightningVine);
+        AshPepperBush = Unregister(AshPepperBush);
+        InfectedCorpse = Unregister(InfectedCorpse);
+        CrabShellCircle = Unregister(CrabShellCircle);
+        RopeObject = Unregister(RopeObject);
+
+        values.Clear();
     }
+
+    public static PlacedObject.Type Register(string name)
+    { return new PlacedObject.Type(name, true); }
+    public static PlacedObject.Type Unregister(PlacedObject.Type type)
+    { type?.Unregister(); return null; }
 }
+
 public class SandboxUnlockID
 {
-    public static MultiplayerUnlocks.SandboxUnlockID Bow;
-    public static MultiplayerUnlocks.SandboxUnlockID ScarletFlowerBulb;
-    public static MultiplayerUnlocks.SandboxUnlockID ParrySword;
-    public static MultiplayerUnlocks.SandboxUnlockID Potato;
-    public static MultiplayerUnlocks.SandboxUnlockID LightningFruit;
-    public static MultiplayerUnlocks.SandboxUnlockID AshPepper;
-    public static MultiplayerUnlocks.SandboxUnlockID CrabShell;
+    public static MultiplayerUnlocks.SandboxUnlockID
+        Bow,
+        ScarletFlowerBulb,
+        ParrySword,
+        Potato,
+        LightningFruit,
+        AshPepper,
+        CrabShell;
+
+    public static List<MultiplayerUnlocks.SandboxUnlockID> values = [];
 
     public static void RegisterValues()
     {
-        Bow = new("Bow", true);
-        ScarletFlowerBulb = new("ScarletFlowerBulb", true);
-        ParrySword = new("ParrySword", true);
-        Potato = new("Potato", true);
-        LightningFruit = new("LightningFruit", true);
-        AshPepper = new("AshPepper", true);
-        CrabShell = new("CrabShell", true);
-    }
+        Bow = Register(nameof(Bow));
+        ScarletFlowerBulb = Register(nameof(ScarletFlowerBulb));
+        ParrySword = Register(nameof(ParrySword));
+        Potato = Register(nameof(Potato));
+        LightningFruit = Register(nameof(LightningFruit));
+        AshPepper = Register(nameof(AshPepper));
+        CrabShell = Register(nameof(CrabShell));
 
+        values.Add(Bow);
+        values.Add(ScarletFlowerBulb);
+        values.Add(ParrySword);
+        values.Add(Potato);
+        values.Add(LightningFruit);
+        values.Add(AshPepper);
+        values.Add(CrabShell);
+    }
     public static void UnregisterValues()
     {
-        if (Bow != null)
-        {
-            Bow.Unregister();
-            Bow = null;
-        }
-        if (ScarletFlowerBulb != null)
-        {
-            ScarletFlowerBulb.Unregister();
-            ScarletFlowerBulb = null;
-        }
-        if (ParrySword != null)
-        {
-            ParrySword.Unregister();
-            ParrySword = null;
-        }
-        if (Potato != null)
-        {
-            Potato.Unregister();
-            Potato = null;
-        }
-        if (LightningFruit != null)
-        {
-            LightningFruit.Unregister();
-            LightningFruit = null;
-        }
-        if (AshPepper != null)
-        {
-            AshPepper.Unregister();
-            AshPepper = null;
-        }
-        if (CrabShell != null)
-        {
-            CrabShell.Unregister();
-            CrabShell = null;
-        }
+        Bow = Unregister(Bow);
+        ScarletFlowerBulb = Unregister(ScarletFlowerBulb);
+        ParrySword = Unregister(ParrySword);
+        Potato = Unregister(Potato);
+        LightningFruit = Unregister(LightningFruit);
+        AshPepper = Unregister(AshPepper);
+        CrabShell = Unregister(CrabShell);
+
+        values.Clear();
     }
+
+    public static MultiplayerUnlocks.SandboxUnlockID Register(string name)
+    { return new MultiplayerUnlocks.SandboxUnlockID(name, true); }
+    public static MultiplayerUnlocks.SandboxUnlockID Unregister(MultiplayerUnlocks.SandboxUnlockID type)
+    { type?.Unregister(); return null; }
 }
+
 public class ScavengerAnimationID
 {
     public static Scavenger.ScavengerAnimation.ID AimBow;
 
     public static void RegisterValues()
     {
-        AimBow = new("LoadSpearIntoBow", true);
+        AimBow = Register(nameof(AimBow));
     }
-
     public static void UnregisterValues()
     {
-        if (AimBow != null)
-        {
-            AimBow.Unregister();
-            AimBow = null;
-        }
+        AimBow = Unregister(AimBow);
     }
+
+    public static Scavenger.ScavengerAnimation.ID Register(string name)
+    { return new Scavenger.ScavengerAnimation.ID(name, true); }
+    public static Scavenger.ScavengerAnimation.ID Unregister(Scavenger.ScavengerAnimation.ID type)
+    { type?.Unregister(); return null; }
 }
+
 public class ScavengerBehavior
 {
     public static ScavengerAI.Behavior AttackWithBow;
+
     public static void RegisterValues()
     {
-        AttackWithBow = new("AttackWithBow", true);
+        AttackWithBow = Register(nameof(AttackWithBow));
     }
-
     public static void UnregisterValues()
     {
-        if (AttackWithBow != null)
-        {
-            AttackWithBow.Unregister();
-            AttackWithBow = null;
-        }
+        AttackWithBow = Unregister(AttackWithBow);
     }
+
+    public static ScavengerAI.Behavior Register(string name)
+    { return new ScavengerAI.Behavior(name, true); }
+    public static ScavengerAI.Behavior Unregister(ScavengerAI.Behavior type)
+    { type?.Unregister(); return null; }
 }
+
 public class CreatureTemplateType
 {
     public static CreatureTemplate.Type CloudFish;
     public static CreatureTemplate.Type Parasite;
     public static CreatureTemplate.Type MimicCrab;
 
+    public static List<CreatureTemplate.Type> values = [];
+
     public static void RegisterValues()
     {
-        CloudFish = new("CloudFish", true);
-        Parasite = new("Parasite", true);
-        MimicCrab = new("MimicCrab", true);
-    }
+        CloudFish = Register(nameof(CloudFish));
+        Parasite = Register(nameof(Parasite));
+        MimicCrab = Register(nameof(MimicCrab));
 
+        values.Add(CloudFish);
+        values.Add(Parasite);
+        values.Add(MimicCrab);
+    }
     public static void UnregisterValues()
     {
-        if (CloudFish != null)
-        {
-            CloudFish.Unregister();
-            CloudFish = null;
-        }
-        if (Parasite != null)
-        {
-            Parasite.Unregister();
-            Parasite = null;
-        }
-        if (MimicCrab != null)
-        {
-            MimicCrab.Unregister();
-            MimicCrab = null;
-        }
+        CloudFish = Unregister(CloudFish);
+        Parasite = Unregister(Parasite);
+        MimicCrab = Unregister(MimicCrab);
+
+        values.Clear();
     }
+
+    public static CreatureTemplate.Type Register(string name)
+    { return new CreatureTemplate.Type(name, true); }
+    public static CreatureTemplate.Type Unregister(CreatureTemplate.Type type)
+    { type?.Unregister(); return null; }
 }
+
 public class NewSoundID
 {
     public static SoundID AA_CloudFishWhistle1;
@@ -403,18 +382,48 @@ public class NewSoundID
     public static SoundID AA_CloudFishScream;
     public static SoundID AA_CloudFishDeath;
 
+    public static List<SoundID> values =
+    [
+        AA_CloudFishWhistle1,
+        AA_CloudFishWhistle2,
+        AA_CloudFishWhistle3,
+        AA_CloudFishScream,
+        AA_CloudFishDeath
+    ];
+
     public static void RegisterValues()
     {
-        AA_CloudFishWhistle1 = new("AA_CloudFishWhistle1", true);
-        AA_CloudFishWhistle2 = new("AA_CloudFishWhistle2", true);
-        AA_CloudFishWhistle3 = new("AA_CloudFishWhistle3", true);
-        AA_CloudFishScream = new("AA_CloudFishScream", true);
-        AA_CloudFishDeath = new("AA_CloudFishDeath", true);
+        AA_CloudFishWhistle1 = Register(nameof(AA_CloudFishWhistle1));
+        AA_CloudFishWhistle2 = Register(nameof(AA_CloudFishWhistle2));
+        AA_CloudFishWhistle3 = Register(nameof(AA_CloudFishWhistle3));
+        AA_CloudFishScream = Register(nameof(AA_CloudFishScream));
+        AA_CloudFishDeath = Register(nameof(AA_CloudFishDeath));
+
+        values.Add(AA_CloudFishWhistle1);
+        values.Add(AA_CloudFishWhistle2);
+        values.Add(AA_CloudFishWhistle3);
+        values.Add(AA_CloudFishScream);
+        values.Add(AA_CloudFishDeath);
     }
+    public static void UnregisterValues()
+    {
+        AA_CloudFishWhistle1 = Unregister(AA_CloudFishWhistle1);
+        AA_CloudFishWhistle2 = Unregister(AA_CloudFishWhistle2);
+        AA_CloudFishWhistle3 = Unregister(AA_CloudFishWhistle3);
+        AA_CloudFishScream = Unregister(AA_CloudFishScream);
+        AA_CloudFishDeath = Unregister(AA_CloudFishDeath);
+
+        values.Clear();
+    }
+
+    public static SoundID Register(string name)
+    { return new SoundID(name, true); }
+    public static SoundID Unregister(SoundID type)
+    { type?.Unregister(); return null; }
 
     public static SoundID RandomCloudFishWhistle()
     {
-        float random = UnityEngine.Random.value;
+        float random = Random.value;
         if (random < 0.33)
         {
             return AA_CloudFishWhistle1;
@@ -426,35 +435,6 @@ public class NewSoundID
         else
         {
             return AA_CloudFishWhistle3;
-        }
-    }
-
-    public static void UnregisterValues()
-    {
-        if (AA_CloudFishWhistle1 != null)
-        {
-            AA_CloudFishWhistle1.Unregister();
-            AA_CloudFishWhistle1 = null;
-        }
-        if (AA_CloudFishWhistle2 != null)
-        {
-            AA_CloudFishWhistle2.Unregister();
-            AA_CloudFishWhistle2 = null;
-        }
-        if (AA_CloudFishWhistle3 != null)
-        {
-            AA_CloudFishWhistle3.Unregister();
-            AA_CloudFishWhistle3 = null;
-        }
-        if (AA_CloudFishScream != null)
-        {
-            AA_CloudFishScream.Unregister();
-            AA_CloudFishScream = null;
-        }
-        if (AA_CloudFishDeath != null)
-        {
-            AA_CloudFishDeath.Unregister();
-            AA_CloudFishDeath = null;
         }
     }
 }

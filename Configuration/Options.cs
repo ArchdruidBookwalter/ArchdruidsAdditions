@@ -94,7 +94,7 @@ namespace ArchdruidsAdditions.Configuration
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex); 
+                Log_Exception(ex, "OPTIONS_INITALIZE", 0);
             }
         }
         public void AddPoint(OpTab tab, Vector2 pos)

@@ -164,6 +164,28 @@ public static class ScavengerHooks
 
         return origValue;
     }
+    internal static Vector2 Scavenger_Get_HeadLookPoint(Func<Scavenger, Vector2> orig, Scavenger self)
+    {
+        Vector2 origPoint = orig(self);
+
+        if (self.animation is ScavengerAimBowAnimation anim)
+        {
+            return anim.LookPoint;
+        }
+
+        return origPoint;
+    }
+    internal static Vector2 Scavenger_Get_EyesLookPoint(Func<Scavenger, Vector2> orig, Scavenger self)
+    {
+        Vector2 origPoint = orig(self);
+
+        if (self.animation is ScavengerAimBowAnimation anim)
+        {
+            return anim.LookPoint;
+        }
+
+        return origPoint;
+    }
     public static PhysicalObject CheckScavengerInventory_Obj(Scavenger scav, Type searchType, bool includeAllSpearTypes)
     {
         foreach (Creature.Grasp grasp in scav.grasps)
@@ -329,7 +351,7 @@ public static class ScavengerHooks
                             {
                                 bow.LoadSpearIntoBow(spear);
 
-                                Debug.Log("LOADED SPEAR INTO BOW");
+                                //Debug.Log("LOADED SPEAR INTO BOW");
 
                                 //Create_Square(self.scavenger.room, self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature.mainBodyChunk.pos, 20f, 20f, Vec(45), "Purple", 0);
                             }

@@ -5,17 +5,10 @@ namespace ArchdruidsAdditions.Data
 {
     public class RegionData
     {
-        public List<string[]> regionDataList;
+        public static Dictionary<string, string[]> regionDataList = [];
 
         public RegionData(RainWorldGame game, SlugcatStats.Timeline time)
         {
-            regionDataList = LoadAllRegionData(time, game);
-        }
-
-        public List<string[]> LoadAllRegionData(SlugcatStats.Timeline time, RainWorldGame game)
-        {
-            List<string[]> regionDataList = [];
-
             Region[] regions = Region.LoadAllRegions(time, game);
             foreach (Region region in regions)
             {
@@ -41,44 +34,31 @@ namespace ArchdruidsAdditions.Data
                     ]));
                 }
 
-                string[] newRegion = [region.name, File.ReadAllText(fileLocation)];
-                regionDataList.Add(newRegion);
-
+                string regionData = File.ReadAllText(fileLocation);
+                string[] splitRegionData = regionData.Split('\n');
+                regionDataList.Add(region.name, splitRegionData);
             }
-            return regionDataList;
-        }
-
-        public string GetSpecificRegionData(string regionName)
-        {
-            foreach (string[] regionData in regionDataList)
-            {
-                if (regionData[0] == regionName)
-                {
-                    return regionData[1];
-                }
-            }
-            return "";
         }
 
         public string ReadRegionData(string regionName, string variableName)
         {
-            foreach (string[] regionData in regionDataList)
+            //Debug.Log("<Archduid's Additions> SEARCHING FOR REGION DATA: \'" + regionName + "\' - \'" + variableName + "\'");
+
+            string[] data = regionDataList[regionName];
+            foreach (string line in data)
             {
-                if (regionData[0] == regionName)
+                //Debug.Log("<Archduid's Additions>    " + line);
+
+                if (line.StartsWith(variableName))
                 {
-                    string data = regionData[1];
+                    //Debug.Log("<Archduid's Additions> FOUND DATA!");
 
-                    string[] lines = data.Split('\n');
-
-                    foreach (string line in lines)
-                    {
-                        if (line.StartsWith(variableName))
-                        {
-                            return line.Remove(0, variableName.Length + 2);
-                        }
-                    }
+                    return line.Remove(0, variableName.Length + 2);
                 }
             }
+
+            //Debug.Log("<Archduid's Additions> FAILED TO FIND DATA. RETURNING NULL");
+
             return null;
         }
     }

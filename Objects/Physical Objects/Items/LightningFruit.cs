@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Security.Policy;
 using System.Text.RegularExpressions;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Decoration;
 using DevInterface;
-
-using static ArchdruidsAdditions.Objects.PhysicalObjects.Items.LightningFruitVine.LightningFruitBall;
 
 namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 
@@ -86,7 +86,7 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
         catch (Exception e)
         {
-            Debug.Log("---OBJECT \'LIGHTNINGFRUIT\' EXPERIENCED AN EXCEPTION WHILE TRYING TO GET REGION PROPERTIES DATA. IS THE FILE FORMATTED CORRECTLY?---");
+            Debug.Log("<Archduid's Additions> ---OBJECT \'LIGHTNINGFRUIT\' EXPERIENCED AN EXCEPTION WHILE TRYING TO GET REGION PROPERTIES DATA. IS THE FILE FORMATTED CORRECTLY?---");
             Debug.LogException(e);
         }
 
@@ -137,6 +137,13 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
                 room.AddObject(new UnderwaterShock(room, this, firstChunk.pos, 14, 200f, 0.1f, lastHolder ?? null, bodyColor));
             }
         }
+        else
+        {
+            if (attachedToVine && vine.releaseCounter == 0)
+            {
+                vine.releaseCounter++;
+            }
+        }
 
         if (decoSparkPower > 0)
         {
@@ -172,7 +179,7 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
         else if (attachedToVine && vine != null)
         {
-            rotation = Custom.DirVec(firstChunk.pos, vine.segPosList[1]);
+            rotation = Custom.DirVec(firstChunk.pos, vine.ropeSegments[vine.EndIndex - 1].pos);
         }
 
         if (camera != null)
@@ -270,8 +277,30 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         {
             bodyChunks[0].HardSetPosition(placeRoom.roomSettings.placedObjects[AbstrConsumable.placedObjectIndex].pos);
 
-            vine = new(room, this);
+            float segmentLength = 20f;
+
+            IntVector2 endPos = AbstrConsumable.pos.Tile;
+            IntVector2 startPos = endPos;
+            int tiles = 0;
+            for (int i = endPos.y; i < room.Height; i++)
+            {
+                tiles++;
+                startPos = new(endPos.x, i);
+
+                if (room.HasAnySolid(startPos))
+                { break; }
+            }
+
+            float dist = startPos.y - endPos.y;
+
+            int segments = Mathf.RoundToInt(tiles * 0.84f);
+
+            vine = new(room, segments, segmentLength, room.MiddleOfTile(startPos), firstChunk.pos, this);
             room.AddObject(vine);
+
+            RopeObject.RopeSegment endSegment = vine.ropeSegments[vine.EndIndex];
+            endSegment.AttachObject(new RopeObject.RopeAttachedObject(endSegment, this, 0));
+
             attachedToVine = true;
         }
         else
@@ -469,7 +498,405 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
     #endregion
 }
 
-public class LightningFruitVine : UpdatableAndDeletable, IDrawable
+public class LightningFruitVine : RopeObject, IDrawable
+{
+    public Color blackColor;
+    public Color fruitColor;
+    public LightningFruit fruit;
+    public bool fruitAttached;
+    public int releaseCounter;
+
+    public TriangleMesh vineMesh;
+
+    public LightningFruitBall[] balls;
+    public LightningFruitStem stem1;
+    public LightningFruitStem stem2;
+
+    public LightningFruitVine(Room room, int segments, float segmentLength, Vector2 endPos1, Vector2 endPos2, LightningFruit fruit) : base(segments, segmentLength, endPos1, endPos2, false, true, false)
+    {
+        this.fruit = fruit;
+
+        fruitAttached = true;
+
+        fruitColor = fruit.bodyColor;
+
+        Random.State state = Random.state;
+        Random.InitState(fruit.abstractPhysicalObject.ID.number);
+
+        BaseInitializeVine();
+
+        Random.state = state;
+    }
+    public LightningFruitVine(Room room, int segments, float segmentLength, Vector2 endPos1, Vector2 endPos2, int charge, int seed) : base(segments, segmentLength, endPos1, endPos2, true)
+    {
+        fruitAttached = false;
+
+        Random.State state = Random.state;
+        Random.InitState(seed);
+
+        Color baseFruitColor = charge == 1 ? Custom.HSL2RGB(0.65f, 1f, 0.5f) : Custom.HSL2RGB(0.75f, 1f, 0.5f);
+        float baseColorSpread = 0.025f;
+
+        int section = 0;
+        try
+        {
+            string regionColorString = Plugin.RegionData.ReadRegionData(room.world.region.name, charge == 1 ? "LightningFruitColorA" : "LightningFruitColorB");
+            if (regionColorString != null)
+            {
+                section = 1;
+                if (regionColorString.StartsWith("#"))
+                {
+                    regionColorString = regionColorString.Remove(0, 1);
+                }
+                baseFruitColor = Custom.hexToColor(regionColorString);
+            }
+            string colorSpread = Plugin.RegionData.ReadRegionData(room.world.region.name, "LightningFruitColorSpread");
+            if (colorSpread != null)
+            {
+                section = 2;
+                baseColorSpread = float.Parse(colorSpread);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("<Archduid's Additions> Exception occured when trying to get the region color data for Lightning Fruit in section: " + section + "! Is the region properties file formatted correctly? Check the Steam Workshop page for more information.");
+            Debug.LogException(e);
+        }
+
+        Vector3 HSLFruitColor = Custom.RGB2HSL(baseFruitColor);
+        float spreadedHue = Random.Range(HSLFruitColor.x - baseColorSpread, HSLFruitColor.x + baseColorSpread);
+
+        fruitColor = Custom.HSL2RGB(spreadedHue, HSLFruitColor.y, HSLFruitColor.z);
+
+        BaseInitializeVine();
+
+        Random.state = state;
+    }
+    public void BaseInitializeVine()
+    {
+        List<LightningFruitBall> newballs = [];
+        for (int i = decorative ? 0 : 2; i < ropeSegments.Length - 1; i++)
+        {
+            for (int j = 0; j < Random.Range(0, 5); j++)
+            {
+                LightningFruitBall newBall = new
+                (
+                    this,
+                    i,
+                    Random.value,
+                    0.25f,
+                    Random.value < 0.1f,
+                    Random.value < 0.5 ? Random.Range(1, 3) : 0
+                );
+                newballs.Add(newBall);
+            }
+        }
+        balls = [.. newballs];
+
+        stem1 = new(0.25f);
+        stem2 = new(0.25f);
+    }
+
+    public override void Update(bool eu)
+    {
+        base.Update(eu);
+
+        if (fruitAttached)
+        {
+            if (releaseCounter > 0)
+            {
+                releaseCounter++;
+                if (releaseCounter > 30)
+                {
+                    ropeSegments[EndIndex].DetachObject();
+                    fruitAttached = false;
+                }
+            }
+        }
+    }
+    public override void DetachObject(RopeAttachedObject obj)
+    {
+        if (obj.obj is LightningFruit fruit)
+        {
+            fruit.DetachFromVine();
+        }
+    }
+
+    public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
+    {
+        blackColor = rCam.currentPalette.blackColor;
+
+        List<FSprite> sprites = [];
+
+        vineMesh = TriangleMesh.MakeLongMesh(ropeSegments.Length, false, false);
+        vineMesh.color = rCam.currentPalette.blackColor;
+        sprites.Add(vineMesh);
+
+        foreach (LightningFruitBall ball in balls)
+        {
+            ball.Initialize(sprites, room.game.rainWorld);
+        }
+
+        stem1.Initialize(sprites);
+
+        stem2.Initialize(sprites);
+
+        sLeaser.sprites = [.. sprites];
+
+        AddToContainer(sLeaser, rCam, null);
+    }
+    public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+    {
+        if (slatedForDeletetion || room != rCam.room)
+        {
+            sLeaser.CleanSpritesAndRemove();
+        }
+        else
+        {
+            List<Vector2> segPositions = [];
+
+            Vector2 lastSegmentPos = Vector2.Lerp(ropeSegments[0].lastPos, ropeSegments[0].pos, timeStacker) - camPos;
+            for (int i = 0; i < ropeSegments.Length; i++)
+            {
+                Vector2 segmentPos;
+
+                if (ropeSegments[i].obj != null)
+                {
+                    BodyChunk attachedChunk = ropeSegments[i].obj.AttachedChunk;
+                    Vector2 fruitPos = Vector2.Lerp(attachedChunk.lastPos, attachedChunk.pos, timeStacker) - camPos;
+                    segmentPos = fruitPos + Custom.DirVec(fruitPos, lastSegmentPos) * 8f;
+                }
+                else
+                {
+                    segmentPos = Vector2.Lerp(ropeSegments[i].lastPos, ropeSegments[i].pos, timeStacker) - camPos;
+                }
+
+                Vector2 segmentRot = Custom.DirVec(segmentPos, lastSegmentPos);
+                Vector2 perpRot = Custom.PerpendicularVector(segmentRot);
+
+                segPositions.Add(segmentPos);
+
+                float vineRad = 1f;
+
+                vineMesh.MoveVertice(i * 4, lastSegmentPos - perpRot * vineRad);
+                vineMesh.MoveVertice(i * 4 + 1, lastSegmentPos + perpRot * vineRad);
+                vineMesh.MoveVertice(i * 4 + 2, segmentPos - perpRot * vineRad);
+                vineMesh.MoveVertice(i * 4 + 3, segmentPos + perpRot * vineRad);
+                vineMesh.color = blackColor;
+
+                lastSegmentPos = segmentPos;
+            }
+
+
+
+            foreach (LightningFruitBall ball in balls)
+            {
+                ball.Draw
+                (
+                    camPos,
+                    Vector2.Lerp(ropeSegments[ball.segIndex].lastPos, ropeSegments[ball.segIndex].pos, timeStacker) - camPos,
+                    Vector2.Lerp(ropeSegments[ball.segIndex + 1].lastPos, ropeSegments[ball.segIndex + 1].pos, timeStacker) - camPos,
+                    blackColor
+                );
+            }
+
+            //Vector2 stem1Rot = Custom.DirVec(segPositions[1], segPositions[0]);
+            //stem1.Draw(blackColor, segPositions[0], stem1Rot);
+
+            //Vector2 stem2Rot = Custom.DirVec(segPositions[segPositions.Count - 2], segPositions[segPositions.Count - 1]);
+            //stem2.Draw(blackColor, segPositions[segPositions.Count - 1], stem2Rot);
+        }
+    }
+    public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer mainContainer)
+    {
+        mainContainer ??= rCam.ReturnFContainer("Background");
+        FContainer lightContainer = rCam.ReturnFContainer("Water");
+
+        foreach (FSprite fsprite in sLeaser.sprites)
+        {
+            fsprite.RemoveFromContainer();
+
+            if (fsprite.shader == rCam.room.game.rainWorld.Shaders["FlatLight"])
+            {
+                lightContainer.AddChild(fsprite);
+            }
+            else
+            {
+                mainContainer.AddChild(fsprite);
+            }
+        }
+    }
+    public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
+    {
+        blackColor = palette.blackColor;
+    }
+
+    public class LightningFruitBall
+    {
+        public LightningFruitVine vine;
+
+        public CircularSprite ballSprite;
+        public FSprite glow;
+        public LightningFruitLeaf[] leaves;
+        public int segIndex;
+        public float segPos;
+        public float size;
+
+        public Vector2 pos;
+        public Vector2 rot;
+
+        public Color color;
+        public bool colored;
+
+        public LightningFruitBall(LightningFruitVine vine, int segIndex, float pos, float size, bool colored, int leafCount)
+        {
+            this.vine = vine;
+            this.segIndex = segIndex;
+            this.segPos = pos;
+            this.size = size;
+            this.colored = colored;
+
+            if (colored)
+            { color = vine.fruitColor; }
+
+            List<LightningFruitLeaf> newLeaves = [];
+            for (int i = 0; i < leafCount; i++)
+            {
+                LightningFruitLeaf newLeaf = new(Random.value < 0.5 ? Random.Range(0, 90) : Random.Range(180, 270));
+                newLeaves.Add(newLeaf);
+            }
+            leaves = [.. newLeaves];
+        }
+        public void Initialize(List<FSprite> newSprites, RainWorld rainWorld)
+        {
+            ballSprite = new("Futile_White")
+            {
+                scale = size,
+            };
+
+            newSprites.Add(ballSprite);
+
+            foreach (LightningFruitLeaf leaf in leaves)
+            {
+                leaf.Initialize(newSprites);
+            }
+
+            if (colored)
+            {
+                glow = new("Futile_White")
+                {
+                    scale = size + 1,
+                    shader = rainWorld.Shaders["FlatLight"]
+                };
+
+                newSprites.Add(glow);
+            }
+        }
+        public void Draw(Vector2 camPos, Vector2 segPos1, Vector2 segPos2, Color blackColor)
+        {
+            pos = Vector2.Lerp(segPos1, segPos2, segPos);
+            rot = Custom.PerpendicularVector(Custom.DirVec(segPos1, segPos2));
+
+            ballSprite.SetPosition(pos);
+
+            if (colored)
+            {
+                ballSprite.color = color;
+
+                if (vine.room.GetTile(pos + camPos).Solid)
+                {
+                    glow.alpha = 0f;
+                }
+                else
+                {
+                    glow.SetPosition(pos);
+                    glow.color = color;
+                    glow.alpha = 0.5f;
+                }
+            }
+            else
+            {
+                ballSprite.color = blackColor;
+            }
+
+            foreach (LightningFruitLeaf leaf in leaves)
+            {
+                leaf.Draw(blackColor, pos, rot);
+                leaf.leafSprite.MoveBehindOtherNode(ballSprite);
+            }
+        }
+        public class LightningFruitLeaf
+        {
+            public FSprite leafSprite;
+            public int leafSpriteNumber;
+            public float floatRotation;
+
+            public LightningFruitLeaf(float startRotation)
+            {
+                floatRotation = startRotation;
+
+                leafSpriteNumber = Random.Range(0, 5);
+            }
+
+            public void Initialize(List<FSprite> newSprites)
+            {
+                leafSprite = new FSprite("Leaf" + leafSpriteNumber.ToString(), false)
+                {
+                    scale = 0.6f,
+                    anchorY = 0.9f
+                };
+
+                newSprites.Add(leafSprite);
+            }
+            public void Draw(Color blackColor, Vector2 pos, Vector2 rot)
+            {
+                leafSprite.SetPosition(pos);
+                leafSprite.rotation = Custom.VecToDeg(rot) + floatRotation;
+                leafSprite.color = blackColor;
+            }
+        }
+    }
+    public class LightningFruitStem
+    {
+        public CircularSprite ballSprite;
+        public LightningFruitBall.LightningFruitLeaf leaf1;
+        public LightningFruitBall.LightningFruitLeaf leaf2;
+        public float size;
+
+        public LightningFruitStem(float size)
+        {
+            this.size = size;
+
+            leaf1 = new(135);
+            leaf2 = new(-135);
+        }
+
+        public void Initialize(List<FSprite> newSprites)
+        {
+            ballSprite = new("Futile_White")
+            {
+                scale = size,
+            };
+
+            newSprites.Add(ballSprite);
+
+            leaf1.Initialize(newSprites);
+            leaf2.Initialize(newSprites);
+        }
+
+        public void Draw(Color blackColor, Vector2 pos, Vector2 rot)
+        {
+            ballSprite.SetPosition(pos);
+            ballSprite.color = blackColor;
+
+            leaf1.Draw(blackColor, pos, rot);
+            leaf2.Draw(blackColor, pos, rot);
+        }
+    }
+}
+
+/*
+public class OldLightningFruitVine : UpdatableAndDeletable, IDrawable
 {
     public Color blackColor;
     public Color fruitColor;
@@ -507,7 +934,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         { return segPosList.Length - 1; }
     }
 
-    public LightningFruitVine(Room room, LightningFruit fruit)
+    public OldLightningFruitVine(Room room, LightningFruit fruit)
     {
         this.room = room;
         this.fruit = fruit;
@@ -538,13 +965,13 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
 
         Random.state = state;
     }
-    public LightningFruitVine(Room room, Vector2 startPos, Vector2 endPos, int charge, float elasticity, int seed)
+    public OldLightningFruitVine(Room room, Vector2 endPos, Vector2 startPos, int charge, float elasticity, int seed)
     {
         this.room = room;
         this.elasticity = elasticity;
 
-        stuckPos1 = startPos;
-        stuckPos2 = endPos;
+        stuckPos1 = endPos;
+        stuckPos2 = startPos;
 
         decorative = true;
         fruitAttached = false;
@@ -577,7 +1004,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         }
         catch (Exception e)
         {
-            Debug.LogWarning("Exception occured when trying to get the region shellColor data for Lightning Fruit in section: " + section + "! Is the region properties file formatted correctly? Check the Steam Workshop page for more information.");
+            Debug.LogWarning("<Archduid's Additions> Exception occured when trying to get the region shellColor data for Lightning Fruit in section: " + section + "! Is the region properties file formatted correctly? Check the Steam Workshop page for more information.");
             Debug.LogException(e);
         }
 
@@ -872,7 +1299,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
     }
     public class LightningFruitBall
     {
-        public LightningFruitVine vine;
+        public OldLightningFruitVine vine;
 
         public CircularSprite ballSprite;
         public FSprite glow;
@@ -887,7 +1314,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         public Color color;
         public bool colored;
 
-        public LightningFruitBall(LightningFruitVine vine, int segIndex, float pos, float size, bool colored, int leafCount)
+        public LightningFruitBall(OldLightningFruitVine vine, int segIndex, float pos, float size, bool colored, int leafCount)
         {
             this.vine = vine;
             this.segIndex = segIndex;
@@ -1033,6 +1460,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         }
     }
 }
+*/
 
 public class LightningFruitData : PlacedObject.ConsumableObjectData
 {
@@ -1193,8 +1621,6 @@ public class DecoVineData : PlacedObject.ResizableObjectData
         }
         catch (Exception e)
         {
-            Debug.Log("---PLACEDOBJECT \'DECORATIVEVINE\' EXPERIENCED AN EXCEPTION WHILE TRYING TO LOAD DATA. FAILURE OCCURED AT DATA INDEX: " + failIndex);
-
             if (failIndex < 1)
             {
                 handlePos.x = 0f;
@@ -1223,8 +1649,6 @@ public class DecoVineData : PlacedObject.ResizableObjectData
             {
                 unrecognizedAttributes = [];
             }
-
-            Debug.LogException(e);
         }
     }
 

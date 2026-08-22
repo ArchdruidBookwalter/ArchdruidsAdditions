@@ -11,6 +11,11 @@ public static class WorldHooks
             return Enums.CreatureTemplateType.CloudFish;
         }
 
+        if (s == "MimicCrab" || s == "mimiccrab" || s == "mimic crab" || s == "Mimic Crab")
+        {
+            return Enums.CreatureTemplateType.MimicCrab;
+        }
+
         return baseType;
     }
 }

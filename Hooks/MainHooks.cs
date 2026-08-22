@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Reflection;
+using Newtonsoft.Json.Linq;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -13,7 +14,7 @@ public static class MainHooks
     {
         orig(self);
 
-        #region MultiplayerUnlocks
+        /*
         if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.Bow))
         {
             MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.Bow);
@@ -33,8 +34,9 @@ public static class MainHooks
         if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.LightningFruit))
         {
             MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.LightningFruit);
-        }
-        #endregion
+        }*/
+
+        Debug.Log("<Archduid's Additions> LOADED METHOD: ON_MODS_INIT");
 
         #region Atlases
 
@@ -105,41 +107,46 @@ public static class MainHooks
 
         MachineConnector.SetRegisteredOI(Plugin.PLUGIN_GUID, Plugin.Options);
 
-        Debug.Log("ARCHDRUID'S ADDITIONS LOADED METHOD: ON_MODS_INIT");
-
         Enums.AAEnums.RegisterAllEnums();
 
-        #region DevTools Category
-        try
-        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions"); }
-        catch
-        { Debug.Log("ScarletFlower has already been placed in correct Devtools category."); }
+        //Debug.Log("<Archduid's Additions> ADDING MULTIPLAYER UNLOCKS TO LIST");
 
-        try
-        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions"); }
-        catch
-        { Debug.Log("Potato has already been placed in correct Devtools category."); }
+        foreach (MultiplayerUnlocks.SandboxUnlockID type in Enums.SandboxUnlockID.values)
+        {
+            /*
+            if (type != null)
+            { Debug.Log(type.value); }
+            else
+            { Debug.Log("NULL"); }*/
 
-        try
-        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.LightningFruit, "Archdruid's Additions"); }
-        catch
-        { Debug.Log("LightningFruit has already been placed in correct Devtools category."); }
+            if (!MultiplayerUnlocks.ItemUnlockList.Contains(type))
+            { MultiplayerUnlocks.ItemUnlockList.Add(type); }
+        }
 
-        try
-        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.DecoLightningVine, "Archdruid's Additions"); }
-        catch
-        { Debug.Log("LightningVine has already been placed in correct Devtools category."); }
+        //Debug.Log("<Archduid's Additions> FINISHED ADDING MULTIPLAYER UNLOCKS TO LIST");
 
-        try
-        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.AshPepperBush, "Archdruid's Additions"); }
-        catch
-        { Debug.Log("AshPepperBush has already been placed in correct Devtools category."); }
+        //Debug.Log("<Archduid's Additions> ASSIGNING PLACEDOBJECT CATEGORIES");
 
-        try
-        { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.InfectedCorpse, "Archdruid's Additions"); }
-        catch
-        { Debug.Log("InfectedCorpse has already been placed in correct Devtools category."); }
-        #endregion
+        foreach (PlacedObject.Type type in Enums.PlacedObjectType.values)
+        {
+            /*
+            if (type != null)
+            { Debug.Log(type.value); }
+            else
+            { Debug.Log("NULL"); }*/
+
+            if (type != null)
+            {
+                try
+                { Pom.Pom.RegisterCategoryOverride(type, "Archdruid's Additions"); }
+                catch
+                {
+                    /*Debug.Log("<Archduid's Additions> " + type.value + " has already been placed in correct Devtools category.");*/ 
+                }
+            }
+        }
+
+        //Debug.Log("<Archduid's Additions> ASSIGNED PLACEDOBJECT CATEGORIES");
 
         try
         {
@@ -153,11 +160,11 @@ public static class MainHooks
             self.Shaders.Add("ArchAdds.CustomVectorCircle", FShader.CreateShader("ArchAdds.CustomVectorCircle",
                 bundle.LoadAsset<Shader>("Assets/Shaders/CustomVectorCircle.shader")));
 
-            Debug.Log("ARCHDRUIDS ADDITIONS SUCCESSFULLY LOADED SHADERS!");
+            //Debug.Log("<Archduid's Additions> SUCCESSFULLY LOADED SHADERS!");
         }
         catch
         {
-            Debug.Log("FAILED TO ADD NEW SHADERS.");
+            //Debug.Log("<Archduid's Additions> FAILED TO ADD NEW SHADERS.");
         }
     }
     internal static void RainWorld_UnloadResources(On.RainWorld.orig_UnloadResources orig, RainWorld self)
@@ -233,45 +240,20 @@ public static class MainHooks
     {
         orig(self, newlyEnabledMods);
 
-        Debug.Log("ARCHDRUID'S ADDITIONS LOADED METHOD: ON_MODS_ENABLED");
+        Debug.Log("<Archduid's Additions> LOADED METHOD: ON_MODS_ENABLED");
 
         foreach (var mod in newlyEnabledMods)
         {
             if (mod.id == "archdruidbookwalter.archdruidsadditions")
             {
                 Enums.AAEnums.RegisterAllEnums();
-
-                #region DevTools Category
-                try
-                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.ScarletFlower, "Archdruid's Additions"); }
-                catch
-                { Debug.Log("ScarletFlower has already been placed in correct Devtools category."); }
-
-                try
-                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.Potato, "Archdruid's Additions"); }
-                catch
-                { Debug.Log("Potato has already been placed in correct Devtools category."); }
-
-                try
-                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.LightningFruit, "Archdruid's Additions"); }
-                catch
-                { Debug.Log("LightningFruit has already been placed in correct Devtools category."); }
-
-                try
-                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.DecoLightningVine, "Archdruid's Additions"); }
-                catch
-                { Debug.Log("LightningVine has already been placed in correct Devtools category."); }
-
-                try
-                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.AshPepperBush, "Archdruid's Additions"); }
-                catch
-                { Debug.Log("AshPepperBush has already been placed in correct Devtools category."); }
-
-                try
-                { Pom.Pom.RegisterCategoryOverride(Enums.PlacedObjectType.InfectedCorpse, "Archdruid's Additions"); }
-                catch
-                { Debug.Log("InfectedCorpse has already been placed in correct Devtools category."); }
-                #endregion
+                foreach (PlacedObject.Type type in Enums.PlacedObjectType.values)
+                {
+                    try
+                    { Pom.Pom.RegisterCategoryOverride(type, "Archdruid's Additions"); }
+                    catch
+                    { /*Debug.Log("<Archduid's Additions> " + type.value + " has already been placed in correct Devtools category.");*/ }
+                }
 
                 break;
             }
@@ -281,7 +263,7 @@ public static class MainHooks
     {
         orig(self, newlyDisabledMods);
 
-        Debug.Log("ARCHDRUID'S ADDITIONS LOADED METHOD: ON_MODS_DISABLED");
+        Debug.Log("<Archduid's Additions> LOADED METHOD: ON_MODS_DISABLED");
 
         foreach (var mod in newlyDisabledMods)
         {
@@ -314,11 +296,11 @@ public static class MainHooks
     }
     internal static void RainWorld_PostModsInIt(On.RainWorld.orig_PostModsInit orig, RainWorld self)
     {
-        Debug.Log("ARCHDRUID'S ADDITIONS TRIED TO LOAD METHOD: POST_MODS_INIT");
+        Debug.Log("<Archduid's Additions> TRIED TO LOAD METHOD: POST_MODS_INIT");
 
         orig(self);
 
-        Debug.Log("ARCHDRUID'S ADDITIONS SUCCESSFULLY LOADED METHOD: POST_MODS_INIT");
+        Debug.Log("<Archduid's Additions> SUCCESSFULLY LOADED METHOD: POST_MODS_INIT");
 
         foreach (var mod in ModManager.ActiveMods)
         {

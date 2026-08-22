@@ -1,5 +1,6 @@
 ﻿using ArchdruidsAdditions.Data;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Decoration;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using DevInterface;
 
@@ -87,6 +88,32 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
+        else if (type == Enums.PlacedObjectType.CrabShellCircle)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new CrabShellCircleRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
+        else if (type == Enums.PlacedObjectType.RopeObject)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new ResizeableObjectRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString(), false);
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
         else
         {
             orig(self, type, pobj);
@@ -124,10 +151,17 @@ public static class DevtoolsHooks
             self.data = new InfectedCorpseData(self);
             return;
         }
-        else
+        if (self.type == Enums.PlacedObjectType.CrabShellCircle)
         {
-            orig(self);
+            self.data = new CrabShellCircleData(self);
+            return;
         }
+        if (self.type == Enums.PlacedObjectType.RopeObject)
+        {
+            self.data = new PlacedObject.ResizableObjectData(self);
+            return;
+        }
+        orig(self);
     }
     internal static void Panel_CopyToClipboard(On.DevInterface.Panel.orig_CopyToClipboard orig, Panel self)
     {
@@ -183,6 +217,14 @@ public static class DevtoolsHooks
         {
             return "h";
         }
+        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+        {
+            return "p";
+        }
+        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+        {
+            return "c";
+        }
 
         return baseCritString;
     }
@@ -193,6 +235,14 @@ public static class DevtoolsHooks
         if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
         {
             return Custom.HSL2RGB(0.52f, 1f, 0.5f);
+        }
+        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+        {
+            return Custom.HSL2RGB(0.2f, 1f, 0.5f);
+        }
+        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+        {
+            return Custom.HSL2RGB(0f, 1f, 0.5f);
         }
 
         return baseCritColor;
