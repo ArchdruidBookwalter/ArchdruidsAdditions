@@ -150,15 +150,11 @@ public static class MainHooks
 
         try
         {
-            AssetBundle bundle = AssetBundle.LoadFromFile(AssetManager.ResolveFilePath(string.Concat(
-                    [
-                        "Shaders",
-                        Path.DirectorySeparatorChar.ToString(),
-                        "rainworldaashaders",
-                    ])));
+            AssetBundle bundle = AssetBundle.LoadFromFile(AssetManager.ResolveFilePath(string.Concat(["Shaders", Path.DirectorySeparatorChar.ToString(), "rainworldaashaders",])));
 
-            self.Shaders.Add("ArchAdds.CustomVectorCircle", FShader.CreateShader("ArchAdds.CustomVectorCircle",
-                bundle.LoadAsset<Shader>("Assets/Shaders/CustomVectorCircle.shader")));
+            self.Shaders.Add("ArchAdds.CustomVectorCircle", FShader.CreateShader("ArchAdds.CustomVectorCircle", bundle.LoadAsset<Shader>("Assets/Shaders/CustomVectorCircle.shader")));
+
+            Data.MiscData.CircleFade = Shader.PropertyToID("_CircleFade");
 
             //Debug.Log("<Archduid's Additions> SUCCESSFULLY LOADED SHADERS!");
         }

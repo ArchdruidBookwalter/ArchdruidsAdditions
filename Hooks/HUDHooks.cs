@@ -139,12 +139,6 @@ public static class HUDHooks
     internal static void FoodMeter_Draw(On.HUD.FoodMeter.orig_Draw orig, HUD.FoodMeter self, float timeStacker)
     {
         orig(self, timeStacker);
-
-        if (self.hud.owner is Player player)
-        {
-            SpiceMeter spiceMeter = PlayerData.spiceMeters[self.hud];
-            spiceMeter?.Draw(self, timeStacker);
-        }
     }
     internal static void FoodMeter_MeterCircle_Draw(On.HUD.FoodMeter.MeterCircle.orig_Draw orig, HUD.FoodMeter.MeterCircle self, float timeStacker)
     {

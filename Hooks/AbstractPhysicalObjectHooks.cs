@@ -12,11 +12,6 @@ public static class AbstractPhysicalObjectHooks
 {
     internal static void AbstractPhysicalObject_Update(On.AbstractPhysicalObject.orig_Update orig, AbstractPhysicalObject self, int time)
     {
-        if (self.type == Enums.AbstractObjectType.CrabShell)
-        {
-            //Debug.Log("ABSTRACT CRABSHELL UPDATED IN ROOM: " + self.Room.name);
-        }
-
         orig(self, time);
     }
     internal static void AbstractPhysicalObject_Realize(On.AbstractPhysicalObject.orig_Realize orig, AbstractPhysicalObject self)

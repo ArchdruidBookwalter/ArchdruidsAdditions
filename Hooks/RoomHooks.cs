@@ -193,29 +193,6 @@ public static class RoomHooks
                         }
                     }
                 }
-                else if (pObj.type == Enums.PlacedObjectType.RopeObject)
-                {
-                    if (firstTimeRealized)
-                    {
-                        PlacedObject.ResizableObjectData data = pObj.data as PlacedObject.ResizableObjectData;
-
-                        float segmentLength = 20f;
-                        float ropeLength = Custom.Dist(pObj.pos, pObj.pos + data.handlePos);
-
-                        int segments = Mathf.RoundToInt(ropeLength / segmentLength);
-
-                        HangingRope rope = new(segments, segmentLength, pObj.pos, pObj.pos + data.handlePos);
-                        self.AddObject(rope);
-
-                        RopeObject.RopeSegment segment = rope.ropeSegments[rope.EndIndex];
-
-                        DangleFruit.AbstractDangleFruit fruit = new(self.world, null, self.GetWorldCoordinate(segment.pos), self.world.game.GetNewID(), -1, -1, false, null);
-                        self.abstractRoom.AddEntity(fruit);
-                        fruit.RealizeInRoom();
-
-                        segment.AttachObject(new RopeObject.RopeAttachedObject(segment, fruit.realizedObject, 0));
-                    }
-                }
             }
         }
 

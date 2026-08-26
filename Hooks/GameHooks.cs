@@ -10,6 +10,13 @@ public static class GameHooks
 {
     public static int debugEffectCooldown = 0;
 
+    #region RainWorld Hooks
+    internal static void RainWorld_ctor(On.RainWorld.orig_ctor orig, RainWorld self)
+    {
+
+    }
+    #endregion
+
     #region RainWorldGame Hooks
     internal static void RainWorldGame_Update(On.RainWorldGame.orig_Update orig, RainWorldGame self)
     {

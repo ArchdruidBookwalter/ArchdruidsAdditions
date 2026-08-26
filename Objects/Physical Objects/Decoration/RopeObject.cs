@@ -245,10 +245,3 @@ public class RopeObject : UpdatableAndDeletable
         }
     }
 }
-
-public class HangingRope : RopeObject
-{
-    public HangingRope(int segments, float length, Vector2 endPos1, Vector2 endPos2) : base(segments, length, endPos1, endPos2, true, false)
-    {
-    }
-}

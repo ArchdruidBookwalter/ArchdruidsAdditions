@@ -201,15 +201,14 @@ public class MultiplayerItemType
 
 public class PlacedObjectType
 {
-    public static PlacedObject.Type 
+    public static PlacedObject.Type
         ScarletFlower,
         Potato,
         LightningFruit,
         DecoLightningVine,
         AshPepperBush,
         InfectedCorpse,
-        CrabShellCircle,
-        RopeObject;
+        CrabShellCircle;
 
     public static List<PlacedObject.Type> values = [];
 
@@ -222,7 +221,6 @@ public class PlacedObjectType
         AshPepperBush = Register(nameof(AshPepperBush));
         InfectedCorpse = Register(nameof(InfectedCorpse));
         CrabShellCircle = Register(nameof(CrabShellCircle));
-        RopeObject = Register(nameof(RopeObject));
 
         values.Add(ScarletFlower);
         values.Add(Potato);
@@ -231,7 +229,6 @@ public class PlacedObjectType
         values.Add(AshPepperBush);
         values.Add(InfectedCorpse);
         values.Add(CrabShellCircle);
-        values.Add(RopeObject);
     }
     public static void UnregisterValues()
     {
@@ -242,7 +239,6 @@ public class PlacedObjectType
         AshPepperBush = Unregister(AshPepperBush);
         InfectedCorpse = Unregister(InfectedCorpse);
         CrabShellCircle = Unregister(CrabShellCircle);
-        RopeObject = Unregister(RopeObject);
 
         values.Clear();
     }

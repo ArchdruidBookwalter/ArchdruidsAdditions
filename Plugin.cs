@@ -117,8 +117,9 @@ public sealed class Plugin : BaseUnityPlugin
         On.DevInterface.Handle.Update += Hooks.DevtoolsHooks.Handle_Update;
         #endregion
 
-        #region FLabel Hooks
-        On.FLabel.Redraw += Hooks.FLabelHooks.Redraw;
+        #region Futile Hooks
+        On.FLabel.Redraw += Hooks.FutileHooks.FLabel_Redraw;
+        On.FFacetRenderLayer.UpdateMeshProperties += Hooks.FutileHooks.FFacetRenderLayer_UpdateMeshProperties;
         #endregion
 
         #region Game Hooks

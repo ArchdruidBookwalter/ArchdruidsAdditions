@@ -10,7 +10,8 @@ public static class MiscData
 {
     #region Shaders
 
-    public static int CircleHue = Shader.PropertyToID("_circleHue");
+    public static int CircleFade;
+    public static int CircleColor;
 
     #endregion
 

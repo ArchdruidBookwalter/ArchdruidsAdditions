@@ -2,6 +2,7 @@
 using HUD;
 using ArchdruidsAdditions.Hooks;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+using ArchdruidsAdditions.Data;
 
 namespace ArchdruidsAdditions.Objects.HUDObjects;
 
@@ -160,8 +161,6 @@ public static class Cursors
                     {
                         if (Plugin.Options.useDefaultMouseCursor.Value)
                         {
-                            section = 5;
-
                             arrowSprite.alpha = 0;
                             shadowSprite.alpha = 0;
                             triangle1Sprite.alpha = 0;
@@ -169,15 +168,11 @@ public static class Cursors
                         }
                         else
                         {
-                            section = 6;
-
                             Vector2 arrowPos = new(Futile.mousePosition.x + 0.01f, Futile.mousePosition.y + 0.01f);
                             arrowSprite.SetPosition(arrowPos);
 
                             Vector2 shadowPos = new(Futile.mousePosition.x + 3.01f, Futile.mousePosition.y - 8.01f);
                             shadowSprite.SetPosition(shadowPos);
-
-                            section = 7;
 
                             float maxVisibility = 5f;
                             if (player.room != null && (player.room.game.devToolsActive || BeastmasterHooks.beastMasterMenuOpen || MainHooks.mouseDragActive) && standStillCounter <= 50 && !player.room.game.GamePaused)
@@ -193,8 +188,6 @@ public static class Cursors
 
                             if (visibility < 0)
                             { visibility = 0; }
-
-                            section = 8;
 
                             float visibility2 = visibility / maxVisibility;
                             arrowSprite.alpha = visibility2;

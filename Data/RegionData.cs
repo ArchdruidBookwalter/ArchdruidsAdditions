@@ -9,6 +9,8 @@ namespace ArchdruidsAdditions.Data
 
         public RegionData(RainWorldGame game, SlugcatStats.Timeline time)
         {
+            regionDataList.Clear();
+
             Region[] regions = Region.LoadAllRegions(time, game);
             foreach (Region region in regions)
             {

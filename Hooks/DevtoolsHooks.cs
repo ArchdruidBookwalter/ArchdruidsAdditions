@@ -101,19 +101,6 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
-        else if (type == Enums.PlacedObjectType.RopeObject)
-        {
-            if (pobj == null)
-            {
-                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
-                {
-                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
-                });
-            }
-            var pobjRep = new ResizeableObjectRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString(), false);
-            self.tempNodes.Add(pobjRep);
-            self.subNodes.Add(pobjRep);
-        }
         else
         {
             orig(self, type, pobj);
@@ -154,11 +141,6 @@ public static class DevtoolsHooks
         if (self.type == Enums.PlacedObjectType.CrabShellCircle)
         {
             self.data = new CrabShellCircleData(self);
-            return;
-        }
-        if (self.type == Enums.PlacedObjectType.RopeObject)
-        {
-            self.data = new PlacedObject.ResizableObjectData(self);
             return;
         }
         orig(self);
