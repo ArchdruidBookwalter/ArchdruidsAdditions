@@ -1,4 +1,6 @@
-﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+﻿using ArchdruidsAdditions.Data;
+using ArchdruidsAdditions.Objects.Physical_Objects;
+using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 using Watcher;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -36,6 +38,14 @@ public static class AIHooks
         }
 
         return cost;
+    }
+    internal static int AImap_GetTerrainProximity(On.AImap.orig_getTerrainProximity_int_int orig, AImap self, int x, int y)
+    {
+        return orig(self, x, y);
+    }
+    internal static void Aimapper_FindAccessibilityOfCurrentTile(On.AImapper.orig_FindAccessibilityOfCurrentTile orig, AImapper self)
+    {
+        orig(self);
     }
     internal static void DynamicRelationship_Update(On.RelationshipTracker.DynamicRelationship.orig_Update orig, RelationshipTracker.DynamicRelationship self)
     {

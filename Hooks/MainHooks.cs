@@ -102,6 +102,14 @@ public static class MainHooks
         {
             Futile.atlasManager.LoadAtlas("atlases/Arc");
         }
+        if (!Futile.atlasManager.DoesContainAtlas("StoneHead"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/leveltextures/StoneHead");
+        }
+        if (!Futile.atlasManager.DoesContainAtlas("BowlSymbol"))
+        {
+            Futile.atlasManager.LoadAtlas("atlases/BowlSymbol");
+        }
 
         #endregion
 
@@ -225,10 +233,25 @@ public static class MainHooks
         }
         #endregion
 
+        #region Level Sprites
+        if (Futile.atlasManager.DoesContainAtlas("Bowl"))
+        {
+            Futile.atlasManager.UnloadAtlas("Bowl");
+        }
+        #endregion
+
         #region Other Sprites
         if (Futile.atlasManager.DoesContainAtlas("Arc"))
         {
             Futile.atlasManager.UnloadAtlas("Arc");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("StoneHead"))
+        {
+            Futile.atlasManager.UnloadAtlas("StoneHead");
+        }
+        if (Futile.atlasManager.DoesContainAtlas("BowlSymbol"))
+        {
+            Futile.atlasManager.UnloadAtlas("BowlSymbol");
         }
         #endregion
     }

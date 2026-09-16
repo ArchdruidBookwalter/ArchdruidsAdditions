@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using ArchdruidsAdditions.Data;
+using ArchdruidsAdditions.Objects.Decoration;
+using ArchdruidsAdditions.Objects.Physical_Objects;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using static System.Collections.Specialized.BitVector32;
@@ -11,14 +13,41 @@ namespace ArchdruidsAdditions.Hooks;
 public static class PlayerHooks
 {
     #region Player Hooks
-
-    static int debugCooldown = 0;
-    static bool recordCreatureRelationships = false;
-    static int templateID = 0;
+    //static int debugCooldown = 0;
+    //static bool recordCreatureRelationships = false;
+    //static int templateID = 0;
 
     internal static void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
     {
         orig(self, eu);
+
+        //Create_Square(self.room, self.room.MiddleOfTile(self.firstChunk.pos), 10f, 10f, Vec(0), Color.red, 0);
+        //Create_Text(self.room, self.room.MiddleOfTile(self.firstChunk.pos), self.IsTileSolid(0, 0, 0), Color.red, 0);
+
+        //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 20f), self.bodyMode, Color.yellow, 0);
+        //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 30f), self.animation, Color.yellow, 0);
+        //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 40f), "GOINTOCORRIDORCLIMB: " + self.goIntoCorridorClimb, Color.yellow, 0);
+
+        if (self.room != null && self.room.aimap != null && MiscData.boxHandlers.ContainsKey(self.room))
+        {
+            CollisionBoxHandler handler = MiscData.boxHandlers[self.room];
+
+            Vector2 mousePos = self.room.MiddleOfTile(new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + self.room.game.cameras[0].pos);
+            IntVector2 newTilePos = self.room.GetTilePosition(mousePos) - self.room.GetTilePosition(self.firstChunk.pos);
+
+            bool solid = self.IsTileSolid(0, newTilePos.x, newTilePos.y);
+
+            Create_Square(self.room, self.room.MiddleOfTile(mousePos), 20f, 20f, Vec(0), Color.red, 0);
+            Create_Text(self.room, self.room.MiddleOfTile(mousePos) + new Vector2(0f, 25f), solid, Color.red, 0);
+        }
+
+
+        //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 0f), self.animation.value, Color.yellow, 0);
+
+        //Debug.Log(self.coord.Tile.ToString());
+
+        //Create_Square(self.room, Futile.mousePosition, 5f, 5f, Vec(45), "Red", 0);
+        //Create_Text(self.room, Futile.mousePosition + new Vector3(0f, 20f), self.room.GetTilePosition(Futile.mousePosition), "Red", 0);
 
         /*
         if (debugCooldown > 0)
@@ -147,6 +176,12 @@ public static class PlayerHooks
     internal static void Player_MovementUpdate(On.Player.orig_MovementUpdate orig, Player self, bool eu)
     {
         orig(self, eu);
+    }
+    internal static void Player_UpdateAnimation(On.Player.orig_UpdateAnimation orig, Player self)
+    {
+        bool slideOnBox = false;
+
+        orig(self);
     }
     internal static void Player_checkInput(On.Player.orig_checkInput orig, Player self)
     {
@@ -497,18 +532,22 @@ public static class PlayerHooks
             playerState.recordFoodPips = true;
         }
     }
-
     #endregion
 
-    #region PlayerGraphics Hooks
 
+
+    #region PlayerGraphics Hooks
     internal static void PlayerGraphics_Update(On.PlayerGraphics.orig_Update orig, PlayerGraphics self)
     {
         float section = 0;
 
         try
         {
+            //Debug.Log("<ArchdruidsAdditions> METHOD PLAYERGRAPHICS_UPDATE WAS CALLED! 1");
+
             orig(self);
+
+            //Debug.Log("<ArchdruidsAdditions> METHOD PLAYERGRAPHICS_UPDATE WAS CALLED! 2");
 
             section = 1;
 
@@ -552,31 +591,42 @@ public static class PlayerHooks
                     { self.player.input[0].y = 0; self.player.input[0].analogueDir.y = 0; }
                 }
             }
-
             AAPlayerState AAPlayerState = GetPlayerState(self.player.abstractCreature.ID.number);
-            if (AAPlayerState != null && !sLeaser.deleteMeNextFrame && !rCam.room.game.DEBUGMODE && AAPlayerState.parasiteMalnourishment > 0)
+            bool changeSprites = !sLeaser.deleteMeNextFrame && !rCam.room.game.DEBUGMODE;
+
+            if (changeSprites)
             {
-                self.ApplyPalette(sLeaser, rCam, rCam.currentPalette);
+                if (AAPlayerState != null && AAPlayerState.parasiteMalnourishment > 0)
+                {
+                    self.ApplyPalette(sLeaser, rCam, rCam.currentPalette);
+                }
             }
 
             section = 2;
 
+            //Debug.Log("<ArchdruidsAdditions> METHOD PLAYERGRAPHICS_DRAWSPRITES WAS CALLED! 1");
+
             orig(self, sLeaser, rCam, timeStacker, camPos);
+
+            //Debug.Log("<ArchdruidsAdditions> METHOD PLAYERGRAPHICS_DRAWSPRITES WAS CALLED! 2");
 
             section = 3;
 
-            self.player.input[0] = package;
-
-            if (AAPlayerState != null && AAPlayerState.spiceAmount > 0 && AAPlayerState.spicyReactTimer > 0 && sLeaser.sprites[9].element.name.Contains("0"))
+            if (changeSprites)
             {
-                sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
-            }
+                self.player.input[0] = package;
 
-            foreach (Creature.Grasp grasp in self.player.grasps)
-            {
-                if (grasp is not null && grasp.grabbed is Potato potato && potato.playerSquint)
+                if (AAPlayerState != null && AAPlayerState.spiceAmount > 0 && AAPlayerState.spicyReactTimer > 0 && sLeaser.sprites[9].element.name.Contains("0"))
                 {
                     sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
+                }
+
+                foreach (Creature.Grasp grasp in self.player.grasps)
+                {
+                    if (grasp is not null && grasp.grabbed is Potato potato && potato.playerSquint)
+                    {
+                        sLeaser.sprites[9].element = Futile.atlasManager.GetElementWithName("FaceStunned");
+                    }
                 }
             }
         }
@@ -611,7 +661,6 @@ public static class PlayerHooks
             Methods.Methods.Log_Exception(e, "PLAYERGRAPHICS_CTOR", section);
         }
     }
-    
     internal static float PlayerObjectLooker_HowInterestingIsThisObject(On.PlayerGraphics.PlayerObjectLooker.orig_HowInterestingIsThisObject orig, PlayerGraphics.PlayerObjectLooker self, PhysicalObject obj)
     {
         float interest = orig(self, obj);
@@ -623,11 +672,11 @@ public static class PlayerHooks
 
         return interest;
     }
-
     #endregion
 
-    #region PlayerState Hooks
 
+
+    #region PlayerState Hooks
     internal static void PlayerState_ctor(On.PlayerState.orig_ctor orig, PlayerState self, AbstractCreature crit, int playerNumber, SlugcatStats.Name slugcatCharacter, bool isGhost)
     {
         orig(self, crit, playerNumber, slugcatCharacter, isGhost);
@@ -653,8 +702,9 @@ public static class PlayerHooks
             playerStates.Add(crit.ID.number, newPlayerState);
         }
     }
-
     #endregion
+
+
 
     #region SlugcatHand Hooks
     internal static void SlugcatHand_Update(On.SlugcatHand.orig_Update orig, SlugcatHand self)
@@ -687,8 +737,9 @@ public static class PlayerHooks
     }
     #endregion
 
+
+
     #region SlugcatStats Hook
-    
     internal static int SlugcatStats_NourishmentOfObjectEaten(On.SlugcatStats.orig_NourishmentOfObjectEaten orig, SlugcatStats.Name name, IPlayerEdible edible)
     {
         int baseNourishment = orig(name, edible);
@@ -704,6 +755,5 @@ public static class PlayerHooks
 
         return baseNourishment;
     }
-
     #endregion
 }

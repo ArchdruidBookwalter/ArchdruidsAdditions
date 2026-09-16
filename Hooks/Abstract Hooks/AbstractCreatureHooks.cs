@@ -53,6 +53,11 @@ public static class AbstractCreatureHooks
 
             orig(self);
 
+            if (self.realizedCreature != null && self.realizedCreature is Player player)
+            {
+                Debug.Log("ABSTRACT PLAYER WAS REALIZED AT LOCATION: " + self.Room.name + " - " + player.coord.Tile.ToString());
+            }
+
             section = 4;
 
             if (self.realizedCreature != null && self.Room.realizedRoom != null)

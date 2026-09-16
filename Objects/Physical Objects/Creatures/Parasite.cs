@@ -1113,7 +1113,7 @@ public class ParasiteGraphics : GraphicsModule
         lastLightColor = lightColor;
         lastLightExposure = lightExposure;
         lastColorExposure = colorExposure;
-        (lightColor, lightExposure, colorExposure) = TrueLightColorAndExposure(camera.room, camera, parasite.firstChunk.pos - camera.pos, 0f);
+        TrueLightColorAndExposure(camera.room, camera, parasite.firstChunk.pos - camera.pos, 0f, out lightColor, out lightExposure, out colorExposure);
     }
 }
 

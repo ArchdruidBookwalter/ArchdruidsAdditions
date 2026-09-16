@@ -34,7 +34,6 @@ public static class MenuHooks
             //Cursor.visible = false;
         }*/
     }
-
     internal static void MenuScene_BuildScene(On.Menu.MenuScene.orig_BuildScene orig, MenuScene self)
     {
         orig(self);

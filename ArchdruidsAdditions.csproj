@@ -12,6 +12,10 @@
     <Reference Include="0Harmony20">
       <HintPath>..\..\References\0Harmony20.dll</HintPath>
     </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>D:\SteamLibrary\steamapps\common\Rain World\RainWorld_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+		<Aliases>Firstpass</Aliases>
+    </Reference>
     <Reference Include="BeastMaster">
       <HintPath>..\..\References\BeastMaster.dll</HintPath>
     </Reference>
@@ -70,7 +74,7 @@
       <HintPath>D:\SteamLibrary\steamapps\workshop\content\312520\2920439169\plugins\Pom.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\PUBLIC-Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\References\PUBLIC-Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.Composition">
       <HintPath>..\..\..\..\..\..\..\Windows\Microsoft.NET\Framework\v4.0.30319\System.ComponentModel.Composition.dll</HintPath>
@@ -96,6 +100,21 @@
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>..\..\References\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+	
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">

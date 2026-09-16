@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security.Policy;
 using System.Text.RegularExpressions;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Decoration;
+using ArchdruidsAdditions.Objects.Decoration;
 using DevInterface;
 
 namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
@@ -179,7 +179,7 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         }
         else if (attachedToVine && vine != null)
         {
-            rotation = Custom.DirVec(firstChunk.pos, vine.ropeSegments[vine.EndIndex - 1].pos);
+            rotation = Custom.DirVec(firstChunk.pos, vine.rope.ropeSegments[vine.rope.EndIndex - 1].pos);
         }
 
         if (camera != null)
@@ -295,10 +295,10 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
 
             int segments = Mathf.RoundToInt(tiles * 0.84f);
 
-            vine = new(room, segments, segmentLength, room.MiddleOfTile(startPos), firstChunk.pos, this);
+            vine = new(room, 0.25f, room.MiddleOfTile(startPos), firstChunk.pos, this);
             room.AddObject(vine);
 
-            RopeObject.RopeSegment endSegment = vine.ropeSegments[vine.EndIndex];
+            RopeObject.RopeSegment endSegment = vine.rope.ropeSegments[vine.rope.EndIndex];
             endSegment.AttachObject(new RopeObject.RopeAttachedObject(endSegment, this, 0));
 
             attachedToVine = true;
@@ -407,8 +407,6 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         sLeaser.sprites = sprites.ToArray();
 
         AddToContainer(sLeaser, rCam, null);
-
-        UpdateLighting(rCam);
     }
 
     public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
@@ -478,6 +476,8 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
     public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
     {
         blackColor = palette.blackColor;
+
+        UpdateLighting(rCam);
     }
 
     public RoomCamera camera;
@@ -492,14 +492,15 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
         lastLightColor = lightColor;
         lastLightExposure = lightExposure;
         lastColorExposure = colorExposure;
-        (lightColor, lightExposure, colorExposure) = TrueLightColorAndExposure(camera.room, camera, firstChunk.pos - camera.pos, power / 1000f);
+        TrueLightColorAndExposure(camera.room, camera, firstChunk.pos - camera.pos, power / 1000f, out lightColor, out lightExposure, out colorExposure);
     }
 
     #endregion
 }
 
-public class LightningFruitVine : RopeObject, IDrawable
+public class LightningFruitVine : UpdatableAndDeletable, IDrawable
 {
+    public LightningFruitRope rope;
     public Color blackColor;
     public Color fruitColor;
     public LightningFruit fruit;
@@ -512,11 +513,13 @@ public class LightningFruitVine : RopeObject, IDrawable
     public LightningFruitStem stem1;
     public LightningFruitStem stem2;
 
-    public LightningFruitVine(Room room, int segments, float segmentLength, Vector2 endPos1, Vector2 endPos2, LightningFruit fruit) : base(segments, segmentLength, endPos1, endPos2, false, true, false)
+    public LightningFruitVine(Room room, float elasticity, Vector2 endPos1, Vector2 endPos2, LightningFruit fruit)
     {
         this.fruit = fruit;
 
         fruitAttached = true;
+
+        rope = new(this, elasticity, endPos1, endPos2, false, true, false);
 
         fruitColor = fruit.bodyColor;
 
@@ -527,9 +530,11 @@ public class LightningFruitVine : RopeObject, IDrawable
 
         Random.state = state;
     }
-    public LightningFruitVine(Room room, int segments, float segmentLength, Vector2 endPos1, Vector2 endPos2, int charge, int seed) : base(segments, segmentLength, endPos1, endPos2, true)
+    public LightningFruitVine(Room room, float elasticity, Vector2 endPos1, Vector2 endPos2, int charge, int seed)
     {
         fruitAttached = false;
+
+        rope = new(this, elasticity, endPos1, endPos2, true);
 
         Random.State state = Random.state;
         Random.InitState(seed);
@@ -575,7 +580,7 @@ public class LightningFruitVine : RopeObject, IDrawable
     public void BaseInitializeVine()
     {
         List<LightningFruitBall> newballs = [];
-        for (int i = decorative ? 0 : 2; i < ropeSegments.Length - 1; i++)
+        for (int i = !rope.stuck2 ? 0 : 2; i < rope.ropeSegments.Length - 1; i++)
         {
             for (int j = 0; j < Random.Range(0, 5); j++)
             {
@@ -601,6 +606,8 @@ public class LightningFruitVine : RopeObject, IDrawable
     {
         base.Update(eu);
 
+        rope.Update();
+
         if (fruitAttached)
         {
             if (releaseCounter > 0)
@@ -608,18 +615,15 @@ public class LightningFruitVine : RopeObject, IDrawable
                 releaseCounter++;
                 if (releaseCounter > 30)
                 {
-                    ropeSegments[EndIndex].DetachObject();
+                    rope.ropeSegments[rope.EndIndex].DetachObject();
                     fruitAttached = false;
                 }
             }
         }
     }
-    public override void DetachObject(RopeAttachedObject obj)
+    public void DetachObject(RopeObject.RopeAttachedObject obj)
     {
-        if (obj.obj is LightningFruit fruit)
-        {
-            fruit.DetachFromVine();
-        }
+        rope.DetachObject(obj);
     }
 
     public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
@@ -628,7 +632,7 @@ public class LightningFruitVine : RopeObject, IDrawable
 
         List<FSprite> sprites = [];
 
-        vineMesh = TriangleMesh.MakeLongMesh(ropeSegments.Length, false, false);
+        vineMesh = TriangleMesh.MakeLongMesh(rope.ropeSegments.Length, false, false);
         vineMesh.color = rCam.currentPalette.blackColor;
         sprites.Add(vineMesh);
 
@@ -655,20 +659,20 @@ public class LightningFruitVine : RopeObject, IDrawable
         {
             List<Vector2> segPositions = [];
 
-            Vector2 lastSegmentPos = Vector2.Lerp(ropeSegments[0].lastPos, ropeSegments[0].pos, timeStacker) - camPos;
-            for (int i = 0; i < ropeSegments.Length; i++)
+            Vector2 lastSegmentPos = Vector2.Lerp(rope.ropeSegments[0].lastPos, rope.ropeSegments[0].pos, timeStacker) - camPos;
+            for (int i = 0; i < rope.ropeSegments.Length; i++)
             {
                 Vector2 segmentPos;
 
-                if (ropeSegments[i].obj != null)
+                if (rope.ropeSegments[i].obj != null)
                 {
-                    BodyChunk attachedChunk = ropeSegments[i].obj.AttachedChunk;
+                    BodyChunk attachedChunk = rope.ropeSegments[i].obj.AttachedChunk;
                     Vector2 fruitPos = Vector2.Lerp(attachedChunk.lastPos, attachedChunk.pos, timeStacker) - camPos;
                     segmentPos = fruitPos + Custom.DirVec(fruitPos, lastSegmentPos) * 8f;
                 }
                 else
                 {
-                    segmentPos = Vector2.Lerp(ropeSegments[i].lastPos, ropeSegments[i].pos, timeStacker) - camPos;
+                    segmentPos = Vector2.Lerp(rope.ropeSegments[i].lastPos, rope.ropeSegments[i].pos, timeStacker) - camPos;
                 }
 
                 Vector2 segmentRot = Custom.DirVec(segmentPos, lastSegmentPos);
@@ -693,8 +697,8 @@ public class LightningFruitVine : RopeObject, IDrawable
             {
                 ball.Draw
                 (
-                    Vector2.Lerp(ropeSegments[ball.segIndex].lastPos, ropeSegments[ball.segIndex].pos, timeStacker) - camPos,
-                    Vector2.Lerp(ropeSegments[ball.segIndex + 1].lastPos, ropeSegments[ball.segIndex + 1].pos, timeStacker) - camPos,
+                    Vector2.Lerp(rope.ropeSegments[ball.segIndex].lastPos, rope.ropeSegments[ball.segIndex].pos, timeStacker) - camPos,
+                    Vector2.Lerp(rope.ropeSegments[ball.segIndex + 1].lastPos, rope.ropeSegments[ball.segIndex + 1].pos, timeStacker) - camPos,
                     blackColor,
                     rCam,
                     camPos
@@ -892,6 +896,20 @@ public class LightningFruitVine : RopeObject, IDrawable
 
             leaf1.Draw(blackColor, pos, rot);
             leaf2.Draw(blackColor, pos, rot);
+        }
+    }
+    public class LightningFruitRope : RopeObject
+    {
+        public LightningFruitRope(UpdatableAndDeletable owner, float elasticity, Vector2 endPos1, Vector2 endPos2, bool freezeOnInit = false, bool stuck1 = true, bool stuck2 = true) : base(owner, 20f, 1f, elasticity, endPos1, endPos2, 1f, freezeOnInit, stuck1, stuck2)
+        {
+        }
+
+        public override void DetachObject(RopeAttachedObject obj)
+        {
+            if (obj.obj is LightningFruit fruit)
+            {
+                fruit.DetachFromVine();
+            }
         }
     }
 }

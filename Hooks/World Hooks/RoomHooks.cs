@@ -1,6 +1,8 @@
 ﻿using System;
+using ArchdruidsAdditions.Data;
+using ArchdruidsAdditions.Objects.Decoration;
+using ArchdruidsAdditions.Objects.Physical_Objects;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Decoration;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using ArchdruidsAdditions.Objects.RoomEffects;
 
@@ -91,12 +93,7 @@ public static class RoomHooks
                 {
                     DecoVineData data = pObj.data as DecoVineData;
 
-                    float segmentLength = 20f;
-                    float ropeLength = Custom.Dist(pObj.pos, pObj.pos + data.handlePos) * Mathf.Lerp(0.5f, 2f, Mathf.InverseLerp(0f, 10f, data.elasticity));
-
-                    int segments = Mathf.RoundToInt(ropeLength / segmentLength);
-
-                    LightningFruitVine vine = new(self, segments, segmentLength, pObj.pos, pObj.pos + data.handlePos, data.charge, Mathf.RoundToInt(pObj.pos.x * 100 + pObj.pos.y * 100));
+                    LightningFruitVine vine = new(self, data.elasticity, pObj.pos, pObj.pos + data.handlePos, data.charge, Mathf.RoundToInt(pObj.pos.x * 100 + pObj.pos.y * 100));
                     self.AddObject(vine);
                 }
                 else if (pObj.type == Enums.PlacedObjectType.AshPepperBush)
@@ -193,6 +190,24 @@ public static class RoomHooks
                         }
                     }
                 }
+                else if (pObj.type == Enums.PlacedObjectType.DecoChain)
+                {
+                    ChainData data = pObj.data as ChainData;
+
+                    Chain chain = new(self, pObj, data.depth, data.elasticity, pObj.pos, pObj.pos + data.handlePos, data.bothEndsStuck);
+                    self.AddObject(chain);
+
+                    data.realizedChain = chain;
+                }
+                else if (pObj.type == Enums.PlacedObjectType.ShrineBowl)
+                {
+                    ShrineBowlData data = pObj.data as ShrineBowlData;
+
+                    ShrineBowl bowl = new(self, pObj, 0f);
+                    self.AddObject(bowl);
+
+                    data.realizedBowl = bowl;
+                }
             }
         }
 
@@ -203,6 +218,25 @@ public static class RoomHooks
                 RandomShells.ActuallySpawnEffect(self, effect, firstTimeRealized);
             }
         }
+    }
+    internal static bool Room_HasAnySolid(On.Room.orig_HasAnySolid_int_int orig, Room self, int x, int y)
+    {
+        bool baseValue = orig(self, x, y);
+
+        /*
+        if (!baseValue && MiscData.boxesInRooms.ContainsKey(self))
+        {
+            foreach (CollisionBox box in MiscData.boxesInRooms[self])
+            {
+                if (box.Contains(self.MiddleOfTile(x, y)))
+                {
+                    return true;
+                }
+            }
+        }*/
+
+
+        return baseValue;
     }
     internal static float Room_Get_ElectricPower(Func<Room, float> orig, Room self)
     {
@@ -230,7 +264,7 @@ public static class RoomHooks
         {
             orig(self, s, timeline);
         }
-        catch (Exception e)
+        catch
         {
             Debug.Log("<Archduid's Additions> EXPERIENCED ONE OR MORE EXCEPTIONS WHILE LOADING PLACED OBJECTS IN ROOM: " + self.room.abstractRoom.name);
         }

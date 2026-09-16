@@ -1,4 +1,6 @@
 ﻿using System;
+using ArchdruidsAdditions.Data;
+using ArchdruidsAdditions.Objects.Physical_Objects;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 using Watcher;
 
@@ -26,6 +28,93 @@ public static class CreatureHooks
         {
             orig(self, module, radius, connectionRadius, connectedSegment, surfaceFriction, airFriction, affectPrevious, pullInPreviousPos);
         }
+    }
+
+    internal static bool BodyPart_OnOtherSideOfTerrain(On.BodyPart.orig_OnOtherSideOfTerrain orig, BodyPart self, Vector2 conPos, float minAffectRadius)
+    {
+        bool baseValue = orig(self, conPos, minAffectRadius);
+
+        if (!baseValue && MiscData.boxHandlers.ContainsKey(self.owner.owner.room))
+        {
+            foreach (CollisionBox box in MiscData.boxHandlers[self.owner.owner.room].collisionBoxes)
+            {
+                if (box.Contains(self.pos, 0f, false))
+                {
+                    return true;
+                }    
+            }
+        }
+
+        return baseValue;
+    }
+
+    internal static void BodyPart_PushOutOfTerrain(On.BodyPart.orig_PushOutOfTerrain orig, BodyPart self, Room room, Vector2 basePoint)
+    {
+        orig(self, room, basePoint);
+
+        if (Data.MiscData.boxHandlers.ContainsKey(room))
+        {
+            foreach (CollisionBox box in MiscData.boxHandlers[room].collisionBoxes)
+            {
+                box.GetSnapPosAndContact(self.pos, self.rad, out Vector2 newPos, out IntVector2 contactPoint, false);
+
+                if (contactPoint.y < 0 || contactPoint.y > 0)
+                {
+                    self.terrainContact = true;
+                    self.pos.y = newPos.y;
+                    if (Mathf.Sign(self.vel.y) == contactPoint.y)
+                    {
+                        self.vel.y = 0f;
+                    }
+                    self.vel.x *= self.surfaceFric;
+                }
+                else if (contactPoint.x < 0 || contactPoint.x > 0)
+                {
+                    self.terrainContact = true;
+                    self.pos.x = newPos.x;
+                    if (Mathf.Sign(self.vel.x) == contactPoint.x)
+                    {
+                        self.vel.x = 0f;
+                    }
+                    self.vel.y *= self.surfaceFric;
+                }
+            }
+        }
+        
+    }
+
+    internal static void Limb_FindGrip(On.Limb.orig_FindGrip orig, Limb self, Room room, Vector2 attachedPos, Vector2 searchFromPos, float maximumRadiusFromAttachedPos, Vector2 goalPos, int forbiddenXDirs, int forbiddenYDirs, bool behindWalls)
+    {
+        orig(self, room, attachedPos, searchFromPos, maximumRadiusFromAttachedPos, goalPos, forbiddenXDirs, forbiddenYDirs, behindWalls);
+
+        if (MiscData.boxHandlers.ContainsKey(room))
+        {
+            Vector2 closestBoxPos = new Vector2(-10000, -10000);
+            foreach (CollisionBox box in MiscData.boxHandlers[room].collisionBoxes)
+            {
+                box.GetSnapPosAndContact(searchFromPos, 0f, out Vector2 closestPoint, out _, false);
+
+                if (Custom.DistNoSqrt(goalPos, closestPoint) < Custom.DistNoSqrt(goalPos, closestBoxPos) && Custom.DistLess(attachedPos, closestPoint, maximumRadiusFromAttachedPos))
+                {
+                    closestBoxPos = closestPoint;
+                }
+            }
+
+            if (closestBoxPos.x != -10000 && closestBoxPos.y != -10000)
+            {
+                if (self.mode != Limb.Mode.HuntAbsolutePosition || Custom.DistNoSqrt(self.absoluteHuntPos, goalPos) > Custom.DistNoSqrt(closestBoxPos, goalPos))
+                {
+                    self.absoluteHuntPos = closestBoxPos;
+
+                    if (self.mode != Limb.Mode.HuntAbsolutePosition)
+                    {
+                        self.mode = Limb.Mode.HuntAbsolutePosition;
+                        self.GrabbedTerrain();
+                    }
+                }
+            }
+        }
+
     }
 
     internal static void CreatureState_LoadFromString(On.CreatureState.orig_LoadFromString orig, CreatureState self, string[] s)

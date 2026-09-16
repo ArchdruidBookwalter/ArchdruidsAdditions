@@ -41,6 +41,8 @@ public sealed class Plugin : BaseUnityPlugin
 
     public void OnEnable()
     {
+        Debug.Log("<ArchdruidsAdditions> LOADING HOOKS.");
+
         EffectDefinitionBuilder builder1 = new("ForceRoomEnergy");
         builder1.SetEffectInitializer(LightRodPowerEffect.EffectSpawner);
         builder1.AddFloatField("DriftStrength", 0f, 0.1f, 0f, 0f, "DriftStrength");
@@ -54,6 +56,20 @@ public sealed class Plugin : BaseUnityPlugin
         builder2.SetEffectInitializer(RandomShells.EffectSpawner);
         builder2.SetCategory("AAEffects");
         builder2.Register();
+
+        //
+
+        #region Main Hooks
+        On.RainWorld.OnModsInit += Hooks.MainHooks.RainWorld_OnModsInit;
+        On.RainWorld.UnloadResources += Hooks.MainHooks.RainWorld_UnloadResources;
+        On.RainWorld.OnModsEnabled += Hooks.MainHooks.RainWorld_OnModsEnabled;
+        On.RainWorld.OnModsDisabled += Hooks.MainHooks.RainWorld_OnModsDisabled;
+        On.RainWorld.PostModsInit += Hooks.MainHooks.RainWorld_PostModsInIt;
+        #endregion
+
+        //
+
+        #region Abstract Hooks
 
         #region AbstractPhysicalObject Hooks
         On.AbstractPhysicalObject.Update += Hooks.AbstractPhysicalObjectHooks.AbstractPhysicalObject_Update;
@@ -83,10 +99,17 @@ public sealed class Plugin : BaseUnityPlugin
         On.AbstractRoomNode.ConnectionCost += Hooks.AbstractRoomHooks.AbstractRoomNode_ConnectionCost;
         #endregion
 
+        #endregion
+
+        //
+
+        #region Creature Hooks
+
         #region AI Hooks
         On.ArtificialIntelligence.SetDestination += Hooks.AIHooks.ArtificialIntelligence_SetDestination;
         On.RoomPreprocessor.DecompressStringToAImaps += Hooks.AIHooks.RoomPreprocessor_DecompressStringToAImaps;
         On.AImap.TileCostForCreature_WorldCoordinate_CreatureTemplate += Hooks.AIHooks.AImap_TileCostForCreature;
+        On.AImapper.FindAccessibilityOfCurrentTile += Hooks.AIHooks.Aimapper_FindAccessibilityOfCurrentTile;
         On.RelationshipTracker.DynamicRelationship.Update += Hooks.AIHooks.DynamicRelationship_Update;
         On.ArtificialIntelligence.Update += Hooks.AIHooks.ArtificialIntelligence_Update;
         On.LizardAI.Update += Hooks.AIHooks.LizardAI_Update;
@@ -98,55 +121,16 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         #region Creature Hooks
-        //On.CreatureState.LoadFromString += Hooks.CreatureHooks.CreatureState_LoadFromString;
         On.TailSegment.ctor += Hooks.CreatureHooks.TailSegment_ctor;
+        On.BodyPart.OnOtherSideOfTerrain += Hooks.CreatureHooks.BodyPart_OnOtherSideOfTerrain;
+        On.BodyPart.PushOutOfTerrain += Hooks.CreatureHooks.BodyPart_PushOutOfTerrain;
+        On.Limb.FindGrip += Hooks.CreatureHooks.Limb_FindGrip;
         On.Creature.ctor += Hooks.CreatureHooks.Creature_ctor;
         On.Creature.Update += Hooks.CreatureHooks.Creature_Update;
         On.Creature.Grab += Hooks.CreatureHooks.Creature_Grab;
         On.Creature.ReleaseGrasp += Hooks.CreatureHooks.Creature_ReleaseGrab;
         On.Watcher.Barnacle.Collide += Hooks.CreatureHooks.Barnacle_Collide;
-        #endregion
-
-        #region Devtools Hooks
-        On.DevInterface.ObjectsPage.CreateObjRep += Hooks.DevtoolsHooks.ObjectsPage_CreateObjRep;
-        On.DevInterface.Panel.CopyToClipboard += Hooks.DevtoolsHooks.Panel_CopyToClipboard;
-        On.DevInterface.Panel.PasteFromClipboard += Hooks.DevtoolsHooks.Panel_PasteFromClipboard;
-        On.PlacedObject.GenerateEmptyData += Hooks.DevtoolsHooks.PlacedObject_GenerateEmptyData;
-        On.DevInterface.MapPage.CreatureVis.CritString += Hooks.DevtoolsHooks.MapPage_CreatureVis_CritString;
-        On.DevInterface.MapPage.CreatureVis.CritCol += Hooks.DevtoolsHooks.MapPage_CreatureVis_CritCol;
-        On.DevInterface.Handle.Update += Hooks.DevtoolsHooks.Handle_Update;
-        #endregion
-
-        #region Futile Hooks
-        On.FLabel.Redraw += Hooks.FutileHooks.FLabel_Redraw;
-        On.FFacetRenderLayer.UpdateMeshProperties += Hooks.FutileHooks.FFacetRenderLayer_UpdateMeshProperties;
-        #endregion
-
-        #region Game Hooks
-        On.RainWorldGame.Update += Hooks.GameHooks.RainWorldGame_Update;
-        On.RainWorldGame.CommunicateWithUpcomingProcess += Hooks.GameHooks.RainWorldGame_CommunicateWithUpcomingProcess;
-        On.RainWorldGame.Win += Hooks.GameHooks.RainWorldGame_Win;
-        On.RainWorldGame.SpawnPlayers_bool_bool_bool_bool_WorldCoordinate += Hooks.GameHooks.RainWorldGame_SpawnPlayers;
-        On.RainWorldGame.RawUpdate += Hooks.GameHooks.RainWorldGame_RawUpdate;
-
-        On.PlayerProgression.GetOrInitiateSaveState += Hooks.GameHooks.PlayerProgression_GetOrInitiateSaveState;
-        On.PlayerProgression.SaveWorldStateAndProgression += Hooks.GameHooks.PlayerProgression_SaveWorldStateAndProgression;
-        On.PlayerProgression.ClearOutSaveStateFromMemory += Hooks.GameHooks.PlayerProgression_ClearOutSaveStateFromMemory;
-
-        On.MoreSlugcats.SpeedRunTimer.GetTimerTickIncrement += Hooks.GameHooks.SpeedRunTimer_GetTimerTickIncrement;
-        #endregion
-
-        #region HUD Hooks
-        On.HUD.HUD.InitSinglePlayerHud += Hooks.HUDHooks.HUD_InitSinglePlayerHud;
-        On.HUD.HUD.InitMultiplayerHud += Hooks.HUDHooks.HUD_InitMultiplayerHud;
-        On.HUD.HUD.InitSleepHud += Hooks.HUDHooks.HUD_InitSleepHud;
-        On.HUD.HUD.Update += Hooks.HUDHooks.HUD_Update;
-        On.HUD.FoodMeter.ctor += Hooks.HUDHooks.FoodMeter_ctor;
-        On.HUD.FoodMeter.Update += Hooks.HUDHooks.FoodMeter_Update;
-        On.HUD.FoodMeter.SleepUpdate += Hooks.HUDHooks.FoodMeter_SleepUpdate;
-        On.HUD.FoodMeter.MoveSurvivalLimit += Hooks.HUDHooks.FoodMeter_MoveSurvivalLimit;
-        On.HUD.FoodMeter.Draw += Hooks.HUDHooks.FoodMeter_Draw;
-        On.HUD.FoodMeter.MeterCircle.Draw += Hooks.HUDHooks.FoodMeter_MeterCircle_Draw;
+        On.OverseerTutorialBehavior.Update += Hooks.OverseerHooks.OverseerTutorialBehavior_Update;
         #endregion
 
         #region Insect Hooks
@@ -158,43 +142,6 @@ public sealed class Plugin : BaseUnityPlugin
         On.SLOracleBehaviorHasMark.MoonConversation.AddEvents += Hooks.IteratorHooks.On_MoonConversation_AddEvents;
         On.SLOracleBehaviorHasMark.TypeOfMiscItem += Hooks.IteratorHooks.On_SLOracleBehaviorHasMark_TypeOfMiscItem;
         On.SLOracleBehavior.Update += Hooks.IteratorHooks.On_SLOracleBehavior_Update;
-        #endregion
-
-        #region Light Hooks
-        On.Redlight.Update += Hooks.LightHooks.Redlight_Update;
-        On.LightSource.Update += Hooks.LightHooks.LightSource_Update;
-        On.LightSource.DrawSprites += Hooks.LightHooks.LightSource_DrawSprites;
-        #endregion
-
-        #region Main Hooks
-        On.RainWorld.OnModsInit += Hooks.MainHooks.RainWorld_OnModsInit;
-        On.RainWorld.UnloadResources += Hooks.MainHooks.RainWorld_UnloadResources;
-        On.RainWorld.OnModsEnabled += Hooks.MainHooks.RainWorld_OnModsEnabled;
-        On.RainWorld.OnModsDisabled += Hooks.MainHooks.RainWorld_OnModsDisabled;
-        On.RainWorld.PostModsInit += Hooks.MainHooks.RainWorld_PostModsInIt;
-        #endregion
-
-        #region Menu Hooks
-        On.Menu.MouseCursor.GrafUpdate += Hooks.MenuHooks.MouseCursor_GrafUpdate;
-        On.MainLoopProcess.GrafUpdate += Hooks.MenuHooks.MainLoopProcess_GrafUpdate;
-
-        On.Menu.MenuScene.BuildScene += Hooks.MenuHooks.MenuScene_BuildScene;
-        On.Menu.MenuScene.Update += Hooks.MenuHooks.MenuScene_Update;
-
-        On.Menu.SleepAndDeathScreen.GetDataFromGame += Hooks.MenuHooks.SleepAndDeathScreen_GetDataFromGame;
-        On.Menu.SleepAndDeathScreen.Update += Hooks.MenuHooks.SleepAndDeathScreen_Update;
-        On.Menu.SleepAndDeathScreen.GrafUpdate += Hooks.MenuHooks.SleepAndDeathScreen_GrafUpdate;
-        On.Menu.SleepAndDeathScreen.AddSubObjects += Hooks.MenuHooks.SleepAndDeathScreen_AddSubOjects;
-        new Hook(typeof(SleepAndDeathScreen).GetMethod("get_AllowFoodMeterTick"), Hooks.MenuHooks.SleepAndDeathScreen_Get_AllowFoodMeterTick);
-        On.Menu.SleepAndDeathScreen.FoodCountDownDone += Hooks.MenuHooks.SleepAndDeathScreen_FoodCountDownDone;
-        #endregion
-
-        #region Overseer Hooks
-        On.OverseerTutorialBehavior.Update += Hooks.OverseerHooks.OverseerTutorialBehavior_Update;
-        #endregion
-
-        #region OverWorld Hooks
-        On.OverWorld.ctor += Hooks.OverWorldHooks.OverWorld_ctor;
         #endregion
 
         #region PathFinderHooks
@@ -213,14 +160,10 @@ public sealed class Plugin : BaseUnityPlugin
         On.QuickConnectivity.Check += Hooks.PathFinderHooks.QuickConnectivity_Check;
         #endregion
 
-        #region PhysicalObject Hooks
-        On.PhysicalObject.Update += Hooks.PhysicalObjectHooks.PhysicalObject_Update;
-        On.Mushroom.DrawSprites += Hooks.PhysicalObjectHooks.Mushroom_DrawSprites;
-        #endregion
-
         #region Player Hooks
         On.Player.Update += Hooks.PlayerHooks.Player_Update;
         On.Player.MovementUpdate += Hooks.PlayerHooks.Player_MovementUpdate;
+        On.Player.UpdateAnimation += Hooks.PlayerHooks.Player_UpdateAnimation;
         On.Player.checkInput += Hooks.PlayerHooks.Player_checkInput;
         On.Player.NewRoom += Hooks.PlayerHooks.Player_NewRoom;
         On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
@@ -243,29 +186,9 @@ public sealed class Plugin : BaseUnityPlugin
         On.SlugcatStats.NourishmentOfObjectEaten += Hooks.PlayerHooks.SlugcatStats_NourishmentOfObjectEaten;
         #endregion
 
-        #region Process Hooks
-        On.ProcessManager.Update += Hooks.ProcessHooks.ProcessManager_Update;
-
-        On.MainLoopProcess.RawUpdate += Hooks.ProcessHooks.MainLoopProcess_RawUpdate;
-        #endregion
-
-        #region Room Hooks
-        On.Room.Loaded += Hooks.RoomHooks.Room_Loaded;
-        new Hook(typeof(Room).GetMethod("get_ElectricPower"), Hooks.RoomHooks.Room_Get_ElectricPower);
-        On.RoomSettings.LoadPlacedObjects_StringArray_Timeline += Hooks.RoomHooks.RoomSettings_LoadPlacedObjects;
-        On.RoomCamera.ChangeRoom += Hooks.RoomHooks.RoomCamera_ChangeRoom;
-        #endregion
-
-        #region RoomSpecificScript Hooks
-        On.RoomSpecificScript.SU_C04StartUp.Update += Hooks.RoomScriptHooks.RoomSpecificScript_SU_CO4StartUp_Update;
-        On.RoomSpecificScript.SU_A43SuperJumpOnly.Update += Hooks.RoomScriptHooks.RoomSpecificScript_SU_A43SuperJumpOnly_Update;
-        #endregion
-
-        #region SaveState Hooks
-        On.SaveState.LoadGame += Hooks.SaveStateHooks.SaveState_LoadGame;
-        On.SaveState.SaveToString += Hooks.SaveStateHooks.SaveState_SaveToString;
-        On.SaveState.SessionEnded += Hooks.SaveStateHooks.SaveState_SessionEnded;
-        new Hook(typeof(SaveState).GetMethod("get_SlowFadeIn"), Hooks.SaveStateHooks.SaveState_Get_SlowFadeIn);
+        #region Slugpup Hooks
+        On.MoreSlugcats.SlugNPCAI.GetFoodType += Hooks.SlugpupHooks.SlugNPCAI_GetFoodType;
+        On.MoreSlugcats.SlugNPCAI.WantsToEatThis += Hooks.SlugpupHooks.SlugNPCAI_WantsToEatThis;
         #endregion
 
         #region Scavenger Hooks
@@ -313,12 +236,77 @@ public sealed class Plugin : BaseUnityPlugin
         On.ScavengerTreasury.ctor += Hooks.ScavengerHooks.ScavengerTreasury_ctor;
         #endregion
 
-        #region Shelter Hooks
-        On.ShelterDoor.DoorClosed += Hooks.ShelterHooks.ShelterDoor_DoorClosed;
         #endregion
 
-        #region Slugpup Hooks
-        On.MoreSlugcats.SlugNPCAI.GetFoodType += Hooks.SlugpupHooks.SlugNPCAI_GetFoodType;
+        //
+
+        #region Meta Hooks
+
+        #region Devtools Hooks
+        On.DevInterface.ObjectsPage.CreateObjRep += Hooks.DevtoolsHooks.ObjectsPage_CreateObjRep;
+        On.DevInterface.Panel.CopyToClipboard += Hooks.DevtoolsHooks.Panel_CopyToClipboard;
+        On.DevInterface.Panel.PasteFromClipboard += Hooks.DevtoolsHooks.Panel_PasteFromClipboard;
+        On.PlacedObject.GenerateEmptyData += Hooks.DevtoolsHooks.PlacedObject_GenerateEmptyData;
+        On.DevInterface.MapPage.CreatureVis.CritString += Hooks.DevtoolsHooks.MapPage_CreatureVis_CritString;
+        On.DevInterface.MapPage.CreatureVis.CritCol += Hooks.DevtoolsHooks.MapPage_CreatureVis_CritCol;
+        On.DevInterface.Handle.Update += Hooks.DevtoolsHooks.Handle_Update;
+        #endregion
+
+        #region Futile Hooks
+        On.FFacetRenderLayer.UpdateMeshProperties += Hooks.FutileHooks.FFacetRenderLayer_UpdateMeshProperties;
+        #endregion
+
+        #region Game Hooks
+        On.RainWorldGame.Update += Hooks.GameHooks.RainWorldGame_Update;
+        On.RainWorldGame.CommunicateWithUpcomingProcess += Hooks.GameHooks.RainWorldGame_CommunicateWithUpcomingProcess;
+        On.RainWorldGame.Win += Hooks.GameHooks.RainWorldGame_Win;
+        On.RainWorldGame.SpawnPlayers_bool_bool_bool_bool_WorldCoordinate += Hooks.GameHooks.RainWorldGame_SpawnPlayers;
+        On.RainWorldGame.RawUpdate += Hooks.GameHooks.RainWorldGame_RawUpdate;
+
+        On.PlayerProgression.GetOrInitiateSaveState += Hooks.GameHooks.PlayerProgression_GetOrInitiateSaveState;
+        On.PlayerProgression.SaveWorldStateAndProgression += Hooks.GameHooks.PlayerProgression_SaveWorldStateAndProgression;
+        On.PlayerProgression.ClearOutSaveStateFromMemory += Hooks.GameHooks.PlayerProgression_ClearOutSaveStateFromMemory;
+
+        On.MoreSlugcats.SpeedRunTimer.GetTimerTickIncrement += Hooks.GameHooks.SpeedRunTimer_GetTimerTickIncrement;
+        #endregion
+
+        #region HUD Hooks
+        On.HUD.HUD.InitSinglePlayerHud += Hooks.HUDHooks.HUD_InitSinglePlayerHud;
+        On.HUD.HUD.InitMultiplayerHud += Hooks.HUDHooks.HUD_InitMultiplayerHud;
+        On.HUD.HUD.InitSleepHud += Hooks.HUDHooks.HUD_InitSleepHud;
+        On.HUD.HUD.Update += Hooks.HUDHooks.HUD_Update;
+        On.HUD.FoodMeter.ctor += Hooks.HUDHooks.FoodMeter_ctor;
+        On.HUD.FoodMeter.Update += Hooks.HUDHooks.FoodMeter_Update;
+        On.HUD.FoodMeter.SleepUpdate += Hooks.HUDHooks.FoodMeter_SleepUpdate;
+        On.HUD.FoodMeter.MoveSurvivalLimit += Hooks.HUDHooks.FoodMeter_MoveSurvivalLimit;
+        On.HUD.FoodMeter.Draw += Hooks.HUDHooks.FoodMeter_Draw;
+        On.HUD.FoodMeter.MeterCircle.Draw += Hooks.HUDHooks.FoodMeter_MeterCircle_Draw;
+        On.ItemSymbol.SpriteNameForItem += Hooks.SymbolHooks.ItemSymbol_SpriteNameForItem;
+        On.ItemSymbol.ColorForItem += Hooks.SymbolHooks.ItemSymbol_ColorForItem;
+        On.CreatureSymbol.SpriteNameOfCreature += Hooks.SymbolHooks.CreatureSymbol_SpriteNameOfCreature;
+        On.CreatureSymbol.ColorOfCreature += Hooks.SymbolHooks.CreatureSymbol_ColorOfCreature;
+        #endregion
+
+        #region Menu Hooks
+        On.Menu.MouseCursor.GrafUpdate += Hooks.MenuHooks.MouseCursor_GrafUpdate;
+        On.MainLoopProcess.GrafUpdate += Hooks.MenuHooks.MainLoopProcess_GrafUpdate;
+
+        On.Menu.MenuScene.BuildScene += Hooks.MenuHooks.MenuScene_BuildScene;
+        On.Menu.MenuScene.Update += Hooks.MenuHooks.MenuScene_Update;
+
+        On.Menu.SleepAndDeathScreen.GetDataFromGame += Hooks.MenuHooks.SleepAndDeathScreen_GetDataFromGame;
+        On.Menu.SleepAndDeathScreen.Update += Hooks.MenuHooks.SleepAndDeathScreen_Update;
+        On.Menu.SleepAndDeathScreen.GrafUpdate += Hooks.MenuHooks.SleepAndDeathScreen_GrafUpdate;
+        On.Menu.SleepAndDeathScreen.AddSubObjects += Hooks.MenuHooks.SleepAndDeathScreen_AddSubOjects;
+        new Hook(typeof(SleepAndDeathScreen).GetMethod("get_AllowFoodMeterTick"), Hooks.MenuHooks.SleepAndDeathScreen_Get_AllowFoodMeterTick);
+        On.Menu.SleepAndDeathScreen.FoodCountDownDone += Hooks.MenuHooks.SleepAndDeathScreen_FoodCountDownDone;
+        #endregion
+
+        #region SaveState Hooks
+        On.SaveState.LoadGame += Hooks.SaveStateHooks.SaveState_LoadGame;
+        On.SaveState.SaveToString += Hooks.SaveStateHooks.SaveState_SaveToString;
+        On.SaveState.SessionEnded += Hooks.SaveStateHooks.SaveState_SessionEnded;
+        new Hook(typeof(SaveState).GetMethod("get_SlowFadeIn"), Hooks.SaveStateHooks.SaveState_Get_SlowFadeIn);
         #endregion
 
         #region Symbol Hooks
@@ -326,6 +314,42 @@ public sealed class Plugin : BaseUnityPlugin
         On.ItemSymbol.ColorForItem += Hooks.SymbolHooks.ItemSymbol_ColorForItem;
         On.CreatureSymbol.SpriteNameOfCreature += Hooks.SymbolHooks.CreatureSymbol_SpriteNameOfCreature;
         On.CreatureSymbol.ColorOfCreature += Hooks.SymbolHooks.CreatureSymbol_ColorOfCreature;
+        #endregion
+
+        #region Process Hooks
+        On.ProcessManager.Update += Hooks.ProcessHooks.ProcessManager_Update;
+        On.MainLoopProcess.RawUpdate += Hooks.ProcessHooks.MainLoopProcess_RawUpdate;
+        #endregion
+
+        #endregion
+
+        //
+
+        #region Object Hooks
+
+        #region Light Hooks
+        On.Redlight.Update += Hooks.LightHooks.Redlight_Update;
+        On.LightSource.Update += Hooks.LightHooks.LightSource_Update;
+        On.LightSource.DrawSprites += Hooks.LightHooks.LightSource_DrawSprites;
+        #endregion
+
+        #region Lightning Hooks
+        On.Lightning.ctor += Hooks.LightningHooks.Lightning_ctor;
+        #endregion
+
+        #region PhysicalObject Hooks
+        On.PhysicalObject.Update += Hooks.PhysicalObjectHooks.PhysicalObject_Update;
+        On.PhysicalObject.IsTileSolid += Hooks.PhysicalObjectHooks.PhysicalObject_IsTileSolid;
+        On.Mushroom.DrawSprites += Hooks.PhysicalObjectHooks.Mushroom_DrawSprites;
+        On.BodyChunk.Update += Hooks.PhysicalObjectHooks.BodyChunk_Update;
+        #endregion
+
+        #region Misc Hooks
+        On.ShelterDoor.DoorClosed += Hooks.ShelterHooks.ShelterDoor_DoorClosed;
+        #endregion
+
+        #region SharedPhysics Hooks
+        On.SharedPhysics.VerticalCollision += Hooks.SharedPhysicsHooks.SharedPhysics_TerrainCollisionData_VerticalCollision;
         #endregion
 
         #region Weapon Hooks
@@ -337,12 +361,45 @@ public sealed class Plugin : BaseUnityPlugin
         On.Weapon.Update += Hooks.WeaponHooks.Weapon_Update;
         #endregion
 
+        #region Wind Hooks
+        On.WindRect.Update += Hooks.WindHooks.WindRect_Update;
+        #endregion
+
+        #endregion
+
+        //
+
         #region World Hooks
-        On.WorldLoader.CreatureTypeFromString += Hooks.WorldHooks.WorldLoader_CreatureTypeFromString;
+
+        #region Room Hooks
+        On.Room.Loaded += Hooks.RoomHooks.Room_Loaded;
+        On.Room.HasAnySolid_int_int += Hooks.RoomHooks.Room_HasAnySolid;
+        new Hook(typeof(Room).GetMethod("get_ElectricPower"), Hooks.RoomHooks.Room_Get_ElectricPower);
+        On.RoomSettings.LoadPlacedObjects_StringArray_Timeline += Hooks.RoomHooks.RoomSettings_LoadPlacedObjects;
+        On.RoomCamera.ChangeRoom += Hooks.RoomHooks.RoomCamera_ChangeRoom;
+        #endregion
+
+        #region RoomSpecificScript Hooks
+        On.RoomSpecificScript.SU_C04StartUp.Update += Hooks.RoomScriptHooks.RoomSpecificScript_SU_CO4StartUp_Update;
+        On.RoomSpecificScript.SU_A43SuperJumpOnly.Update += Hooks.RoomScriptHooks.RoomSpecificScript_SU_A43SuperJumpOnly_Update;
+        #endregion
+
+        #region StaticWorld Hooks
         On.StaticWorld.InitCustomTemplates += Hooks.StaticWorldHooks.InitCustomTemplates;
         On.StaticWorld.InitStaticWorldRelationships += Hooks.StaticWorldHooks.InitStaticWorldRelationships;
         On.StaticWorld.InitStaticWorldRelationshipsMSC += Hooks.StaticWorldHooks.InitStaticWorldRelationshipsMSC;
         On.StaticWorld.InitStaticWorldRelationshipsWatcher += Hooks.StaticWorldHooks.InitStaticWorldRelationshipsWatcher;
         #endregion
+
+        #region Misc Hooks
+        On.OverWorld.ctor += Hooks.OverWorldHooks.OverWorld_ctor;
+        On.WorldLoader.CreatureTypeFromString += Hooks.WorldHooks.WorldLoader_CreatureTypeFromString;
+        #endregion
+
+        #endregion
+
+        //
+
+        Debug.Log("<ArchdruidsAdditions> HOOKS LOADED!");
     }
 }

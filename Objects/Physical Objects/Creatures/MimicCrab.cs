@@ -769,7 +769,7 @@ public class MimicCrabGraphics : GraphicsModule
         lastLightColor = lightColor;
         lastLightExposure = lightExposure;
         lastColorExposure = colorExposure;
-        (lightColor, lightExposure, colorExposure) = TrueLightColorAndExposure(camera.room, camera, crab.firstChunk.pos - camera.pos, 0f);
+        TrueLightColorAndExposure(camera.room, camera, crab.firstChunk.pos - camera.pos, 0f, out lightColor, out lightExposure, out colorExposure);
     }
 
     public Vector2 GetLegAttachPos(Vector2 bodyPos, int index)
@@ -2040,7 +2040,7 @@ public class CrabShell : Weapon
         lastLightColor = lightColor;
         lastLightExposure = lightExposure;
         lastColorExposure = colorExposure;
-        (lightColor, lightExposure, colorExposure) = TrueLightColorAndExposure(camera.room, camera, firstChunk.pos - camera.pos, 0f);
+        TrueLightColorAndExposure(camera.room, camera, firstChunk.pos - camera.pos, 0f, out lightColor, out lightExposure, out colorExposure);
     }
     #endregion
 

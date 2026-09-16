@@ -1,11 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Decoration;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using JetBrains.Annotations;
-using Newtonsoft.Json.Linq;
-using UnityEngine;
 
 namespace ArchdruidsAdditions.Enums;
 
@@ -208,7 +201,9 @@ public class PlacedObjectType
         DecoLightningVine,
         AshPepperBush,
         InfectedCorpse,
-        CrabShellCircle;
+        CrabShellCircle,
+        DecoChain,
+        ShrineBowl;
 
     public static List<PlacedObject.Type> values = [];
 
@@ -221,6 +216,8 @@ public class PlacedObjectType
         AshPepperBush = Register(nameof(AshPepperBush));
         InfectedCorpse = Register(nameof(InfectedCorpse));
         CrabShellCircle = Register(nameof(CrabShellCircle));
+        DecoChain = Register(nameof(DecoChain));
+        ShrineBowl = Register(nameof(ShrineBowl));
 
         values.Add(ScarletFlower);
         values.Add(Potato);
@@ -229,6 +226,8 @@ public class PlacedObjectType
         values.Add(AshPepperBush);
         values.Add(InfectedCorpse);
         values.Add(CrabShellCircle);
+        values.Add(DecoChain);
+        values.Add(ShrineBowl);
     }
     public static void UnregisterValues()
     {
@@ -239,6 +238,8 @@ public class PlacedObjectType
         AshPepperBush = Unregister(AshPepperBush);
         InfectedCorpse = Unregister(InfectedCorpse);
         CrabShellCircle = Unregister(CrabShellCircle);
+        DecoChain = Unregister(DecoChain);
+        ShrineBowl = Unregister(ShrineBowl);
 
         values.Clear();
     }
@@ -377,6 +378,12 @@ public class NewSoundID
     public static SoundID AA_CloudFishWhistle3;
     public static SoundID AA_CloudFishScream;
     public static SoundID AA_CloudFishDeath;
+    public static SoundID AA_ChainSound1;
+    public static SoundID AA_ChainSound2;
+    public static SoundID AA_ChainSound3;
+    public static SoundID AA_ChainLoop1;
+    public static SoundID AA_ChainLoop2;
+    public static SoundID AA_ChainLoop3;
 
     public static List<SoundID> values =
     [
@@ -384,7 +391,13 @@ public class NewSoundID
         AA_CloudFishWhistle2,
         AA_CloudFishWhistle3,
         AA_CloudFishScream,
-        AA_CloudFishDeath
+        AA_CloudFishDeath,
+        AA_ChainSound1,
+        AA_ChainSound2,
+        AA_ChainSound3,
+        AA_ChainLoop1,
+        AA_ChainLoop2,
+        AA_ChainLoop3
     ];
 
     public static void RegisterValues()
@@ -394,12 +407,24 @@ public class NewSoundID
         AA_CloudFishWhistle3 = Register(nameof(AA_CloudFishWhistle3));
         AA_CloudFishScream = Register(nameof(AA_CloudFishScream));
         AA_CloudFishDeath = Register(nameof(AA_CloudFishDeath));
+        AA_ChainSound1 = Register(nameof(AA_ChainSound1));
+        AA_ChainSound2 = Register(nameof(AA_ChainSound2));
+        AA_ChainSound3 = Register(nameof(AA_ChainSound3));
+        AA_ChainLoop1 = Register(nameof(AA_ChainLoop1));
+        AA_ChainLoop2 = Register(nameof(AA_ChainLoop2));
+        AA_ChainLoop3 = Register(nameof(AA_ChainLoop3));
 
         values.Add(AA_CloudFishWhistle1);
         values.Add(AA_CloudFishWhistle2);
         values.Add(AA_CloudFishWhistle3);
         values.Add(AA_CloudFishScream);
         values.Add(AA_CloudFishDeath);
+        values.Add(AA_ChainSound1);
+        values.Add(AA_ChainSound2);
+        values.Add(AA_ChainSound3);
+        values.Add(AA_ChainLoop1);
+        values.Add(AA_ChainLoop2);
+        values.Add(AA_ChainLoop3);
     }
     public static void UnregisterValues()
     {
@@ -408,6 +433,12 @@ public class NewSoundID
         AA_CloudFishWhistle3 = Unregister(AA_CloudFishWhistle3);
         AA_CloudFishScream = Unregister(AA_CloudFishScream);
         AA_CloudFishDeath = Unregister(AA_CloudFishDeath);
+        AA_ChainSound1 = Unregister(AA_ChainSound1);
+        AA_ChainSound2 = Unregister(AA_ChainSound2);
+        AA_ChainSound3 = Unregister(AA_ChainSound3);
+        AA_ChainLoop1 = Unregister(AA_ChainLoop1);
+        AA_ChainLoop2 = Unregister(AA_ChainLoop2);
+        AA_ChainLoop3 = Unregister(AA_ChainLoop3);
 
         values.Clear();
     }
@@ -421,16 +452,32 @@ public class NewSoundID
     {
         float random = Random.value;
         if (random < 0.33)
-        {
-            return AA_CloudFishWhistle1;
-        }
+        { return AA_CloudFishWhistle1; }
         else if (random < 0.66)
-        {
-            return AA_CloudFishWhistle2;
-        }
+        { return AA_CloudFishWhistle2; }
         else
-        {
-            return AA_CloudFishWhistle3;
-        }
+        { return AA_CloudFishWhistle3; }
+    }
+
+    public static SoundID RandomChainSound()
+    {
+        float random = Random.value;
+        if (random < 0.33)
+        { return AA_ChainSound1; }
+        else if (random < 0.66)
+        { return AA_ChainSound2; }
+        else
+        { return AA_ChainSound3; }
+    }
+
+    public static SoundID RandomChainLoop()
+    {
+        float random = Random.value;
+        if (random < 0.33)
+        { return AA_ChainLoop1; }
+        else if (random < 0.66)
+        { return AA_ChainLoop2; }
+        else
+        { return AA_ChainLoop3; }
     }
 }

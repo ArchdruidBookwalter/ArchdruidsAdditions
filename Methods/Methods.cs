@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using ArchdruidsAdditions.Data;
 using ArchdruidsAdditions.Objects.DevObjects;
+using ArchdruidsAdditions.Objects.Physical_Objects;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using UnityEngine;
 
@@ -39,7 +41,10 @@ namespace ArchdruidsAdditions.Methods
 
             Debug.Log(divider + "}");
         }
-
+        public static void Log(object message)
+        {
+            Debug.Log(message);
+        }
 
         public static void CheckIfNull(object value, string valueName)
         {
@@ -151,80 +156,114 @@ namespace ArchdruidsAdditions.Methods
 
             return true;
         }
-        public static (Color lightColor, float lightExposure, float colorExposure) TrueLightColorAndExposure(Room room, RoomCamera camera, Vector2 pos, float addBrightness)
+        public static void TrueLightColorAndExposure(Room room, RoomCamera camera, Vector2 pos, float addBrightness, out Color outLightColor, out float outLightExposure, out float outColorExposure)
         {
-            float adjustedDarkness = Mathf.Lerp(0f, 1f, Mathf.InverseLerp(0.3f, 1f, room.Darkness(pos)));
+            int section = 0;
 
-            float lightSourceExposure = 0;
-            float lightColorExposure = 0;
-            float whiteLightExposure = 0;
-            float r = 0;
-            float g = 0;
-            float b = 0;
-
-            List<FSprite> sprites = [];
-            foreach (RoomCamera.SpriteLeaser sLeaser in camera.spriteLeasers)
+            try
             {
-                foreach (FSprite sprite in sLeaser.sprites)
+                float adjustedDarkness = AdjustedRoomDarkness(room, pos);
+
+                section = 1;
+
+                float lightSourceExposure = 0;
+                float lightColorExposure = 0;
+                float whiteLightExposure = 0;
+                float r = 0;
+                float g = 0;
+                float b = 0;
+
+                section = 2;
+
+                List<FSprite> sprites = [];
+                foreach (RoomCamera.SpriteLeaser sLeaser in camera.spriteLeasers)
                 {
-                    if (sprite.shader.name == "LightSource" || sprite.shader.name == "FlatLight")
+                    section = 3;
+
+                    if (sLeaser.sprites != null)
                     {
-                        sprites.Add(sprite);
+                        foreach (FSprite sprite in sLeaser.sprites)
+                        {
+                            section = 4;
+
+                            if (sprite.shader != null && (sprite.shader.name == "LightSource" || sprite.shader.name == "FlatLight"))
+                            {
+                                section = 5;
+
+                                sprites.Add(sprite);
+                            }
+                        }
                     }
                 }
-            }
 
-            Vector2 adjPos = pos + camera.pos;
+                section = 10;
 
-            foreach (FSprite sprite in sprites)
-            {
-                Vector2 lightPos = sprite.GetPosition();
-                float dist = Custom.Dist(pos, lightPos);
+                Vector2 adjPos = pos + camera.pos;
 
-                float scale = sprite.width / 2;
-                float rad = scale;
-
-                Vector3 lightHSL = Custom.RGB2HSL(sprite.color);
-
-                float lightExposure = Custom.SCurve(Mathf.InverseLerp(rad, 0f, dist), 0.5f);
-                float colorExposure = Mathf.Min(lightHSL.y, lightExposure);
-                float whiteExposure = Mathf.Min(1f - colorExposure, lightExposure);
-
-                lightSourceExposure = Mathf.Max(lightSourceExposure, lightExposure);
-                lightColorExposure = Mathf.Max(lightColorExposure, colorExposure);
-                whiteLightExposure = Mathf.Max(whiteLightExposure, whiteExposure);
-
-                r = Mathf.Max(r, sprite.color.r * colorExposure);
-                g = Mathf.Max(g, sprite.color.g * colorExposure);
-                b = Mathf.Max(b, sprite.color.b * colorExposure);
-
-                if (dist < rad)
+                foreach (FSprite sprite in sprites)
                 {
-                    //Create_LineBetweenTwoPoints(room, adjPos, lightPos + camera.pos, 2f, sprite.shellColor, 1);
+                    Vector2 lightPos = sprite.GetPosition();
+                    float dist = Custom.Dist(pos, lightPos);
+
+                    float scale = sprite.width / 2;
+                    float rad = scale;
+
+                    Vector3 lightHSL = Custom.RGB2HSL(sprite.color);
+
+                    float lightExposure = Custom.SCurve(Mathf.InverseLerp(rad, 0f, dist), 0.5f);
+                    float colorExposure = Mathf.Min(lightHSL.y, lightExposure);
+                    float whiteExposure = Mathf.Min(1f - colorExposure, lightExposure);
+
+                    lightSourceExposure = Mathf.Max(lightSourceExposure, lightExposure);
+                    lightColorExposure = Mathf.Max(lightColorExposure, colorExposure);
+                    whiteLightExposure = Mathf.Max(whiteLightExposure, whiteExposure);
+
+                    r = Mathf.Max(r, sprite.color.r * colorExposure);
+                    g = Mathf.Max(g, sprite.color.g * colorExposure);
+                    b = Mathf.Max(b, sprite.color.b * colorExposure);
+
+                    if (dist < rad)
+                    {
+                        //Create_LineBetweenTwoPoints(room, adjPos, lightPos + camera.pos, 2f, sprite.shellColor, 1);
+                    }
+
+                    //Create_Square(room, lightPos + camera.pos, scale, scale, Vec(0), sprite.shellColor, 1);
                 }
 
-                //Create_Square(room, lightPos + camera.pos, scale, scale, Vec(0), sprite.shellColor, 1);
+                lightSourceExposure = Mathf.Max(lightSourceExposure, 1f - adjustedDarkness) + addBrightness;
+                whiteLightExposure = Mathf.Max(whiteLightExposure, (1f - adjustedDarkness) * 0.5f);
+                lightColorExposure -= whiteLightExposure;
+
+
+                Color lightColor = new(r, g, b);
+                //Create_Text(room, adjPos + new Vector2(0f, 80f), "COLOR: " + lightColorExposure, lightColor, 0);
+
+                //Create_Text(room, adjPos + new Vector2(0f, 70f), "H: " + Custom.RGB2HSL(lightColor).x, lightColor, 0);
+                //Create_Text(room, adjPos + new Vector2(0f, 60f), "S: " + Custom.RGB2HSL(lightColor).y, lightColor, 0);
+                //Create_Text(room, adjPos + new Vector2(0f, 50f), "L: " + Custom.RGB2HSL(lightColor).z, lightColor, 0);
+
+                //Create_Text(room, adjPos + new Vector2(0f, 40f), "WHITE: " + whiteLightExposure, Color.white, 0);
+                //Create_Text(room, adjPos + new Vector2(0f, 30f), "LIGHT: " + lightSourceExposure, Color.white, 0);
+                //Create_Text(room, adjPos + new Vector2(0f, 20f), "DARKNESS: " + adjustedDarkness, Color.white, 0);
+
+                //Create_Square(room, adjPos, 10f, 10f, Vec(0), "Red", 1);
+
+                outLightColor = lightColor;
+                outLightExposure = lightSourceExposure;
+                outColorExposure = lightColorExposure * 0.5f;
             }
+            catch (Exception e)
+            {
+                Log_Exception(e, "TRUELIGHTCOLORANDEXPOSURE", section);
 
-            lightSourceExposure = Mathf.Max(lightSourceExposure, 1f - adjustedDarkness) + addBrightness;
-            whiteLightExposure = Mathf.Max(whiteLightExposure, (1f - adjustedDarkness) * 0.5f);
-            lightColorExposure -= whiteLightExposure;
-
-
-            Color lightColor = new(r, g, b);
-            //Create_Text(room, adjPos + new Vector2(0f, 80f), "COLOR: " + lightColorExposure, lightColor, 0);
-
-            //Create_Text(room, adjPos + new Vector2(0f, 70f), "H: " + Custom.RGB2HSL(lightColor).x, lightColor, 0);
-            //Create_Text(room, adjPos + new Vector2(0f, 60f), "S: " + Custom.RGB2HSL(lightColor).y, lightColor, 0);
-            //Create_Text(room, adjPos + new Vector2(0f, 50f), "L: " + Custom.RGB2HSL(lightColor).z, lightColor, 0);
-
-            //Create_Text(room, adjPos + new Vector2(0f, 40f), "WHITE: " + whiteLightExposure, Color.white, 0);
-            //Create_Text(room, adjPos + new Vector2(0f, 30f), "LIGHT: " + lightSourceExposure, Color.white, 0);
-            //Create_Text(room, adjPos + new Vector2(0f, 20f), "DARKNESS: " + adjustedDarkness, Color.white, 0);
-
-            //Create_Square(room, adjPos, 10f, 10f, Vec(0), "Red", 1);
-
-            return (lightColor, lightSourceExposure, lightColorExposure * 0.5f);
+                outLightColor = Color.black;
+                outLightExposure = 0f;
+                outColorExposure = 0f;
+            }
+        }
+        public static float AdjustedRoomDarkness(Room room, Vector2 pos)
+        {
+            return Mathf.Lerp(0f, 1f, Mathf.InverseLerp(0.3f, 1f, room.Darkness(pos)));
         }
 
         #region Debug Shapes
@@ -355,7 +394,6 @@ namespace ArchdruidsAdditions.Methods
         {
             return Custom.DegToVec(degree);
         }
-
         public static Vector2 Vec(Vector2 start, float rotate)
         {
             return Custom.rotateVectorDeg(start, rotate);

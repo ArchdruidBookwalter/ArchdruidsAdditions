@@ -15,19 +15,6 @@ public static class OverWorldHooks
             if (Plugin.RegionData != null)
             {
                 Debug.Log("<Archduid's Additions> GOT REGION DATA");
-
-                /*
-                foreach (string[] regionData in Plugin.RegionData.regionDataList)
-                {
-                    Debug.Log("");
-                    foreach (string regionName in regionData)
-                    {
-                        if (regionName != null)
-                        {
-                            Debug.Log(regionName);
-                        }
-                    }
-                }*/
             }
         }
 

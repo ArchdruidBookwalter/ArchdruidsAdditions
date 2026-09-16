@@ -142,16 +142,20 @@ public class Bow : Weapon, IDrawable
 
                     section = 5.22f;
 
-                    if (Wielder is Player player)
+                    if (Wielder is Player player && basePackage.HasValue)
                     {
                         Player.InputPackage input = basePackage.Value;
                         PlayerGraphics graphics = player.graphicsModule as PlayerGraphics;
+
+                        section = 5.223f;
 
                         if (Plugin.Options.aimBowControls.Value == "Directional Inputs")
                         {
                             Vector2 dir = input.analogueDir.normalized;
                             cursorPos += dir * (input.pckp ? 2f : 10f);
                         }
+
+                        section = 5.224f;
 
                         if (aimCharge < maxAimCharge && player.animation == Player.AnimationIndex.Flip)
                         {
@@ -163,8 +167,12 @@ public class Bow : Weapon, IDrawable
                             player.animation == Player.AnimationIndex.HangFromBeam ||
                             player.animation == Player.AnimationIndex.HangUnderVerticalBeam;
 
+                        section = 5.225f;
+
                         if (input.thrw && !isPlayerBusy)
                         {
+                            section = 5.226f;
+
                             if (aimCharge > 1)
                             {
                                 graphics?.LookAtPoint(GetAimPos(player), 10f);
@@ -172,16 +180,9 @@ public class Bow : Weapon, IDrawable
                         }
                         else
                         {
+                            section = 5.227f;
+
                             Shoot(eu);
-
-                            if (graphics != null)
-                            {
-                                SlugcatHand arrowHand = graphics.hands[loadedSpear.grabbedBy[0].graspUsed];
-                                SlugcatHand bowHand = graphics.hands[grabbedBy[0].graspUsed];
-
-                                arrowHand.pushOutOfTerrain = true;
-                                bowHand.pushOutOfTerrain = true;
-                            }
                         }
                     }
                     else if (Wielder is Scavenger scav)

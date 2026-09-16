@@ -1,8 +1,9 @@
 ﻿using ArchdruidsAdditions.Data;
+using ArchdruidsAdditions.Objects.Decoration;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Decoration;
 using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using DevInterface;
+using static ArchdruidsAdditions.Objects.Decoration.ShrineBowl;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -101,6 +102,32 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
+        else if (type == Enums.PlacedObjectType.DecoChain)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new ChainRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
+        else if (type == Enums.PlacedObjectType.ShrineBowl)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new ShrineBowlRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
         else
         {
             orig(self, type, pobj);
@@ -141,6 +168,16 @@ public static class DevtoolsHooks
         if (self.type == Enums.PlacedObjectType.CrabShellCircle)
         {
             self.data = new CrabShellCircleData(self);
+            return;
+        }
+        if (self.type == Enums.PlacedObjectType.DecoChain)
+        {
+            self.data = new ChainData(self);
+            return;
+        }
+        if (self.type == Enums.PlacedObjectType.ShrineBowl)
+        {
+            self.data = new ShrineBowlData(self);
             return;
         }
         orig(self);

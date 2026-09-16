@@ -36,8 +36,6 @@ public class SpiceMeter
 
     public void Update(FoodMeter foodMeter)
     {
-        int section = 0;
-
         this.foodMeter = foodMeter;
 
         foodPips = player.FoodInStomach;
