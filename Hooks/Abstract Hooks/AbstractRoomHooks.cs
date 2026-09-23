@@ -4,7 +4,7 @@ public static class AbstractRoomHooks
 {
     internal static int AbstractRoom_ConnectivityCost(On.AbstractRoom.orig_ConnectivityCost orig, AbstractRoom self, int start, int goal, CreatureTemplate template)
     {
-        if (template.type == Enums.CreatureTemplateType.CloudFish)
+        if (template.type == CreatureTemplateType.CloudFish)
         {
             /*
             Debug.Log("CLOUDFISH CALLED METHOD: \'AbstractRoom_ConnectivityCost\'");

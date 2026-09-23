@@ -23,7 +23,7 @@ public class ColoredVultureSmoke : Smoke.NewVultureSmoke
             newVultureSmokeSegment.endColor = endColor;
         }
     }
-    public class ColoredVultureSmokeSegment : Smoke.NewVultureSmoke.NewVultureSmokeSegment
+    public class ColoredVultureSmokeSegment : NewVultureSmokeSegment
     {
         public Color startColor;
         public Color endColor;

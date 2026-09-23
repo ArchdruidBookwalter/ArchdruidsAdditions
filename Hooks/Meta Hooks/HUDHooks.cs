@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.HUDObjects;
 using HUD;
 using Menu;
 

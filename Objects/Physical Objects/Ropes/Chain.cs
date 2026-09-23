@@ -1,17 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using DevInterface;
-using Unity.Jobs.LowLevel.Unsafe;
-using UnityEngine;
 using Watcher;
 
-namespace ArchdruidsAdditions.Objects.Decoration;
+namespace ArchdruidsAdditions.Objects;
 
 public class Chain : UpdatableAndDeletable
 {
@@ -26,17 +20,18 @@ public class Chain : UpdatableAndDeletable
 
     public PositionedSoundEmitter soundEmitter;
 
+    public float soundVolume;
     public float depth;
     public bool bothEndsStuck;
 
-    public Chain(Room room, PlacedObject pObj, float depth, float elasticity, Vector2 endPos1, Vector2 endPos2, bool bothEndsStuck = false)
+    public Chain(Room room, PlacedObject pObj, float depth, float elasticity, Vector2 endPos1, Vector2 endPos2, bool bothEndsStuck = false, float gravity = 0.9f)
     {
         this.room = room;
         this.depth = depth;
         this.pObj = pObj;
         this.bothEndsStuck = bothEndsStuck;
 
-        chain = new(this, 10f, 5f, elasticity, endPos1, endPos2, 1.5f, false, true, bothEndsStuck);
+        chain = new(this, 10f, 5f, elasticity, 0.1f, endPos1, endPos2, 1.5f, false, true, bothEndsStuck, gravity);
 
         int section = 0;
 
@@ -77,20 +72,67 @@ public class Chain : UpdatableAndDeletable
         }
         catch (Exception e)
         {
-            Methods.Methods.Log_Exception(e, "CHAIN_CTOR", section);
+            Log_Exception(e, "CHAIN_CTOR", section);
         }
-
-        jingleCooldown = 0;
-        jangleSound = WatcherEnums.WatcherSoundID.Void_Weaver_Jangle;
     }
 
     public override void Update(bool eu)
     {
         base.Update(eu);
 
-        chain.endPos1 = pObj.pos;
+        if (pObj != null)
+        {
+            chain.endPos1 = pObj.pos;
+        }
+
         chain.Update();
 
+        UpdateGraphics();
+
+        float combinedVel = 0;
+        foreach (RopeObject.RopeSegment segment in chain.ropeSegments)
+        { combinedVel += Mathf.Abs(segment.vel.x); }
+
+        Create_Text(room, chain.ropeSegments[chain.EndIndex].pos, combinedVel, Color.red, 0);
+
+        RopeObject.RopeSegment middleSegment = chain.ropeSegments[chain.EndIndex / 2];
+        if (combinedVel > 10)
+        {
+            soundVolume = Mathf.Lerp(soundVolume, 1, 0.1f);
+
+            if (soundEmitter == null)
+            {
+                soundEmitter = new(middleSegment.pos, 0f, 1f);
+                room.PlaySound(NewSoundID.RandomChainLoop(), soundEmitter, true, 0f, 1f, false);
+            }
+        }
+        else
+        {
+            soundVolume = Mathf.Lerp(soundVolume, 0, 0.1f);
+        }
+
+        if (soundEmitter != null)
+        {
+            soundEmitter.Update(eu);
+            soundEmitter.lastPos = soundEmitter.pos;
+            soundEmitter.pos = middleSegment.pos;
+            soundEmitter.volume = soundVolume * 0.5f;
+            if (soundEmitter.slatedForDeletetion || !soundEmitter.soundStillPlaying)
+            {
+                soundEmitter = null;
+            }
+        }
+    }
+
+    public override void Destroy()
+    {
+        base.Destroy();
+        foreach (DynamicLevelElement element in chainLinks)
+        { element.Destroy(); }
+    }
+
+    public void UpdateGraphics()
+    {
         for (int i = 0; i < chainLinks.Length; i++)
         {
             Vector2 pos1 = chain.ropeSegments[i].pos;
@@ -101,38 +143,16 @@ public class Chain : UpdatableAndDeletable
             DynamicLevelElement element = chainLinks[i];
 
             element.pos = Vector2.Lerp(pos1, pos2, 0.5f);
-            element.scale = new Vector2(0.8f, Custom.Dist(pos1, pos2) / 16);
+            element.scale = new Vector2(0.8f, Mathf.Max(0.6f, Custom.Dist(pos1, pos2) / 16));
             element.setDepthOffset = Mathf.FloorToInt(depth * 30f);
             element.rotation = Custom.VecToDeg(segmentDir);
-        }
-
-        RopeObject.RopeSegment middleSegment = chain.ropeSegments[chain.EndIndex / 2];
-        float chainVel = bothEndsStuck ? middleSegment.vel.magnitude : chain.ropeSegments[chain.EndIndex].vel.magnitude;
-        if (chainVel > 1)
-        {
-            if (soundEmitter == null)
-            {
-                soundEmitter = new(middleSegment.pos, 0f, 1f);
-                room.PlaySound(Enums.NewSoundID.RandomChainLoop(), soundEmitter, true, 0f, 1f, false);
-            }
-            else
-            {
-                soundEmitter.Update(eu);
-                soundEmitter.lastPos = soundEmitter.pos;
-                soundEmitter.pos = middleSegment.pos;
-                soundEmitter.volume = Mathf.InverseLerp(1f, 5f, chainVel);
-                if (soundEmitter.slatedForDeletetion || !soundEmitter.soundStillPlaying)
-                {
-                    soundEmitter = null;
-                }
-            }
         }
     }
 
     public void JingleSound(Vector2 pos)
     {
         jingleCooldown = Random.Range(50, 100);
-        room.PlaySound(Enums.NewSoundID.RandomChainSound(), pos, Random.Range(0.2f, 0.5f), 1f);
+        room.PlaySound(NewSoundID.RandomChainSound(), pos, Random.Range(0.2f, 0.5f), 1f);
     }
 }
 
@@ -349,14 +369,14 @@ public class ChainRepresentation : ResizeableObjectRepresentation
         (pObj.data as ChainData).depth = controlPanel.elasticitySlider.data.depth;
 
         data.elasticity = (pObj.data as ChainData).elasticity;
-        data.depth = (pObj.data as ChainData).depth;    
+        data.depth = (pObj.data as ChainData).depth;
         data.bothEndsStuck = (pObj.data as ChainData).bothEndsStuck;
 
         MoveSprite(fSprites.IndexOf(line), absPos);
         line.scaleY = controlPanel.collapsed ? 0f : controlPanel.pos.magnitude;
         line.rotation = Custom.AimFromOneVectorToAnother(absPos, controlPanel.absPos);
 
-        
+
         if (data.realizedChain != null)
         {
             data.realizedChain.depth = data.depth;

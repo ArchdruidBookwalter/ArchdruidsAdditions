@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using EffExt;
+﻿using EffExt;
 
-namespace ArchdruidsAdditions.Objects.RoomEffects;
+namespace ArchdruidsAdditions.Objects;
 
 public static class RandomShells
 {
@@ -28,7 +23,7 @@ public static class RandomShells
                     IntVector2 testTile = new(randomTile.x, j);
                     if (!room.HasAnySolid(testTile) && room.HasAnySolid(testTile.x, testTile.y - 1))
                     {
-                        AbstractPhysicalObject newShell = new(room.world, Enums.AbstractObjectType.CrabShell, null, room.GetWorldCoordinate(testTile), room.game.GetNewID());
+                        AbstractPhysicalObject newShell = new(room.world, AbstractObjectType.CrabShell, null, room.GetWorldCoordinate(testTile), room.game.GetNewID());
                         room.abstractRoom.AddEntity(newShell);
                         break;
                     }

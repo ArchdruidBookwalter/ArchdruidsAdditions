@@ -1,7 +1,4 @@
-﻿using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.Physical_Objects;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using Watcher;
+﻿using Watcher;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -19,7 +16,7 @@ public static class AIHooks
     {
         PathCost cost = orig(self, pos, temp);
 
-        if (temp.type == Enums.CreatureTemplateType.CloudFish)
+        if (temp.type == CreatureTemplateType.CloudFish)
         {
             int terrainProximity = self.getTerrainProximity(pos);
 
@@ -60,7 +57,7 @@ public static class AIHooks
 
             AbstractCreature repCreature = self.trackerRep.representedCreature;
 
-            if (repCreature.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+            if (repCreature.creatureTemplate.type == CreatureTemplateType.Parasite)
             {
                 creatureIsParasite = true;
                 if (repCreature.realizedCreature != null && (repCreature.realizedCreature as Parasite).buriedInChunk == null)
@@ -68,7 +65,7 @@ public static class AIHooks
                     shouldBeAfraid = true;
                 }
             }
-            else if (repCreature.creatureTemplate.type != Enums.CreatureTemplateType.Parasite && self.trackerRep.representedCreature.stuckObjects.Count > 0)
+            else if (repCreature.creatureTemplate.type != CreatureTemplateType.Parasite && self.trackerRep.representedCreature.stuckObjects.Count > 0)
             {
                 foreach (AbstractPhysicalObject.AbstractObjectStick stick in self.trackerRep.representedCreature.stuckObjects)
                 {
@@ -182,7 +179,7 @@ public static class AIHooks
     }
     internal static bool MirosBirdAI_DoIWantToBiteCreature(On.MirosBirdAI.orig_DoIWantToBiteCreature orig, MirosBirdAI self, AbstractCreature creature)
     {
-        bool baseResult = orig(self, creature); 
+        bool baseResult = orig(self, creature);
 
         if (creature.stuckObjects.Count > 0)
         {

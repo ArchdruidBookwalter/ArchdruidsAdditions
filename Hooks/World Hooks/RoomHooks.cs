@@ -1,10 +1,4 @@
 ﻿using System;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.Decoration;
-using ArchdruidsAdditions.Objects.Physical_Objects;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using ArchdruidsAdditions.Objects.RoomEffects;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -27,7 +21,7 @@ public static class RoomHooks
         {
             if (pObj.active)
             {
-                if (pObj.type == Enums.PlacedObjectType.ScarletFlower)
+                if (pObj.type == PlacedObjectType.ScarletFlower)
                 {
                     ScarletFlowerData data = pObj.data as ScarletFlowerData;
 
@@ -37,7 +31,7 @@ public static class RoomHooks
                     if (firstTimeRealized && (session is not StoryGameSession || !(session as StoryGameSession).saveState.ItemConsumed(
                         self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pObj))))
                     {
-                        var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.ScarletFlowerBulb, null, self.GetWorldCoordinate(pObj.pos),
+                        var abstractConsumable = new AbstractConsumable(self.world, AbstractObjectType.ScarletFlowerBulb, null, self.GetWorldCoordinate(pObj.pos),
                             self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pObj), data)
                         { isConsumed = false };
 
@@ -46,14 +40,14 @@ public static class RoomHooks
                         self.abstractRoom.AddEntity(abstractConsumable);
                     }
                 }
-                else if (pObj.type == Enums.PlacedObjectType.Potato)
+                else if (pObj.type == PlacedObjectType.Potato)
                 {
                     PotatoData data = pObj.data as PotatoData;
 
                     if (firstTimeRealized && (session is not StoryGameSession || !(session as StoryGameSession).saveState.ItemConsumed(
                         self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pObj))))
                     {
-                        var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.Potato, null, self.GetWorldCoordinate(pObj.pos),
+                        var abstractConsumable = new AbstractConsumable(self.world, AbstractObjectType.Potato, null, self.GetWorldCoordinate(pObj.pos),
                             self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pObj), data)
                         { isConsumed = false };
 
@@ -73,14 +67,14 @@ public static class RoomHooks
                         self.abstractRoom.AddEntity(abstractConsumable);
                     }
                 }
-                else if (pObj.type == Enums.PlacedObjectType.LightningFruit)
+                else if (pObj.type == PlacedObjectType.LightningFruit)
                 {
                     LightningFruitData data = pObj.data as LightningFruitData;
 
                     if (firstTimeRealized && (session is not StoryGameSession ||
                         !(session as StoryGameSession).saveState.ItemConsumed(self.world, false, self.abstractRoom.index, placedObjects.IndexOf(pObj))))
                     {
-                        var abstractConsumable = new AbstractConsumable(self.world, Enums.AbstractObjectType.LightningFruit, null, self.GetWorldCoordinate(pObj.pos),
+                        var abstractConsumable = new AbstractConsumable(self.world, AbstractObjectType.LightningFruit, null, self.GetWorldCoordinate(pObj.pos),
                             self.game.GetNewID(), self.abstractRoom.index, placedObjects.IndexOf(pObj), data)
                         { isConsumed = false };
 
@@ -89,14 +83,14 @@ public static class RoomHooks
                         self.abstractRoom.AddEntity(abstractConsumable);
                     }
                 }
-                else if (pObj.type == Enums.PlacedObjectType.DecoLightningVine)
+                else if (pObj.type == PlacedObjectType.DecoLightningVine)
                 {
                     DecoVineData data = pObj.data as DecoVineData;
 
                     LightningFruitVine vine = new(self, data.elasticity, pObj.pos, pObj.pos + data.handlePos, data.charge, Mathf.RoundToInt(pObj.pos.x * 100 + pObj.pos.y * 100));
                     self.AddObject(vine);
                 }
-                else if (pObj.type == Enums.PlacedObjectType.AshPepperBush)
+                else if (pObj.type == PlacedObjectType.AshPepperBush)
                 {
                     AshPepperBushData data = pObj.data as AshPepperBushData;
                     int pObjIndex = placedObjects.IndexOf(pObj);
@@ -133,7 +127,7 @@ public static class RoomHooks
 
                     self.AddObject(bush);
                 }
-                else if (pObj.type == Enums.PlacedObjectType.InfectedCorpse)
+                else if (pObj.type == PlacedObjectType.InfectedCorpse)
                 {
                     if (firstTimeRealized)
                     {
@@ -151,7 +145,7 @@ public static class RoomHooks
                                 int numOfEggs = Random.Range(Mathf.Max(1, (int)template.bodySize / 2), (int)template.bodySize);
                                 for (int i = 0; i < numOfEggs; i++)
                                 {
-                                    AbstractPhysicalObject newEgg = new(self.world, Enums.AbstractObjectType.ParasiteEgg, null, self.GetWorldCoordinate(pObj.pos), self.game.GetNewID());
+                                    AbstractPhysicalObject newEgg = new(self.world, AbstractObjectType.ParasiteEgg, null, self.GetWorldCoordinate(pObj.pos), self.game.GetNewID());
                                     self.abstractRoom.AddEntity(newEgg);
 
                                     new AbstractParasiteEggStick(newEgg, newCreature);
@@ -160,7 +154,7 @@ public static class RoomHooks
                         }
                     }
                 }
-                else if (pObj.type == Enums.PlacedObjectType.CrabShellCircle)
+                else if (pObj.type == PlacedObjectType.CrabShellCircle)
                 {
                     if (firstTimeRealized)
                     {
@@ -181,7 +175,7 @@ public static class RoomHooks
                                     IntVector2 testTile = new(startTile.x, j);
                                     if (Custom.DistLess(pObj.pos, self.MiddleOfTile(testTile), data.handlePos.magnitude) && !self.GetTile(testTile).Solid && self.GetTile(testTile.x, testTile.y - 1).Solid)
                                     {
-                                        AbstractPhysicalObject newShell = new(self.world, Enums.AbstractObjectType.CrabShell, null, self.GetWorldCoordinate(testTile), self.game.GetNewID());
+                                        AbstractPhysicalObject newShell = new(self.world, AbstractObjectType.CrabShell, null, self.GetWorldCoordinate(testTile), self.game.GetNewID());
                                         self.abstractRoom.AddEntity(newShell);
                                         break;
                                     }
@@ -190,7 +184,7 @@ public static class RoomHooks
                         }
                     }
                 }
-                else if (pObj.type == Enums.PlacedObjectType.DecoChain)
+                else if (pObj.type == PlacedObjectType.DecoChain)
                 {
                     ChainData data = pObj.data as ChainData;
 
@@ -199,7 +193,7 @@ public static class RoomHooks
 
                     data.realizedChain = chain;
                 }
-                else if (pObj.type == Enums.PlacedObjectType.ShrineBowl)
+                else if (pObj.type == PlacedObjectType.ShrineBowl)
                 {
                     ShrineBowlData data = pObj.data as ShrineBowlData;
 
@@ -207,6 +201,14 @@ public static class RoomHooks
                     self.AddObject(bowl);
 
                     data.realizedBowl = bowl;
+                }
+                else if (pObj.type == PlacedObjectType.BigChandelier)
+                {
+                    if (firstTimeRealized)
+                    {
+                        AbstractHangingPlatform absObj = new(self.world, AbstractObjectType.BigChandelier, null, pObj, self.GetWorldCoordinate(pObj.pos), self.game.GetNewID());
+                        self.abstractRoom.AddEntity(absObj);
+                    }
                 }
             }
         }
@@ -218,6 +220,14 @@ public static class RoomHooks
                 RandomShells.ActuallySpawnEffect(self, effect, firstTimeRealized);
             }
         }
+    }
+    internal static void Room_Update(On.Room.orig_Update orig, Room self)
+    {
+        //LogMethodStart("ROOM_UPDATE");
+
+        orig(self);
+
+        //LogMethodEnd();
     }
     internal static bool Room_HasAnySolid(On.Room.orig_HasAnySolid_int_int orig, Room self, int x, int y)
     {

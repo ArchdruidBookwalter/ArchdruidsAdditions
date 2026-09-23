@@ -1,8 +1,7 @@
 ﻿using System;
-using ArchdruidsAdditions.Data;
 using DevInterface;
 
-namespace ArchdruidsAdditions.Objects.DevObjects
+namespace ArchdruidsAdditions.Objects
 {
     public class KeyboardInput : PositionedDevUINode
     {
@@ -78,8 +77,8 @@ namespace ArchdruidsAdditions.Objects.DevObjects
 
                 blackSquare = new("pixel", true)
                 {
-                    scaleY = whiteSquare.scaleY - (borderWidth * 2),
-                    scaleX = whiteSquare.scaleX - (borderWidth * 2),
+                    scaleY = whiteSquare.scaleY - borderWidth * 2,
+                    scaleX = whiteSquare.scaleX - borderWidth * 2,
                     anchorX = 0f,
                     anchorY = 0f,
                     color = new Color(0f, 0f, 0f)
@@ -154,7 +153,7 @@ namespace ArchdruidsAdditions.Objects.DevObjects
                     blackSquare.SetPosition(absPos + new Vector2(borderWidth, borderWidth));
                     inputLabel.SetPosition(absPos + new Vector2(borderWidth + 2, borderWidth + 1));
 
-                    whiteSquare.alpha = (MouseOver || clicked) ? 1f : 0.5f;
+                    whiteSquare.alpha = MouseOver || clicked ? 1f : 0.5f;
                     inputLabel.alpha = clicked ? 1f : 0.5f;
 
                     if (!clicked)
@@ -222,7 +221,7 @@ namespace ArchdruidsAdditions.Objects.DevObjects
         {
             get
             {
-                return titleWidth + 10f + numberWidth + 4f + (inheritButton ? 34f : 0f); 
+                return titleWidth + 10f + numberWidth + 4f + (inheritButton ? 34f : 0f);
             }
         }
 

@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Security.Policy;
 using System.Text.RegularExpressions;
-using ArchdruidsAdditions.Objects.Decoration;
 using DevInterface;
 
-namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+namespace ArchdruidsAdditions.Objects;
 
 public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
 {
@@ -429,17 +426,17 @@ public class LightningFruit : PlayerCarryableItem, IDrawable, IPlayerEdible
             float lightFlash = Mathf.Lerp(lastLightFlash, this.lightFlash, timeStacker);
 
             backgroundGlow.SetPosition(chunkPos);
-            backgroundGlow.alpha = (power / 1000f) * 0.5f;
+            backgroundGlow.alpha = power / 1000f * 0.5f;
             backgroundGlow.scale = 5f + lightFlash;
             foregroundGlow.SetPosition(chunkPos);
-            foregroundGlow.alpha = (power / 1000f) * 0.5f;
+            foregroundGlow.alpha = power / 1000f * 0.5f;
             foregroundGlow.scale = 2f + lightFlash / 2;
 
             if (decoSparkPower > 0)
             {
                 decoSpark.SetPosition(chunkPos);
                 decoSpark.rotation = Custom.VecToDeg(decoSparkRotation);
-                decoSpark.color = Custom.HSL2RGB(1f, 1f, decoSparkPower > 5 ? 0.5f : ((float)decoSparkPower / 10));
+                decoSpark.color = Custom.HSL2RGB(1f, 1f, decoSparkPower > 5 ? 0.5f : (float)decoSparkPower / 10);
             }
 
             if (camera != rCam)
@@ -757,7 +754,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
         {
             this.vine = vine;
             this.segIndex = segIndex;
-            this.segPos = pos;
+            segPos = pos;
             this.size = size;
             this.colored = colored;
 
@@ -900,7 +897,7 @@ public class LightningFruitVine : UpdatableAndDeletable, IDrawable
     }
     public class LightningFruitRope : RopeObject
     {
-        public LightningFruitRope(UpdatableAndDeletable owner, float elasticity, Vector2 endPos1, Vector2 endPos2, bool freezeOnInit = false, bool stuck1 = true, bool stuck2 = true) : base(owner, 20f, 1f, elasticity, endPos1, endPos2, 1f, freezeOnInit, stuck1, stuck2)
+        public LightningFruitRope(UpdatableAndDeletable owner, float elasticity, Vector2 endPos1, Vector2 endPos2, bool freezeOnInit = false, bool stuck1 = true, bool stuck2 = true) : base(owner, 20f, 1f, elasticity, 1f, endPos1, endPos2, 1f, freezeOnInit, stuck1, stuck2)
         {
         }
 

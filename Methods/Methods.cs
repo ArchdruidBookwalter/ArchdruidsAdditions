@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.DevObjects;
-using ArchdruidsAdditions.Objects.Physical_Objects;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using UnityEngine;
 
 namespace ArchdruidsAdditions.Methods
 {
@@ -387,7 +382,7 @@ namespace ArchdruidsAdditions.Methods
                 "Null value detected at {0}.{1}",
                 memberExp.Member.DeclaringType.Name,
                 memberExp.Member.Name);
-            throw new NullReferenceException (message);
+            throw new NullReferenceException(message);
         }
 
         public static Vector2 Vec(float degree)

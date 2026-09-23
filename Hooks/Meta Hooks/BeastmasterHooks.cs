@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Reflection;
-using ArchdruidsAdditions.Objects.HUDObjects;
 using MonoMod.RuntimeDetour;
 
 namespace ArchdruidsAdditions.Hooks;

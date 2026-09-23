@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using System.Reflection;
-using Newtonsoft.Json.Linq;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -115,11 +114,11 @@ public static class MainHooks
 
         MachineConnector.SetRegisteredOI(Plugin.PLUGIN_GUID, Plugin.Options);
 
-        Enums.AAEnums.RegisterAllEnums();
+        AAEnums.RegisterAllEnums();
 
         //Debug.Log("<Archduid's Additions> ADDING MULTIPLAYER UNLOCKS TO LIST");
 
-        foreach (MultiplayerUnlocks.SandboxUnlockID type in Enums.SandboxUnlockID.values)
+        foreach (MultiplayerUnlocks.SandboxUnlockID type in SandboxUnlockID.values)
         {
             /*
             if (type != null)
@@ -135,7 +134,7 @@ public static class MainHooks
 
         //Debug.Log("<Archduid's Additions> ASSIGNING PLACEDOBJECT CATEGORIES");
 
-        foreach (PlacedObject.Type type in Enums.PlacedObjectType.values)
+        foreach (PlacedObject.Type type in PlacedObjectType.values)
         {
             /*
             if (type != null)
@@ -149,7 +148,7 @@ public static class MainHooks
                 { Pom.Pom.RegisterCategoryOverride(type, "Archdruid's Additions"); }
                 catch
                 {
-                    /*Debug.Log("<Archduid's Additions> " + type.value + " has already been placed in correct Devtools category.");*/ 
+                    /*Debug.Log("<Archduid's Additions> " + type.value + " has already been placed in correct Devtools category.");*/
                 }
             }
         }
@@ -265,8 +264,8 @@ public static class MainHooks
         {
             if (mod.id == "archdruidbookwalter.archdruidsadditions")
             {
-                Enums.AAEnums.RegisterAllEnums();
-                foreach (PlacedObject.Type type in Enums.PlacedObjectType.values)
+                AAEnums.RegisterAllEnums();
+                foreach (PlacedObject.Type type in PlacedObjectType.values)
                 {
                     try
                     { Pom.Pom.RegisterCategoryOverride(type, "Archdruid's Additions"); }
@@ -288,27 +287,27 @@ public static class MainHooks
         {
             if (mod.id == "archdruidbookwalter.archdruidsadditions")
             {
-                if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.Bow))
+                if (MultiplayerUnlocks.ItemUnlockList.Contains(SandboxUnlockID.Bow))
                 {
-                    MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.Bow);
+                    MultiplayerUnlocks.ItemUnlockList.Remove(SandboxUnlockID.Bow);
                 }
-                if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ScarletFlowerBulb))
+                if (MultiplayerUnlocks.ItemUnlockList.Contains(SandboxUnlockID.ScarletFlowerBulb))
                 {
-                    MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.ScarletFlowerBulb);
+                    MultiplayerUnlocks.ItemUnlockList.Remove(SandboxUnlockID.ScarletFlowerBulb);
                 }
-                if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ParrySword))
+                if (MultiplayerUnlocks.ItemUnlockList.Contains(SandboxUnlockID.ParrySword))
                 {
-                    MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.ParrySword);
+                    MultiplayerUnlocks.ItemUnlockList.Remove(SandboxUnlockID.ParrySword);
                 }
-                if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.Potato))
+                if (MultiplayerUnlocks.ItemUnlockList.Contains(SandboxUnlockID.Potato))
                 {
-                    MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.Potato);
+                    MultiplayerUnlocks.ItemUnlockList.Remove(SandboxUnlockID.Potato);
                 }
-                if (MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.LightningFruit))
+                if (MultiplayerUnlocks.ItemUnlockList.Contains(SandboxUnlockID.LightningFruit))
                 {
-                    MultiplayerUnlocks.ItemUnlockList.Remove(Enums.SandboxUnlockID.LightningFruit);
+                    MultiplayerUnlocks.ItemUnlockList.Remove(SandboxUnlockID.LightningFruit);
                 }
-                Enums.AAEnums.UnregisterAllEnums();
+                AAEnums.UnregisterAllEnums();
                 break;
             }
         }

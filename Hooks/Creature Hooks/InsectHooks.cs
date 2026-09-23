@@ -1,6 +1,4 @@
-﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-
-namespace ArchdruidsAdditions.Hooks;
+﻿namespace ArchdruidsAdditions.Hooks;
 
 public static class InsectHooks
 {

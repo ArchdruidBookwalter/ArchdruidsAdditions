@@ -1,8 +1,7 @@
 ﻿using System;
-using ArchdruidsAdditions.Data;
 using HUD;
 
-namespace ArchdruidsAdditions.Objects.HUDObjects;
+namespace ArchdruidsAdditions.Objects;
 
 public class SpiceMeter
 {
@@ -135,15 +134,15 @@ public class SpiceMeter
                 }
                 else
                 {
-                    newCircle.scale = (foodCircle.snapRad / 8f) + meter.pulse + 0.3f;
-                    newCircle.SetUVs(new Vector2(1f - (foodCircle.snapThickness / foodCircle.snapRad), 0), 3);
+                    newCircle.scale = foodCircle.snapRad / 8f + meter.pulse + 0.3f;
+                    newCircle.SetUVs(new Vector2(1f - foodCircle.snapThickness / foodCircle.snapRad, 0), 3);
                 }
 
                 section = 1;
             }
             catch (Exception e)
             {
-                Methods.Methods.Log_Exception(e, "SPICEMETERCIRCLE_DRAW", section);
+                Log_Exception(e, "SPICEMETERCIRCLE_DRAW", section);
             }
         }
     }

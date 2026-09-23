@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace ArchdruidsAdditions.Enums;
+namespace ArchdruidsAdditions;
 
 public class AAEnums
 {
@@ -42,13 +42,14 @@ public class AbstractObjectType
 {
     public static AbstractPhysicalObject.AbstractObjectType
         Bow,
-        ScarletFlowerBulb, 
+        ScarletFlowerBulb,
         ParrySword,
         Potato,
         LightningFruit,
         AshPepper,
         ParasiteEgg,
-        CrabShell;
+        CrabShell,
+        BigChandelier;
 
     public static List<AbstractPhysicalObject.AbstractObjectType> values = [];
 
@@ -62,6 +63,7 @@ public class AbstractObjectType
         AshPepper = Register(nameof(AshPepper));
         ParasiteEgg = Register(nameof(ParasiteEgg));
         CrabShell = Register(nameof(CrabShell));
+        BigChandelier = Register(nameof(BigChandelier));
 
         values.Add(Bow);
         values.Add(ScarletFlowerBulb);
@@ -71,6 +73,7 @@ public class AbstractObjectType
         values.Add(AshPepper);
         values.Add(ParasiteEgg);
         values.Add(CrabShell);
+        values.Add(BigChandelier);
     }
     public static void UnregisterValues()
     {
@@ -82,6 +85,7 @@ public class AbstractObjectType
         AshPepper = Unregister(AshPepper);
         ParasiteEgg = Unregister(ParasiteEgg);
         CrabShell = Unregister(CrabShell);
+        BigChandelier = Unregister(BigChandelier);
 
         values.Clear();
     }
@@ -203,7 +207,8 @@ public class PlacedObjectType
         InfectedCorpse,
         CrabShellCircle,
         DecoChain,
-        ShrineBowl;
+        ShrineBowl,
+        BigChandelier;
 
     public static List<PlacedObject.Type> values = [];
 
@@ -218,6 +223,7 @@ public class PlacedObjectType
         CrabShellCircle = Register(nameof(CrabShellCircle));
         DecoChain = Register(nameof(DecoChain));
         ShrineBowl = Register(nameof(ShrineBowl));
+        BigChandelier = Register(nameof(BigChandelier));
 
         values.Add(ScarletFlower);
         values.Add(Potato);
@@ -228,6 +234,7 @@ public class PlacedObjectType
         values.Add(CrabShellCircle);
         values.Add(DecoChain);
         values.Add(ShrineBowl);
+        values.Add(BigChandelier);
     }
     public static void UnregisterValues()
     {
@@ -240,6 +247,7 @@ public class PlacedObjectType
         CrabShellCircle = Unregister(CrabShellCircle);
         DecoChain = Unregister(DecoChain);
         ShrineBowl = Unregister(ShrineBowl);
+        BigChandelier = Unregister(BigChandelier);
 
         values.Clear();
     }
@@ -451,9 +459,9 @@ public class NewSoundID
     public static SoundID RandomCloudFishWhistle()
     {
         float random = Random.value;
-        if (random < 0.33)
+        if (random < 0.33f)
         { return AA_CloudFishWhistle1; }
-        else if (random < 0.66)
+        else if (random < 0.66f)
         { return AA_CloudFishWhistle2; }
         else
         { return AA_CloudFishWhistle3; }
@@ -462,9 +470,12 @@ public class NewSoundID
     public static SoundID RandomChainSound()
     {
         float random = Random.value;
-        if (random < 0.33)
+
+        Debug.Log(random);
+
+        if (random < 0.33f)
         { return AA_ChainSound1; }
-        else if (random < 0.66)
+        else if (random < 0.66f)
         { return AA_ChainSound2; }
         else
         { return AA_ChainSound3; }

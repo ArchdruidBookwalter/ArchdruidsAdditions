@@ -1,6 +1,4 @@
-﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-
-namespace ArchdruidsAdditions.Objects
+﻿namespace ArchdruidsAdditions.Objects
 {
     internal class ScavengerAimBowAnimation : Scavenger.AttentiveAnimation
     {
@@ -11,7 +9,7 @@ namespace ArchdruidsAdditions.Objects
         public int holdTimer;
         new public bool Continue = true;
 
-        public ScavengerAimBowAnimation(Scavenger scavenger, Bow bow, Vector2 lookPos) : base(scavenger, null, lookPos, true, Enums.ScavengerAnimationID.AimBow)
+        public ScavengerAimBowAnimation(Scavenger scavenger, Bow bow, Vector2 lookPos) : base(scavenger, null, lookPos, true, ScavengerAnimationID.AimBow)
         {
             this.bow = bow;
             this.lookPos = lookPos;
@@ -48,7 +46,7 @@ namespace ArchdruidsAdditions.Objects
                 { Continue = false; }
                 else
                 {
-                    this.lookPos = scavenger.lookPoint;
+                    lookPos = scavenger.lookPoint;
                 }
 
             }

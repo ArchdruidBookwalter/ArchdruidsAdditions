@@ -20,4 +20,13 @@ public static class OverWorldHooks
 
         orig(self, game);
     }
+
+    internal static void OverWorld_Update(On.OverWorld.orig_Update orig, OverWorld self)
+    {
+        //LogMethodStart("OVERWORLD_UPDATE");
+
+        orig(self);
+
+        //LogMethodEnd();
+    }
 }

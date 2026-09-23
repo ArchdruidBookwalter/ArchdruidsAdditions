@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using ArchdruidsAdditions.Objects.HUDObjects;
 using Menu;
 
 namespace ArchdruidsAdditions.Data;
@@ -19,10 +18,13 @@ public static class SleepScreenData
     }
     public static SleepScreenDataContainer GetScreenData()
     {
+        LogMessage("SLEEPSCREENDATA_GETSCREENDATA METHOD WAS CALLED!");
+
         if (sleepScreenData.Count > 0)
         {
             return sleepScreenData[0];
         }
+
         return null;
     }
 }

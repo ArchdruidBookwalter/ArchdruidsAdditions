@@ -2,18 +2,11 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using ArchdruidsAdditions.Objects.Physical_Objects;
 using DevInterface;
-using UnityEngine;
 using Watcher;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
-using static Watcher.PearlContent;
 
-namespace ArchdruidsAdditions.Objects.Decoration;
+namespace ArchdruidsAdditions.Objects;
 
 public class ShrineBowl : UpdatableAndDeletable, IDrawable
 {
@@ -75,9 +68,9 @@ public class ShrineBowl : UpdatableAndDeletable, IDrawable
 
         section = 4;
 
-        Vector2[] collisionVertices = 
+        Vector2[] collisionVertices =
         [
-            new Vector2(30, 10), 
+            new Vector2(30, 10),
             new Vector2(5, -5),
             new Vector2(-5, -5),
             new Vector2(-30, 10),
@@ -118,7 +111,7 @@ public class ShrineBowl : UpdatableAndDeletable, IDrawable
         element.setDepthOffset = Mathf.FloorToInt(depth * 30f);
         element.rotation = 0;
 
-        collisionBox.Update(pos);
+        collisionBox.Update(pos, Vector2.zero, 0f);
 
         givenOffering = false;
         for (int i = 0; i < 3; i++)

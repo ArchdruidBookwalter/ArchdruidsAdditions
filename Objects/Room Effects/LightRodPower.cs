@@ -1,7 +1,7 @@
 ﻿using EffExt;
 using MoreSlugcats;
 
-namespace ArchdruidsAdditions.Objects.RoomEffects;
+namespace ArchdruidsAdditions.Objects;
 
 public static class LightRodPowerEffect
 {
@@ -38,7 +38,7 @@ public static class LightRodPowerEffect
         {
             runTime++;
 
-            if (driftStrength >= 0.001 && UnityEngine.Random.value < 0.1f)
+            if (driftStrength >= 0.001 && Random.value < 0.1f)
             {
                 float factor;
                 switch (driftMode)
@@ -50,14 +50,14 @@ public static class LightRodPowerEffect
                         factor = -1f;
                         break;
                     default:
-                        factor = UnityEngine.Random.Range(-1f, 1f);
+                        factor = Random.Range(-1f, 1f);
                         break;
                 }
                 goalPower += driftStrength * factor;
                 goalPower = Mathf.Clamp(goalPower, 0f, 1f);
             }
 
-            if (resetChance > 0.01 && runTime > resetCooldown && UnityEngine.Random.value < resetChance)
+            if (resetChance > 0.01 && runTime > resetCooldown && Random.value < resetChance)
             {
                 goalPower = startingPower;
                 runTime = 0;

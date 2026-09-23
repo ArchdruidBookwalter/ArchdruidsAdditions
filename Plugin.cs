@@ -1,4 +1,6 @@
-﻿global using RWCustom;
+﻿global using ArchdruidsAdditions.Data;
+global using ArchdruidsAdditions.Objects;
+global using RWCustom;
 global using UnityEngine;
 global using static ArchdruidsAdditions.Methods.Methods;
 global using Color = UnityEngine.Color;
@@ -6,8 +8,6 @@ global using Random = UnityEngine.Random;
 using System;
 using System.Reflection;
 using System.Security.Permissions;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.RoomEffects;
 using BepInEx;
 using EffExt;
 using Menu;
@@ -162,10 +162,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Player Hooks
         On.Player.Update += Hooks.PlayerHooks.Player_Update;
-        On.Player.MovementUpdate += Hooks.PlayerHooks.Player_MovementUpdate;
-        On.Player.UpdateAnimation += Hooks.PlayerHooks.Player_UpdateAnimation;
         On.Player.checkInput += Hooks.PlayerHooks.Player_checkInput;
-        On.Player.NewRoom += Hooks.PlayerHooks.Player_NewRoom;
         On.Player.Grabability += Hooks.PlayerHooks.Player_Grabability;
         On.Player.PickupCandidate += Hooks.PlayerHooks.Player_PickupCandidate;
         On.Player.IsCreatureLegalToHoldWithoutStun += Hooks.PlayerHooks.Player_IsCreatureLegalToHoldWithoutStun;
@@ -363,6 +360,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Wind Hooks
         On.WindRect.Update += Hooks.WindHooks.WindRect_Update;
+        On.Watcher.Sandstorm.AffectObjects += Hooks.WindHooks.Sandstorm_AffectObjects;
         #endregion
 
         #endregion
@@ -373,6 +371,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Room Hooks
         On.Room.Loaded += Hooks.RoomHooks.Room_Loaded;
+        On.Room.Update += Hooks.RoomHooks.Room_Update;
         On.Room.HasAnySolid_int_int += Hooks.RoomHooks.Room_HasAnySolid;
         new Hook(typeof(Room).GetMethod("get_ElectricPower"), Hooks.RoomHooks.Room_Get_ElectricPower);
         On.RoomSettings.LoadPlacedObjects_StringArray_Timeline += Hooks.RoomHooks.RoomSettings_LoadPlacedObjects;
@@ -384,6 +383,10 @@ public sealed class Plugin : BaseUnityPlugin
         On.RoomSpecificScript.SU_A43SuperJumpOnly.Update += Hooks.RoomScriptHooks.RoomSpecificScript_SU_A43SuperJumpOnly_Update;
         #endregion
 
+        #region Shortcut Hooks
+        On.ShortcutHandler.Update += Hooks.ShortcutHooks.ShortcutHandler_Update;
+        #endregion
+
         #region StaticWorld Hooks
         On.StaticWorld.InitCustomTemplates += Hooks.StaticWorldHooks.InitCustomTemplates;
         On.StaticWorld.InitStaticWorldRelationships += Hooks.StaticWorldHooks.InitStaticWorldRelationships;
@@ -393,6 +396,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Misc Hooks
         On.OverWorld.ctor += Hooks.OverWorldHooks.OverWorld_ctor;
+        On.OverWorld.Update += Hooks.OverWorldHooks.OverWorld_Update;
         On.WorldLoader.CreatureTypeFromString += Hooks.WorldHooks.WorldLoader_CreatureTypeFromString;
         #endregion
 

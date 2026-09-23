@@ -1,10 +1,4 @@
-﻿using System;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.Physical_Objects;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using Watcher;
-
-namespace ArchdruidsAdditions.Hooks;
+﻿namespace ArchdruidsAdditions.Hooks;
 
 public static class CreatureHooks
 {
@@ -41,7 +35,7 @@ public static class CreatureHooks
                 if (box.Contains(self.pos, 0f, false))
                 {
                     return true;
-                }    
+                }
             }
         }
 
@@ -56,7 +50,7 @@ public static class CreatureHooks
         {
             foreach (CollisionBox box in MiscData.boxHandlers[room].collisionBoxes)
             {
-                box.GetSnapPosAndContact(self.pos, self.rad, out Vector2 newPos, out IntVector2 contactPoint, false);
+                box.GetSnapPosAndContact(self.pos, self.lastPos, self.rad, out Vector2 newPos, out IntVector2 contactPoint, false);
 
                 if (contactPoint.y < 0 || contactPoint.y > 0)
                 {
@@ -80,7 +74,7 @@ public static class CreatureHooks
                 }
             }
         }
-        
+
     }
 
     internal static void Limb_FindGrip(On.Limb.orig_FindGrip orig, Limb self, Room room, Vector2 attachedPos, Vector2 searchFromPos, float maximumRadiusFromAttachedPos, Vector2 goalPos, int forbiddenXDirs, int forbiddenYDirs, bool behindWalls)
@@ -92,7 +86,7 @@ public static class CreatureHooks
             Vector2 closestBoxPos = new Vector2(-10000, -10000);
             foreach (CollisionBox box in MiscData.boxHandlers[room].collisionBoxes)
             {
-                box.GetSnapPosAndContact(searchFromPos, 0f, out Vector2 closestPoint, out _, false);
+                box.GetClosestPoint(searchFromPos - box.anchorPos, out Vector2 closestPoint, out _, out _);
 
                 if (Custom.DistNoSqrt(goalPos, closestPoint) < Custom.DistNoSqrt(goalPos, closestBoxPos) && Custom.DistLess(attachedPos, closestPoint, maximumRadiusFromAttachedPos))
                 {

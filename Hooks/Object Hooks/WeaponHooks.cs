@@ -1,7 +1,4 @@
 ﻿using System;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using static ArchdruidsAdditions.Data.PlayerData;
 
 namespace ArchdruidsAdditions.Hooks;

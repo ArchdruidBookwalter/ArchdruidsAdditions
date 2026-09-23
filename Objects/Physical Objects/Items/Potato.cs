@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using DevInterface;
 
-namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+namespace ArchdruidsAdditions.Objects;
 
 public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 {
@@ -17,10 +17,10 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
     public string lastVel = "Items";
 
-    public float stemLength = UnityEngine.Random.Range(10f, 15f);
+    public float stemLength = Random.Range(10f, 15f);
     public float elasticity = 0.8f;
-    public bool randomFlip1 = UnityEngine.Random.Range(-1f, 1f) < 0 ? true : false;
-    public bool randomFlip2 = UnityEngine.Random.Range(-1f, 1f) < 0 ? true : false;
+    public bool randomFlip1 = Random.Range(-1f, 1f) < 0 ? true : false;
+    public bool randomFlip2 = Random.Range(-1f, 1f) < 0 ? true : false;
 
     public bool playerSquint;
     public ChunkDynamicSoundLoop soundLoop;
@@ -71,7 +71,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
         #region Flower Color
         Color rootColor;
-        float randomNum = UnityEngine.Random.Range(0f, 100f);
+        float randomNum = Random.Range(0f, 100f);
         float hue;
         float sat;
         float val;
@@ -95,7 +95,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
             val = 50f;
         }
 
-        rootColor = UnityEngine.Random.ColorHSV(
+        rootColor = Random.ColorHSV(
             (hue - 5) / 100, (hue + 5) / 100,
             (sat - 5) / 100, (sat + 5) / 100,
             (val - 5) / 100, (val + 5) / 100);
@@ -105,7 +105,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
 
         if (naturalColors)
         {
-            flowerColor = UnityEngine.Random.ColorHSV(0f, 1f, 0.1f, 0.3f, 1f, 1f);
+            flowerColor = Random.ColorHSV(0f, 1f, 0.1f, 0.3f, 1f, 1f);
         }
         else
         {
@@ -161,9 +161,9 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
                 soundLoop.Volume = 0f;
                 playerSquint = false;
                 AllGraspsLetGoOfThisObject(true);
-                for (int i = 0; i < UnityEngine.Random.Range(3f, 6f); i++)
+                for (int i = 0; i < Random.Range(3f, 6f); i++)
                 {
-                    float speed = UnityEngine.Random.Range(5f, 10f);
+                    float speed = Random.Range(5f, 10f);
                     room.AddObject(new WaterDrip(bodyChunks[0].pos + startRotation * 10, startRotation * speed + Custom.RNV() * speed, false));
                 }
             }
@@ -204,7 +204,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         {
             ChangeCollision(false, false);
 
-            Methods.Methods.ChangeItemSpriteLayer(this, grabbedBy[0].grabber, grabbedBy[0].graspUsed);
+            ChangeItemSpriteLayer(this, grabbedBy[0].grabber, grabbedBy[0].graspUsed);
 
             bodyChunks[1].HardSetPosition(bodyChunks[0].pos + Custom.DirVec(grabbedBy[0].grabber.bodyChunks[1].pos, grabbedBy[0].grabber.mainBodyChunk.pos) * stemLength);
             gravity = 0.9f;
@@ -434,7 +434,7 @@ public class Potato : PlayerCarryableItem, IDrawable, IPlayerEdible
         float lightExposure = Mathf.Lerp(lastLightExposure, this.lightExposure, timeStacker);
         float colorExposure = Mathf.Lerp(lastColorExposure, this.colorExposure, timeStacker);
 
-        if (blink > 0 && UnityEngine.Random.value < 0.5f)
+        if (blink > 0 && Random.value < 0.5f)
         {
             sLeaser.sprites[0].color = blinkColor;
             sLeaser.sprites[1].color = blinkColor;
@@ -638,9 +638,9 @@ public class PotatoRepresentation : ConsumableRepresentation
                 }
                 else
                 {
-                    fSprites[fSprites.Count - 1].color = UnityEngine.Random.ColorHSV(data.minHue, data.minHue, data.minSat, data.minSat, data.minVal, data.minVal);
+                    fSprites[fSprites.Count - 1].color = Random.ColorHSV(data.minHue, data.minHue, data.minSat, data.minSat, data.minVal, data.minVal);
                     fSprites[fSprites.Count - 1].alpha = 1f;
-                    fSprites[fSprites.Count - 2].color = UnityEngine.Random.ColorHSV(data.maxHue, data.maxHue, data.maxSat, data.maxSat, data.maxVal, data.maxVal);
+                    fSprites[fSprites.Count - 2].color = Random.ColorHSV(data.maxHue, data.maxHue, data.maxSat, data.maxSat, data.maxVal, data.maxVal);
                     fSprites[fSprites.Count - 2].alpha = 1f;
                 }
             }

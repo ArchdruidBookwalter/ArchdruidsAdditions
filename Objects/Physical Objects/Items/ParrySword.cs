@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+namespace ArchdruidsAdditions.Objects;
 
 public class ParrySword : Weapon, IDrawable
 {
@@ -666,7 +666,7 @@ public class ParrySword : Weapon, IDrawable
             sLeaser.sprites[2].y = bladePos.y - camPos.y;
             sLeaser.sprites[2].color = swordColor;
 
-            lightPulse += UnityEngine.Random.Range(-0.1f, 0.1f);
+            lightPulse += Random.Range(-0.1f, 0.1f);
             if (lightPulse < -1)
             { lightPulse = -1; }
             else if (lightPulse > 1)
@@ -686,7 +686,7 @@ public class ParrySword : Weapon, IDrawable
 
             float darkness = rCam.room.Darkness(bladePos) * (1f - rCam.room.LightSourceExposure(bladePos));
 
-            if (blink > 0 && UnityEngine.Random.value < 0.5f)
+            if (blink > 0 && Random.value < 0.5f)
             {
                 sLeaser.sprites[0].color = blinkColor;
                 sLeaser.sprites[1].color = blinkColor;
@@ -1001,7 +1001,7 @@ public class ParrySword : Weapon, IDrawable
 
         public void Activate()
         {
-            float randomNum = UnityEngine.Random.Range(-0.1f, 0.1f);
+            float randomNum = Random.Range(-0.1f, 0.1f);
             sword.playerHeldBy.mainBodyChunk.vel += -rotation * 6;
             if (sword.playerHeldBy.animation == Player.AnimationIndex.Flip)
             { sword.playerHeldBy.mainBodyChunk.vel += new Vector2(0f, 60f); }

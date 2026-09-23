@@ -2,13 +2,9 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using ArchdruidsAdditions.Data;
 using DevInterface;
-using IL.Watcher;
-using Unity.Mathematics;
-using static System.Collections.Specialized.BitVector32;
 
-namespace ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+namespace ArchdruidsAdditions.Objects;
 
 public class MimicCrab : InsectoidCreature, IPlayerEdible
 {
@@ -460,7 +456,7 @@ public class MimicCrab : InsectoidCreature, IPlayerEdible
 
     public bool ObjectIsPlant(AbstractPhysicalObject.AbstractObjectType type)
     {
-        if (type == AbstractPhysicalObject.AbstractObjectType.KarmaFlower || 
+        if (type == AbstractPhysicalObject.AbstractObjectType.KarmaFlower ||
             type == AbstractPhysicalObject.AbstractObjectType.FlyLure ||
             type == AbstractPhysicalObject.AbstractObjectType.FirecrackerPlant ||
             type == AbstractPhysicalObject.AbstractObjectType.BubbleGrass ||
@@ -532,7 +528,7 @@ public class MimicCrabGraphics : GraphicsModule
             parts.Add(legs[i].limb);
         }
 
-        bodyParts = [..parts];
+        bodyParts = [.. parts];
 
         albino = false;
     }
@@ -1131,7 +1127,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
 
             section = 1;
 
-            if (behavior == Behavior.Flee && threatTracker.mostThreateningCreature != null && 
+            if (behavior == Behavior.Flee && threatTracker.mostThreateningCreature != null &&
                 threatTracker.mostThreateningCreature.VisualContact && cell.generation != pathFinder.pathGeneration)
             {
                 fleeFromEnemy = true;
@@ -1276,8 +1272,8 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
                             float bestScore = float.MinValue;
                             for (int i = 0; i < 20; i++)
                             {
-                                IntVector2 randomTile = leaderCanidate == null ? 
-                                    new(crab.coord.x + Random.Range(-20, 21), crab.coord.y + Random.Range(-20, 21)) : 
+                                IntVector2 randomTile = leaderCanidate == null ?
+                                    new(crab.coord.x + Random.Range(-20, 21), crab.coord.y + Random.Range(-20, 21)) :
                                     new(leaderCanidate.BestGuessForPosition().x + Random.Range(-20, 21), leaderCanidate.BestGuessForPosition().y + Random.Range(-20, 21));
 
                                 for (int j = 0; j < 20; j++)
@@ -1349,7 +1345,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
                     if (connect1.StartTile != connect2.DestTile)
                     {
                         if (VisualContact(room.MiddleOfTile(connect3.DestTile), 10f) &&
-                            !TileIsPrecarious(crab.coord.Tile) && !TileIsPrecarious(connect1.DestTile) && 
+                            !TileIsPrecarious(crab.coord.Tile) && !TileIsPrecarious(connect1.DestTile) &&
                             !TileIsPrecarious(connect2.DestTile) && !TileIsPrecarious(connect3.DestTile))
                         { pathDir = Custom.DirVec(pos, room.MiddleOfTile(connect3.DestTile)); }
                         else
@@ -1572,50 +1568,50 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
     }
     public float ValueOfObject(AbstractPhysicalObject.AbstractObjectType type)
     {
-        if (type == Enums.AbstractObjectType.CrabShell)                         
+        if (type == AbstractObjectType.CrabShell)
         { return 10f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.ScavengerBomb)    
+        if (type == AbstractPhysicalObject.AbstractObjectType.ScavengerBomb)
         { return 5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.Lantern)          
+        if (type == AbstractPhysicalObject.AbstractObjectType.Lantern)
         { return 5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.DangleFruit)      
+        if (type == AbstractPhysicalObject.AbstractObjectType.DangleFruit)
         { return 5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.WaterNut)         
+        if (type == AbstractPhysicalObject.AbstractObjectType.WaterNut)
         { return 5f; }
-        if (crab.ObjectIsPlant(type))                                           
+        if (crab.ObjectIsPlant(type))
         { return 2.5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.Rock)             
+        if (type == AbstractPhysicalObject.AbstractObjectType.Rock)
         { return 2.5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.DataPearl)        
+        if (type == AbstractPhysicalObject.AbstractObjectType.DataPearl)
         { return 2.5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.Spear)            
+        if (type == AbstractPhysicalObject.AbstractObjectType.Spear)
         { return 2.5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.FlareBomb)        
+        if (type == AbstractPhysicalObject.AbstractObjectType.FlareBomb)
         { return 2.5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.GraffitiBomb)     
+        if (type == AbstractPhysicalObject.AbstractObjectType.GraffitiBomb)
         { return 2.5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.NeedleEgg)        
+        if (type == AbstractPhysicalObject.AbstractObjectType.NeedleEgg)
         { return 2.5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.OverseerCarcass)  
+        if (type == AbstractPhysicalObject.AbstractObjectType.OverseerCarcass)
         { return 2.5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.PebblesPearl)     
+        if (type == AbstractPhysicalObject.AbstractObjectType.PebblesPearl)
         { return 2.5f; }
-        if (type == AbstractPhysicalObject.AbstractObjectType.PuffBall)         
+        if (type == AbstractPhysicalObject.AbstractObjectType.PuffBall)
         { return 2.5f; }
         if (type == AbstractPhysicalObject.AbstractObjectType.EggBugEgg)
         { return 2.5f; }
 
         if (ModManager.DLCShared)
         {
-            if (type == DLCSharedEnums.AbstractObjectType.SingularityBomb)      
+            if (type == DLCSharedEnums.AbstractObjectType.SingularityBomb)
             { return 5f; }
-            if (type == DLCSharedEnums.AbstractObjectType.LillyPuck)            
+            if (type == DLCSharedEnums.AbstractObjectType.LillyPuck)
             { return 2.5f; }
-            if (type == DLCSharedEnums.AbstractObjectType.GooieDuck)            
+            if (type == DLCSharedEnums.AbstractObjectType.GooieDuck)
             { return 2.5f; }
-            if (type == DLCSharedEnums.AbstractObjectType.GlowWeed)             
+            if (type == DLCSharedEnums.AbstractObjectType.GlowWeed)
             { return 2.5f; }
-            if (type == DLCSharedEnums.AbstractObjectType.DandelionPeach)       
+            if (type == DLCSharedEnums.AbstractObjectType.DandelionPeach)
             { return 2.5f; }
         }
 
@@ -1667,8 +1663,8 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
     {
         if (rep.representedCreature.realizedCreature != null)
         {
-            if (rep.representedCreature.slatedForDeletion || 
-                rep.representedCreature.realizedCreature.dead || 
+            if (rep.representedCreature.slatedForDeletion ||
+                rep.representedCreature.realizedCreature.dead ||
                 rep.dynamicRelationship.currentRelationship.type != CreatureTemplate.Relationship.Type.Pack ||
                 (ModManager.Watcher && rep.representedCreature.realizedCreature is Watcher.Barnacle barnacle && !barnacle.hasShell) ||
                 (rep.representedCreature.realizedCreature is MimicCrab otherCrab && otherCrab.AttachedToObject == null))
@@ -1677,7 +1673,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
 
         float score = Mathf.InverseLerp(20f, 0f, Custom.WorldCoordFloatDist(rep.BestGuessForPosition(), crab.coord)) * 10f;
 
-        if (rep.representedCreature.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+        if (rep.representedCreature.creatureTemplate.type == CreatureTemplateType.MimicCrab)
         { score += 100f; }
         else if (ModManager.Watcher && (rep.representedCreature.creatureTemplate.type == Watcher.WatcherEnums.CreatureTemplateType.Barnacle))
         { score += 200f; }
@@ -1958,7 +1954,7 @@ public class CrabShell : Weapon
         { room.PlaySound(Watcher.WatcherEnums.WatcherSoundID.Barnacle_Shell_Crack, firstChunk.pos, 0.8f, 2f); }
         else
         { room.PlaySound(clinkSound, firstChunk.pos); }
-       
+
         crab?.Stun(100);
 
         Destroy();
@@ -1979,7 +1975,7 @@ public class CrabShell : Weapon
 
         shellShape.InitSprites(sprites);
 
-        sLeaser.sprites = [..sprites];
+        sLeaser.sprites = [.. sprites];
 
         AddToContainer(sLeaser, rCam, null);
 

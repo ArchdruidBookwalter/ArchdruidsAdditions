@@ -1,10 +1,8 @@
 ﻿using System;
-using HUD;
 using ArchdruidsAdditions.Hooks;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using ArchdruidsAdditions.Data;
+using HUD;
 
-namespace ArchdruidsAdditions.Objects.HUDObjects;
+namespace ArchdruidsAdditions.Objects;
 
 public static class Cursors
 {
@@ -200,7 +198,7 @@ public static class Cursors
             }
             catch (Exception e)
             {
-                Methods.Methods.Log_Exception(e, "CURSOR DRAW", section);
+                Log_Exception(e, "CURSOR DRAW", section);
             }
         }
 

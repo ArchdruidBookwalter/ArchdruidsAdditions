@@ -1,12 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
 using Menu.Remix.MixedUI;
-using HarmonyLib;
-using System.Windows.Forms.VisualStyles;
 
 namespace ArchdruidsAdditions.Configuration
 {
@@ -21,7 +14,7 @@ namespace ArchdruidsAdditions.Configuration
                     "Preferred controls type to be used when aiming a bow.",
                     new ConfigAcceptableList<string>(["Mouse", "Directional Inputs"]),
                     "",
-                    []    
+                    []
                 )
             );
             spawnBowsEverywhere = config.Bind<bool>

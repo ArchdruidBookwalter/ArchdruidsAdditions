@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -10,7 +8,7 @@ public static class AbstractCreatureHooks
     internal static void AbstractCreature_Realize(On.AbstractCreature.orig_Realize orig, AbstractCreature self)
     {
         //Debug.Log("");
-        //Debug.Log("CREATURE \'" + self.creatureTemplate.values.ToString() + "\' TRIED TO REALIZE IN ROOM");
+        //Debug.Log("CREATURE \'" + self.creatureTemplate.valuesForEachCampaign.ToString() + "\' TRIED TO REALIZE IN ROOM");
 
         float section = 0;
 
@@ -21,17 +19,17 @@ public static class AbstractCreatureHooks
             if (self.Room != null && self.realizedCreature == null)
             {
                 bool AAcreature = false;
-                if (self.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
+                if (self.creatureTemplate.type == CreatureTemplateType.CloudFish)
                 {
                     self.realizedCreature = new CloudFish(self, self.world);
                     AAcreature = true;
                 }
-                else if (self.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+                else if (self.creatureTemplate.type == CreatureTemplateType.Parasite)
                 {
                     self.realizedCreature = new Parasite(self, self.world);
                     AAcreature = true;
                 }
-                else if (self.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+                else if (self.creatureTemplate.type == CreatureTemplateType.MimicCrab)
                 {
                     self.realizedCreature = new MimicCrab(self, self.world);
                     AAcreature = true;
@@ -183,17 +181,17 @@ public static class AbstractCreatureHooks
     }
     internal static void AbstractCreature_InitiateAI(On.AbstractCreature.orig_InitiateAI orig, AbstractCreature self)
     {
-        if (self.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
+        if (self.creatureTemplate.type == CreatureTemplateType.CloudFish)
         {
             CloudFishAI newAI = new(self, self.world);
             self.abstractAI.RealAI = newAI;
         }
-        else if (self.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+        else if (self.creatureTemplate.type == CreatureTemplateType.Parasite)
         {
             ParasiteAI newAI = new(self, self.world);
             self.abstractAI.RealAI = newAI;
         }
-        else if (self.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+        else if (self.creatureTemplate.type == CreatureTemplateType.MimicCrab)
         {
             MimicCrabAI newAI = new(self, self.world);
             self.abstractAI.RealAI = newAI;
@@ -204,15 +202,15 @@ public static class AbstractCreatureHooks
     {
         orig(self, world, creatureTemplate, realizedCreature, pos, ID);
 
-        if (creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
+        if (creatureTemplate.type == CreatureTemplateType.CloudFish)
         {
             self.abstractAI = new CloudFishAbstractAI(world, self);
         }
-        else if (creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+        else if (creatureTemplate.type == CreatureTemplateType.MimicCrab)
         {
             self.abstractAI = new MimicCrabAbstractAI(world, self);
         }
-        else if (creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+        else if (creatureTemplate.type == CreatureTemplateType.Parasite)
         {
             ParasiteState newState = new(self);
             self.state = newState;
@@ -249,7 +247,7 @@ public static class AbstractCreatureHooks
     {
         orig(self);
 
-        if (self.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab && self.unrecognizedFlags.Count > 0)
+        if (self.creatureTemplate.type == CreatureTemplateType.MimicCrab && self.unrecognizedFlags.Count > 0)
         {
             AbstractPhysicalObject.AbstractObjectType type = new(self.unrecognizedFlags[0]);
             if (type.index != -1)

@@ -1,4 +1,4 @@
-﻿namespace ArchdruidsAdditions.Objects.DevObjects;
+﻿namespace ArchdruidsAdditions.Objects;
 
 public class ColoredShapes
 {

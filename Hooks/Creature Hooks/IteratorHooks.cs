@@ -1,8 +1,4 @@
-﻿using System.Threading;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using UnityEngine.Rendering;
-
-namespace ArchdruidsAdditions.Hooks;
+﻿namespace ArchdruidsAdditions.Hooks;
 
 public static class IteratorHooks
 {
@@ -12,7 +8,7 @@ public static class IteratorHooks
         if (self.id == Conversation.ID.Moon_Misc_Item)
         {
             var item = self.describeItem;
-            if (item == Enums.MiscItemType.ScarletFlowerBulb)
+            if (item == MiscItemType.ScarletFlowerBulb)
             {
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
@@ -28,7 +24,7 @@ public static class IteratorHooks
 
                     ), 0));
             }
-            else if (item == Enums.MiscItemType.ParrySword)
+            else if (item == MiscItemType.ParrySword)
             {
                 self.events.Add(new Conversation.TextEvent(self, 80, self.Translate(
 
@@ -49,7 +45,7 @@ public static class IteratorHooks
 
                     ), 0));
             }
-            else if (item == Enums.MiscItemType.Potato)
+            else if (item == MiscItemType.Potato)
             {
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
@@ -57,7 +53,7 @@ public static class IteratorHooks
 
                     ), 0));
             }
-            else if (item == Enums.MiscItemType.Bow)
+            else if (item == MiscItemType.Bow)
             {
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
@@ -66,7 +62,7 @@ public static class IteratorHooks
 
                     ), 0));
             }
-            else if (item == Enums.MiscItemType.AshPepper)
+            else if (item == MiscItemType.AshPepper)
             {
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
@@ -75,7 +71,7 @@ public static class IteratorHooks
 
                     ), 0));
             }
-            else if (item == Enums.MiscItemType.LightningFruit)
+            else if (item == MiscItemType.LightningFruit)
             {
                 self.events.Add(new Conversation.TextEvent(self, 10, self.Translate(
 
@@ -95,22 +91,22 @@ public static class IteratorHooks
     internal static SLOracleBehaviorHasMark.MiscItemType On_SLOracleBehaviorHasMark_TypeOfMiscItem(On.SLOracleBehaviorHasMark.orig_TypeOfMiscItem orig, SLOracleBehaviorHasMark self, PhysicalObject obj)
     {
         if (obj is ScarletFlowerBulb)
-        { return Enums.MiscItemType.ScarletFlowerBulb; }
+        { return MiscItemType.ScarletFlowerBulb; }
 
         if (obj is ParrySword)
-        { return Enums.MiscItemType.ParrySword; }
+        { return MiscItemType.ParrySword; }
 
         if (obj is Potato)
-        { return Enums.MiscItemType.Potato; }
+        { return MiscItemType.Potato; }
 
         if (obj is Bow)
-        { return Enums.MiscItemType.Bow; }
+        { return MiscItemType.Bow; }
 
         if (obj is AshPepper)
-        { return Enums.MiscItemType.AshPepper; }
+        { return MiscItemType.AshPepper; }
 
         if (obj is LightningFruit)
-        { return Enums.MiscItemType.LightningFruit; }
+        { return MiscItemType.LightningFruit; }
 
         return orig(self, obj);
     }

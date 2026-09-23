@@ -1,9 +1,4 @@
-﻿using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.Decoration;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using DevInterface;
-using static ArchdruidsAdditions.Objects.Decoration.ShrineBowl;
+﻿using DevInterface;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -11,7 +6,7 @@ public static class DevtoolsHooks
 {
     internal static void ObjectsPage_CreateObjRep(On.DevInterface.ObjectsPage.orig_CreateObjRep orig, ObjectsPage self, PlacedObject.Type type, PlacedObject pobj)
     {
-        if (type == Enums.PlacedObjectType.ScarletFlower)
+        if (type == PlacedObjectType.ScarletFlower)
         {
             if (pobj == null)
             {
@@ -24,7 +19,7 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
-        else if (type == Enums.PlacedObjectType.Potato)
+        else if (type == PlacedObjectType.Potato)
         {
             if (pobj == null)
             {
@@ -37,7 +32,7 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
-        else if (type == Enums.PlacedObjectType.LightningFruit)
+        else if (type == PlacedObjectType.LightningFruit)
         {
             if (pobj == null)
             {
@@ -50,7 +45,7 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
-        else if (type == Enums.PlacedObjectType.DecoLightningVine)
+        else if (type == PlacedObjectType.DecoLightningVine)
         {
             if (pobj == null)
             {
@@ -63,7 +58,7 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
-        else if (type == Enums.PlacedObjectType.AshPepperBush)
+        else if (type == PlacedObjectType.AshPepperBush)
         {
             if (pobj == null)
             {
@@ -76,7 +71,7 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
-        else if (type == Enums.PlacedObjectType.InfectedCorpse)
+        else if (type == PlacedObjectType.InfectedCorpse)
         {
             if (pobj == null)
             {
@@ -89,7 +84,7 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
-        else if (type == Enums.PlacedObjectType.CrabShellCircle)
+        else if (type == PlacedObjectType.CrabShellCircle)
         {
             if (pobj == null)
             {
@@ -102,7 +97,7 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
-        else if (type == Enums.PlacedObjectType.DecoChain)
+        else if (type == PlacedObjectType.DecoChain)
         {
             if (pobj == null)
             {
@@ -115,7 +110,7 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
-        else if (type == Enums.PlacedObjectType.ShrineBowl)
+        else if (type == PlacedObjectType.ShrineBowl)
         {
             if (pobj == null)
             {
@@ -128,6 +123,19 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
+        else if (type == PlacedObjectType.BigChandelier)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new PlacedObjectRepresentation(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
         else
         {
             orig(self, type, pobj);
@@ -135,50 +143,54 @@ public static class DevtoolsHooks
     }
     internal static void PlacedObject_GenerateEmptyData(On.PlacedObject.orig_GenerateEmptyData orig, PlacedObject self)
     {
-        if (self.type == Enums.PlacedObjectType.ScarletFlower)
+        if (self.type == PlacedObjectType.ScarletFlower)
         {
             self.data = new ScarletFlowerData(self);
             return;
         }
-        if (self.type == Enums.PlacedObjectType.Potato)
+        if (self.type == PlacedObjectType.Potato)
         {
             self.data = new PotatoData(self);
             return;
         }
-        if (self.type == Enums.PlacedObjectType.LightningFruit)
+        if (self.type == PlacedObjectType.LightningFruit)
         {
             self.data = new LightningFruitData(self);
             return;
         }
-        if (self.type == Enums.PlacedObjectType.DecoLightningVine)
+        if (self.type == PlacedObjectType.DecoLightningVine)
         {
             self.data = new DecoVineData(self);
             return;
         }
-        if (self.type == Enums.PlacedObjectType.AshPepperBush)
+        if (self.type == PlacedObjectType.AshPepperBush)
         {
             self.data = new AshPepperBushData(self);
             return;
         }
-        if (self.type == Enums.PlacedObjectType.InfectedCorpse)
+        if (self.type == PlacedObjectType.InfectedCorpse)
         {
             self.data = new InfectedCorpseData(self);
             return;
         }
-        if (self.type == Enums.PlacedObjectType.CrabShellCircle)
+        if (self.type == PlacedObjectType.CrabShellCircle)
         {
             self.data = new CrabShellCircleData(self);
             return;
         }
-        if (self.type == Enums.PlacedObjectType.DecoChain)
+        if (self.type == PlacedObjectType.DecoChain)
         {
             self.data = new ChainData(self);
             return;
         }
-        if (self.type == Enums.PlacedObjectType.ShrineBowl)
+        if (self.type == PlacedObjectType.ShrineBowl)
         {
             self.data = new ShrineBowlData(self);
             return;
+        }
+        if (self.type == PlacedObjectType.BigChandelier)
+        {
+            self.data = new HangingPlatformData(self);
         }
         orig(self);
     }
@@ -232,15 +244,15 @@ public static class DevtoolsHooks
     {
         string baseCritString = orig(creature);
 
-        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
+        if (creature.creatureTemplate.type == CreatureTemplateType.CloudFish)
         {
             return "h";
         }
-        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+        if (creature.creatureTemplate.type == CreatureTemplateType.Parasite)
         {
             return "p";
         }
-        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+        if (creature.creatureTemplate.type == CreatureTemplateType.MimicCrab)
         {
             return "c";
         }
@@ -251,15 +263,15 @@ public static class DevtoolsHooks
     {
         Color baseCritColor = orig(creature);
 
-        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.CloudFish)
+        if (creature.creatureTemplate.type == CreatureTemplateType.CloudFish)
         {
             return Custom.HSL2RGB(0.52f, 1f, 0.5f);
         }
-        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+        if (creature.creatureTemplate.type == CreatureTemplateType.Parasite)
         {
             return Custom.HSL2RGB(0.2f, 1f, 0.5f);
         }
-        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.MimicCrab)
+        if (creature.creatureTemplate.type == CreatureTemplateType.MimicCrab)
         {
             return Custom.HSL2RGB(0f, 1f, 0.5f);
         }

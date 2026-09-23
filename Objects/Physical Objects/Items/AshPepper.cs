@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 using DevInterface;
 
-namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+namespace ArchdruidsAdditions.Objects;
 
 public class AshPepper : PlayerCarryableItem, IDrawable, IPlayerEdible
 {
@@ -405,7 +404,7 @@ public class AshPepperBush : CosmeticSprite
             branch.Initialize(sprites);
         }
 
-        sLeaser.sprites = [..sprites];
+        sLeaser.sprites = [.. sprites];
 
         AddToContainer(sLeaser, rCam, null);
     }
@@ -488,9 +487,9 @@ public class AshPepperBush : CosmeticSprite
             branchWidth = width;
 
             List<Leaf> leaves = [];
-            leaves.Add(new (90));
-            leaves.Add(new (-90));
-            this.leaves = [..leaves];
+            leaves.Add(new(90));
+            leaves.Add(new(-90));
+            this.leaves = [.. leaves];
 
             segmentPositions = new Vector2[numOfPositions, 2];
             randomSegmentDeviation = new float[numOfPositions];
@@ -649,7 +648,7 @@ public class AshPepperBush : CosmeticSprite
 
         if (attachedPeppers[branch] == null)
         {
-            AbstractConsumable abstractConsumable = new(room.world, Enums.AbstractObjectType.AshPepper, null, room.GetWorldCoordinate(pObj.pos),
+            AbstractConsumable abstractConsumable = new(room.world, AbstractObjectType.AshPepper, null, room.GetWorldCoordinate(pObj.pos),
             room.game.GetNewID(), room.abstractRoom.index, pObjIndex, data)
             { isConsumed = false };
 

@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
-namespace ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+namespace ArchdruidsAdditions.Objects;
 
 public class CloudFish : AirBreatherCreature, IPlayerEdible
 {
@@ -58,7 +57,7 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
                 bodySegmentWidths.Add(Mathf.Lerp(bodyChunks[bodyChunks.Length - 1].rad, 0f, (float)(i + 1) / tailLength));
             }
 
-            this.bodySegmentWidths = [..bodySegmentWidths];
+            this.bodySegmentWidths = [.. bodySegmentWidths];
             return this.bodySegmentWidths;
         }
     }
@@ -154,7 +153,7 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
                         tail[i].lastPos = tail[i].pos;
                         tail[i].pos = bodyChunks[2].pos + Custom.DirVec(bodyChunks[1].pos, bodyChunks[2].pos);
                     }
-                }    
+                }
 
                 ignoreChunk = -1;
                 if (grabbedBy.Count > 0 && grabbedBy[0].grabber is Vulture vulture)
@@ -283,7 +282,7 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
     {
         if (!dead)
         {
-            room?.PlaySound(Enums.NewSoundID.AA_CloudFishDeath, firstChunk.pos, 2f, Random.Range(1f, 1.4f));
+            room?.PlaySound(NewSoundID.AA_CloudFishDeath, firstChunk.pos, 2f, Random.Range(1f, 1.4f));
 
             if (AI != null && AI.trackedCreatures != null && AI.trackedCreatures.Count > 0)
             {
@@ -485,7 +484,7 @@ public class CloudFish : AirBreatherCreature, IPlayerEdible
     {
         if (!dead)
         {
-            room.PlaySound(Enums.NewSoundID.AA_CloudFishScream, firstChunk.pos, 2f, Random.Range(1f, 1.4f));
+            room.PlaySound(NewSoundID.AA_CloudFishScream, firstChunk.pos, 2f, Random.Range(1f, 1.4f));
         }
         base.Grabbed(grasp);
     }
@@ -2044,11 +2043,11 @@ public class CloudFishAI : ArtificialIntelligence
             section = 2;
             if (behavior != Behavior.Flee && Random.value < 0.001f)
             {
-                room.PlaySound(Enums.NewSoundID.RandomCloudFishWhistle(), cloudfish.firstChunk.pos, Random.Range(0.9f, 1.1f), Random.Range(0.8f, 1.2f));
+                room.PlaySound(NewSoundID.RandomCloudFishWhistle(), cloudfish.firstChunk.pos, Random.Range(0.9f, 1.1f), Random.Range(0.8f, 1.2f));
             }
             else if (behavior == Behavior.Flee && Random.value < 0.01f)
             {
-                room.PlaySound(Enums.NewSoundID.AA_CloudFishScream, cloudfish.firstChunk.pos, Random.Range(0.9f, 1.1f), Random.Range(0.8f, 1.2f));
+                room.PlaySound(NewSoundID.AA_CloudFishScream, cloudfish.firstChunk.pos, Random.Range(0.9f, 1.1f), Random.Range(0.8f, 1.2f));
             }
 
             section = 4;
@@ -3338,7 +3337,7 @@ public class CloudFishAI : ArtificialIntelligence
                         }
                     }
                 }
-                End:;
+            End:;
 
                 for (int i = 0; i < 4; i++)
                 {

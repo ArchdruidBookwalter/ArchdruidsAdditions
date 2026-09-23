@@ -1,7 +1,6 @@
 ﻿using System;
-using ArchdruidsAdditions.Data;
 
-namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+namespace ArchdruidsAdditions.Objects;
 
 public class Bow : Weapon, IDrawable
 {

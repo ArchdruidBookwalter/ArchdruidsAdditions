@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -13,33 +11,28 @@ public static class SaveStateHooks
     {
         float section = 0;
 
+        LogMethodStart("SAVESTATE_LOADGAME");
+
         orig(self, s, game);
 
-        /*
-        Debug.Log("");
-        Debug.Log("STATIC WORLD:");
-        for (int i = 0; i < StaticWorld.creatureTemplates.Length; i++)
-        {
-            Debug.Log("");
-            CreatureTemplate template = StaticWorld.creatureTemplates[i];
-            for (int j = 0; j < template.relationships.Length; j++)
-            {
-                CreatureTemplate.Relationship relationship = template.relationships[j];
-                CreatureTemplate otherTemplate = StaticWorld.creatureTemplates[j];
 
-                Debug.Log(template.name + " -> " + otherTemplate.name + " : " + relationship.type + ", " + relationship.intensity);
-            }
-        } 000
-        Debug.Log("");
-        */
+        if (SaveStateData.AASaveDataContainer != null)
+        {
+            LogMessage("AASAVEDATACONTAINER WAS NOT NULL!");
+        }
 
         bool readData = false;
         PlayerData.AAPlayerState playerState = null;
+        SaveStateData.SaveStateDataContainer currentSaveDataContainer = null;
 
         try
         {
+            LogMessage("LOADING SAVE STRING: ");
+
             for (int i = 0; i < self.unrecognizedSaveStrings.Count; i++)
             {
+                LogMessage(self.unrecognizedSaveStrings[i]);
+
                 if (self.unrecognizedSaveStrings[i] == "AA_SAVEDATA_START")
                 { readData = true; }
                 else if (self.unrecognizedSaveStrings[i] == "AA_SAVEDATA_END")
@@ -48,43 +41,85 @@ public static class SaveStateHooks
                 {
                     section = 1;
 
-                    string[] splitData = Regex.Split(self.unrecognizedSaveStrings[i], "<svB>");
-
-                    if (splitData.Length > 1)
+                    if (self.unrecognizedSaveStrings[i].Contains("MODDATA_"))
                     {
-                        if (splitData[0] == "PLAYER")
+                        section = 1.1f;
+
+                        string modName = self.unrecognizedSaveStrings[i].Remove(0, 8);
+                        if (SaveStateData.saveStateDataContainers.ContainsKey(modName))
                         {
-                            section = 2;
+                            currentSaveDataContainer = SaveStateData.saveStateDataContainers[modName];
+                        }
+                        else
+                        {
+                            currentSaveDataContainer = null;
+                        }
+                    }
+                    else
+                    {
+                        section = 1.2f;
 
-                            int playerID = int.Parse(splitData[1]);
+                        string[] splitData = Regex.Split(self.unrecognizedSaveStrings[i], "<svB>");
 
-                            if (PlayerData.playerStates.Count == 0 || !PlayerData.playerStates.ContainsKey(playerID))
+                        section = 1.3f;
+
+                        if (splitData.Length > 1)
+                        {
+                            if (currentSaveDataContainer != null)
                             {
-                                section = 3;
+                                section = 1.4f;
 
-                                PlayerData.AAPlayerState newPlayerState = new(null, null);
-                                PlayerData.playerStates.Add(playerID, newPlayerState);
+                                if (!currentSaveDataContainer.campaignDataValues.ContainsKey(self.saveStateNumber))
+                                {
+                                    currentSaveDataContainer.InitializeValuesForCampaign(self.saveStateNumber);
+                                }
 
-                                playerState = newPlayerState;
+                                SaveStateData.SaveStateDataContainer.CampaignDataContainer campaignDataContainer = currentSaveDataContainer.campaignDataValues[self.saveStateNumber];
+                                if (campaignDataContainer.HasValue(splitData[0]))
+                                {
+                                    SaveStateData.SaveStateDataContainer.DataValue value = campaignDataContainer.GetValue(splitData[0]);
+                                    campaignDataContainer.SetValue(splitData[0], SaveStateData.SaveStateDataContainer.DataValue.GenericDataValueFromString(splitData[1], value.valueType));
+                                }
                             }
                             else
                             {
-                                playerState = PlayerData.playerStates[playerID];
-                            }
-                        }
-                        else if (playerState != null)
-                        {
-                            if (splitData[0] == "INFECTED")
-                            {
-                                section = 4;
+                                section = 2f;
 
-                                playerState.infected = bool.Parse(splitData[1]);
-                            }
-                            else if (splitData[0] == "PARASITE")
-                            {
-                                section = 5;
+                                if (splitData[0] == "PLAYER")
+                                {
+                                    section = 2.1f;
 
-                                playerState.parasiteID = EntityID.FromString(splitData[1]);
+                                    int playerID = int.Parse(splitData[1]);
+
+                                    if (PlayerData.playerStates.Count == 0 || !PlayerData.playerStates.ContainsKey(playerID))
+                                    {
+                                        section = 2.2f;
+
+                                        PlayerData.AAPlayerState newPlayerState = new(null, null);
+                                        PlayerData.playerStates.Add(playerID, newPlayerState);
+
+                                        playerState = newPlayerState;
+                                    }
+                                    else
+                                    {
+                                        playerState = PlayerData.playerStates[playerID];
+                                    }
+                                }
+                                else if (playerState != null)
+                                {
+                                    if (splitData[0] == "INFECTED")
+                                    {
+                                        section = 2.3f;
+
+                                        playerState.infected = bool.Parse(splitData[1]);
+                                    }
+                                    else if (splitData[0] == "PARASITE")
+                                    {
+                                        section = 2.4f;
+
+                                        playerState.parasiteID = EntityID.FromString(splitData[1]);
+                                    }
+                                }
                             }
                         }
                     }
@@ -93,19 +128,16 @@ public static class SaveStateHooks
         }
         catch (Exception e)
         {
+            LogMethodEnd();
+
             Methods.Methods.Log_Exception(e, "SAVESTATE_LOADGAME", section);
         }
 
-        if (SaveStateData.saveStateData.Count == 0 || !SaveStateData.saveStateData.ContainsKey(self.saveStateNumber))
-        {
-            new SaveStateData.SaveStateDataContainer(self.saveStateNumber);
-        }
+        LogMethodEnd();
     }
     internal static string SaveState_SaveToString(On.SaveState.orig_SaveToString orig, SaveState self)
     {
-        //Debug.Log("");
-        //Debug.Log("SAVESTATE_SAVETOSTRING METHOD WAS CALLED!");
-        //Debug.Log("");
+        LogMethodStart("SAVESTATE_SAVETOSTRING");
 
         if (self.unrecognizedSaveStrings.Contains("AA_SAVEDATA_START") && self.unrecognizedSaveStrings.Contains("AA_SAVEDATA_END"))
         {
@@ -116,24 +148,33 @@ public static class SaveStateHooks
         }
 
         self.unrecognizedSaveStrings.Add("AA_SAVEDATA_START");
+
         foreach (PlayerData.AAPlayerState playerState in PlayerData.playerStates.Values)
         {
             Dictionary<string, string> playerData = playerState.GetCycleData();
 
-            //Debug.Log("");
-
             for (int i = 0; i < playerData.Count; i++)
             {
                 string[] att = [playerData.ElementAt(i).Key, playerData.ElementAt(i).Value];
-
-                //Debug.Log("SAVED AAPLAYERSTATE VALUE: " + att[0] + ", " + att[1]);
-
                 self.AddUnrecognized(att);
             }
         }
+
+        foreach (string modName in SaveStateData.saveStateDataContainers.Keys)
+        {
+            self.unrecognizedSaveStrings.Add("MODDATA_" + modName);
+
+            SaveStateData.SaveStateDataContainer.CampaignDataContainer campaignContainer = SaveStateData.saveStateDataContainers[modName].campaignDataValues[self.saveStateNumber];
+            foreach (SaveStateData.SaveStateDataContainer.DataValue value in campaignContainer.values)
+            {
+                string[] att = [value.name, value.value.ToString()];
+                self.AddUnrecognized(att);
+            }
+        }
+
         self.unrecognizedSaveStrings.Add("AA_SAVEDATA_END");
 
-        //Debug.Log("");
+        LogMethodEnd();
 
         string postSaveString = orig(self);
 
@@ -141,7 +182,7 @@ public static class SaveStateHooks
     }
     internal static void SaveState_SessionEnded(On.SaveState.orig_SessionEnded orig, SaveState self, RainWorldGame game, bool survived, bool newMalnourished)
     {
-        //Methods.Methods.LogMethodStart("SAVESTATE_SESSIONENDED");
+        Methods.Methods.LogMethodStart("SAVESTATE_SESSIONENDED");
         //Methods.Methods.LogMessage("SURVIVED: " + survived + ", " + "MALNOURISHED: " + newMalnourished);
 
         if (survived)
@@ -166,7 +207,7 @@ public static class SaveStateHooks
 
         orig(self, game, survived, newMalnourished);
 
-        //Methods.Methods.LogMethodEnd();
+        Methods.Methods.LogMethodEnd();
     }
     internal static float SaveState_Get_SlowFadeIn(Func<SaveState, float> orig, SaveState self)
     {
@@ -175,8 +216,8 @@ public static class SaveStateHooks
         LogMethodStart("SAVESTATE_GET_SLOWFADEIN");
         LogMessage("ORIG VALUE: " + origValue);
 
-        Data.SaveStateData.SaveStateDataContainer saveStateData = Data.SaveStateData.saveStateData[self.progression.PlayingAsSlugcat];
-        if (saveStateData.infected)
+        SaveStateData.SaveStateDataContainer container = SaveStateData.AASaveDataContainer;
+        if (container != null && container.GetBool("INFECTED", self.progression.PlayingAsSlugcat))
         {
             LogMessage("PARASITE FOUND!");
 

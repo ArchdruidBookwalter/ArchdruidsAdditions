@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 using DevInterface;
 
-namespace ArchdruidsAdditions.Objects.PhysicalObjects.Items;
+namespace ArchdruidsAdditions.Objects;
 
 public class ScarletFlowerBulb : Weapon, IDrawable
 {
@@ -63,27 +63,27 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         this.frozen = frozen;
         this.rotation = rotation;
 
-        double randomNum1 = UnityEngine.Random.Range(0f, 100f);
-        double randomNum2 = UnityEngine.Random.Range(0f, 100f);
+        double randomNum1 = Random.Range(0f, 100f);
+        double randomNum2 = Random.Range(0f, 100f);
         float redNum;
         float greenNum;
         float blueNum;
         float alphaNum;
         if (randomNum1 > 90)
         {
-            redNum = UnityEngine.Random.Range(0f, 0f);
-            greenNum = UnityEngine.Random.Range(0f, 0.3f);
-            blueNum = UnityEngine.Random.Range(0f, 0.3f);
+            redNum = Random.Range(0f, 0f);
+            greenNum = Random.Range(0f, 0.3f);
+            blueNum = Random.Range(0f, 0.3f);
         }
         else
         {
-            redNum = UnityEngine.Random.Range(0f, 0f);
-            greenNum = UnityEngine.Random.Range(0f, 0.1f);
-            blueNum = UnityEngine.Random.Range(0f, 0.1f);
+            redNum = Random.Range(0f, 0f);
+            greenNum = Random.Range(0f, 0.1f);
+            blueNum = Random.Range(0f, 0.1f);
         }
         if (randomNum2 > 90)
         {
-            alphaNum = UnityEngine.Random.Range(-0.2f, 0.2f);
+            alphaNum = Random.Range(-0.2f, 0.2f);
         }
         else
         {
@@ -137,7 +137,7 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         if (!AbstrConsumable.isConsumed && (Vector2.Distance(firstChunk.pos, homePos) > 5f || grabbedBy.Count > 0))
         {
             frozen = false;
-            room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.3f, 3f + UnityEngine.Random.value / 10f);
+            room.PlaySound(SoundID.Lizard_Jaws_Shut_Miss_Creature, firstChunk, false, 0.3f, 3f + Random.value / 10f);
             AbstrConsumable.Consume();
         }
         rotation = (rotation - Custom.PerpendicularVector(rotation) * (firstChunk.ContactPoint.y < 0 ? 0.3f : 0f) * firstChunk.vel.x).normalized;
@@ -200,8 +200,8 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         {
             for (int i = 0; i < 2; i++)
             {
-                Vector2 pos = firstChunk.pos + Custom.RNV() * 5f * UnityEngine.Random.value;
-                Vector2 vel = Custom.RNV() * 4f * (1 + UnityEngine.Random.value);
+                Vector2 pos = firstChunk.pos + Custom.RNV() * 5f * Random.value;
+                Vector2 vel = Custom.RNV() * 4f * (1 + Random.value);
                 room.AddObject(new Spark(pos, vel, lightColor, null, 20, 40));
             }
         }
@@ -236,14 +236,14 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         }
         if (exploded == false)
         {
-            var num = UnityEngine.Random.Range(5, 8);
+            var num = Random.Range(5, 8);
             Vector2 vector = Vector2.Lerp(firstChunk.pos, firstChunk.lastPos, 0.35f);
             Vector2 vector2 = Custom.RNV();
 
             for (int k = 0; k < num; k++)
             {
-                Vector2 pos = firstChunk.pos + Custom.RNV() * 5f * UnityEngine.Random.value;
-                Vector2 vel = Custom.RNV() * 4f * (1 + UnityEngine.Random.value);
+                Vector2 pos = firstChunk.pos + Custom.RNV() * 5f * Random.value;
+                Vector2 vel = Custom.RNV() * 4f * (1 + Random.value);
                 room.AddObject(new Spark(pos, vel, lightColor, null, 20, 40));
             }
 
@@ -260,7 +260,7 @@ public class ScarletFlowerBulb : Weapon, IDrawable
                 }
             }
 
-            var num2 = UnityEngine.Random.Range(0.2f, 0.3f);
+            var num2 = Random.Range(0.2f, 0.3f);
 
             room.PlaySound(SoundID.Bomb_Explode, firstChunk.pos, 0.75f, 1.25f);
 
@@ -311,7 +311,7 @@ public class ScarletFlowerBulb : Weapon, IDrawable
         sLeaser.sprites[2].y = lightPos.y - rotVec.y * 3f - camPos.y;
         sLeaser.sprites[2].scale = 2f;
 
-        if (blink > 0 && UnityEngine.Random.value < 0.5f)
+        if (blink > 0 && Random.value < 0.5f)
         {
             sLeaser.sprites[0].color = blinkColor;
             sLeaser.sprites[1].color = blinkColor;

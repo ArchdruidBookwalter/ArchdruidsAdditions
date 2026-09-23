@@ -8,12 +8,12 @@ public static class WorldHooks
 
         if (s == "CloudFish" || s == "cloudfish" || s == "cloud fish" || s == "Cloud Fish")
         {
-            return Enums.CreatureTemplateType.CloudFish;
+            return CreatureTemplateType.CloudFish;
         }
 
         if (s == "MimicCrab" || s == "mimiccrab" || s == "mimic crab" || s == "Mimic Crab")
         {
-            return Enums.CreatureTemplateType.MimicCrab;
+            return CreatureTemplateType.MimicCrab;
         }
 
         return baseType;

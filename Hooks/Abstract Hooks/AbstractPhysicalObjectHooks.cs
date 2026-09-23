@@ -1,10 +1,6 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
 using System.Globalization;
-using ArchdruidsAdditions.Enums;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using System.Collections.Generic;
-using ArchdruidsAdditions.Data;
+using System.Linq;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -80,7 +76,11 @@ public static class AbstractPhysicalObjectHooks
             else if (self.type == AbstractObjectType.CrabShell)
             {
                 self.realizedObject = new CrabShell(self, self.world);
-            }   
+            }
+            else if (self.type == AbstractObjectType.BigChandelier)
+            {
+                self.realizedObject = new HangingPlatform(self.Room.realizedRoom, self, 200f, "Chandelier");
+            }
         }
 
         //if (self.realizedObject != null)

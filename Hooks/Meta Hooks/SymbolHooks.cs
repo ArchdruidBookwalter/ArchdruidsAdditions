@@ -6,35 +6,35 @@ public static class SymbolHooks
     {
         string baseText = orig(itemType, intData);
 
-        if (itemType == Enums.AbstractObjectType.ScarletFlowerBulb)
+        if (itemType == AbstractObjectType.ScarletFlowerBulb)
         {
             return "Icon_ScarletFlowerBulb";
         }
-        else if (itemType == Enums.AbstractObjectType.ParrySword)
+        else if (itemType == AbstractObjectType.ParrySword)
         {
             return "Icon_ParrySword";
         }
-        else if (itemType == Enums.AbstractObjectType.Potato)
+        else if (itemType == AbstractObjectType.Potato)
         {
             return "Icon_Potato";
         }
-        else if (itemType == Enums.AbstractObjectType.Bow)
+        else if (itemType == AbstractObjectType.Bow)
         {
             return "Icon_Bow";
         }
-        else if (itemType == Enums.AbstractObjectType.LightningFruit)
+        else if (itemType == AbstractObjectType.LightningFruit)
         {
             return "Icon_LightningFruit";
         }
-        else if (itemType == Enums.AbstractObjectType.AshPepper)
+        else if (itemType == AbstractObjectType.AshPepper)
         {
             return "Icon_AshPepper";
         }
-        else if (itemType == Enums.AbstractObjectType.ParasiteEgg)
+        else if (itemType == AbstractObjectType.ParasiteEgg)
         {
             return "Icon_ParasiteEgg";
         }
-        else if (itemType == Enums.AbstractObjectType.CrabShell)
+        else if (itemType == AbstractObjectType.CrabShell)
         {
             return "Icon_SnailShell";
         }
@@ -46,35 +46,35 @@ public static class SymbolHooks
     {
         Color baseColor = orig(itemType, intData);
 
-        if (itemType == Enums.AbstractObjectType.ScarletFlowerBulb)
+        if (itemType == AbstractObjectType.ScarletFlowerBulb)
         {
             return new Color(1f, 0f, 0f);
         }
-        else if (itemType == Enums.AbstractObjectType.ParrySword)
+        else if (itemType == AbstractObjectType.ParrySword)
         {
             return new Color(1f, 0.79f, 0.3f);
         }
-        else if (itemType == Enums.AbstractObjectType.Potato)
+        else if (itemType == AbstractObjectType.Potato)
         {
             return new Color(1f, 0.8f, 0.6f);
         }
-        else if (itemType == Enums.AbstractObjectType.Bow)
+        else if (itemType == AbstractObjectType.Bow)
         {
             return new Color(0.5f, 0.5f, 0.5f);
         }
-        else if (itemType == Enums.AbstractObjectType.LightningFruit)
+        else if (itemType == AbstractObjectType.LightningFruit)
         {
             return new Color(0f, 0f, 1f);
         }
-        else if (itemType == Enums.AbstractObjectType.AshPepper)
+        else if (itemType == AbstractObjectType.AshPepper)
         {
             return new Color(0.68235296f, 0.15686275f, 0.11764706f);
         }
-        else if (itemType == Enums.AbstractObjectType.ParasiteEgg)
+        else if (itemType == AbstractObjectType.ParasiteEgg)
         {
             return new Color(0.4f, 0.8f, 0f);
         }
-        else if (itemType == Enums.AbstractObjectType.CrabShell)
+        else if (itemType == AbstractObjectType.CrabShell)
         {
             return Custom.HSL2RGB(0.04f, 0.4f, 0.6f);
         }
@@ -86,15 +86,15 @@ public static class SymbolHooks
     {
         string baseSpriteName = orig(iconData);
 
-        if (iconData.critType == Enums.CreatureTemplateType.CloudFish)
+        if (iconData.critType == CreatureTemplateType.CloudFish)
         {
             return "CloudFish";
         }
-        else if (iconData.critType == Enums.CreatureTemplateType.Parasite)
+        else if (iconData.critType == CreatureTemplateType.Parasite)
         {
             return "Parasite";
         }
-        else if (iconData.critType == Enums.CreatureTemplateType.MimicCrab)
+        else if (iconData.critType == CreatureTemplateType.MimicCrab)
         {
             return "MimicCrab";
         }
@@ -106,11 +106,11 @@ public static class SymbolHooks
     {
         Color baseColor = orig(iconData);
 
-        if (iconData.critType == Enums.CreatureTemplateType.CloudFish)
+        if (iconData.critType == CreatureTemplateType.CloudFish)
         {
             return Custom.HSL2RGB(0.5f, 0.8f, 0.8f);
         }
-        if (iconData.critType == Enums.CreatureTemplateType.MimicCrab)
+        if (iconData.critType == CreatureTemplateType.MimicCrab)
         {
             return Custom.HSL2RGB(0f, 0.5f, 0.4f);
         }

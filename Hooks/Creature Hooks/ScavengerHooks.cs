@@ -1,10 +1,7 @@
 ﻿using System;
-using Unity.Mathematics;
-using ArchdruidsAdditions.Objects;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using static ArchdruidsAdditions.Enums.ScavengerBehavior;
 using System.Collections.Generic;
-using ArchdruidsAdditions.Data;
+using Unity.Mathematics;
+using static ArchdruidsAdditions.ScavengerBehavior;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -306,7 +303,7 @@ public static class ScavengerHooks
     {
         float baseItemScore = orig(self, rep);
 
-        if (rep.representedItem.type == Enums.AbstractObjectType.Bow)
+        if (rep.representedItem.type == AbstractObjectType.Bow)
         {
             foreach (Creature.Grasp grasp in self.scavenger.grasps)
             {
@@ -502,7 +499,7 @@ public static class ScavengerHooks
             if (zeroGrip != null)
             { self.DropAndDestroy(zeroGrip); }
 
-            AbstractPhysicalObject bow = new(self.world, Enums.AbstractObjectType.Bow, null, self.parent.pos, self.world.game.GetNewID());
+            AbstractPhysicalObject bow = new(self.world, AbstractObjectType.Bow, null, self.parent.pos, self.world.game.GetNewID());
             self.world.GetAbstractRoom(self.parent.pos).AddEntity(bow);
             new AbstractPhysicalObject.CreatureGripStick(self.parent, bow, 0, true);
         }
@@ -534,7 +531,7 @@ public static class ScavengerHooks
             if (zeroGrip != null)
             { self.DropAndDestroy(zeroGrip); }
 
-            AbstractPhysicalObject bow = new(self.world, Enums.AbstractObjectType.Bow, null, self.parent.pos, self.world.game.GetNewID());
+            AbstractPhysicalObject bow = new(self.world, AbstractObjectType.Bow, null, self.parent.pos, self.world.game.GetNewID());
             self.world.GetAbstractRoom(self.parent.pos).AddEntity(bow);
             new AbstractPhysicalObject.CreatureGripStick(self.parent, bow, 0, true);
         }
@@ -546,7 +543,7 @@ public static class ScavengerHooks
         {
             foreach (AbstractPhysicalObject.AbstractObjectStick stick in self.parent.stuckObjects)
             {
-                if (stick is AbstractPhysicalObject.CreatureGripStick grip && grip.A.type == Enums.AbstractObjectType.Bow)
+                if (stick is AbstractPhysicalObject.CreatureGripStick grip && grip.A.type == AbstractObjectType.Bow)
                 {
                     self.missionAppropriateGear = true;
                     return;
@@ -564,7 +561,7 @@ public static class ScavengerHooks
         {
             if (!main && Random.value < 0.2f)
             {
-                return new AbstractConsumable(self.world, Enums.AbstractObjectType.Bow, null, self.parent.pos, self.world.game.GetNewID(), -1, -1, null);
+                return new AbstractConsumable(self.world, AbstractObjectType.Bow, null, self.parent.pos, self.world.game.GetNewID(), -1, -1, null);
             }
         }
 
@@ -643,7 +640,7 @@ public static class ScavengerHooks
                         AbstractPhysicalObject newObj = null;
                         if (UnityEngine.Random.value < 0.2f)
                         {
-                            newObj = new(room.world, Enums.AbstractObjectType.Bow, null, room.GetWorldCoordinate(self.tiles[i]), room.game.GetNewID());
+                            newObj = new(room.world, AbstractObjectType.Bow, null, room.GetWorldCoordinate(self.tiles[i]), room.game.GetNewID());
                         }
                         if (newObj is not null)
                         {

@@ -1,8 +1,5 @@
 ﻿using System;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 using Cursor = System.Windows.Forms.Cursor;
-using Debug = UnityEngine.Debug;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -49,7 +46,7 @@ public static class ProcessHooks
                             self.framesPerSecond = Math.Min(self.framesPerSecond, Mathf.RoundToInt(newFPS));
                         }
                         break;
-                    }    
+                    }
                 }
             }
         }

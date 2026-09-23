@@ -1,16 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
 using DevInterface;
-using JetBrains.Annotations;
 
-namespace ArchdruidsAdditions.Objects.Decoration;
+namespace ArchdruidsAdditions.Objects;
 
 public class RopeObject
 {
@@ -25,13 +19,15 @@ public class RopeObject
     public float rigidity;
 
     public float adjustSegmentLength;
+    public float gravity;
+    public float windAffect;
 
     public int StartIndex
     { get { return 0; } }
     public int EndIndex
     { get { return ropeSegments.Length - 1; } }
 
-    public RopeObject(UpdatableAndDeletable owner, float segmentLength, float segmentMass, float elasticity, Vector2 endPos1, Vector2 endPos2, float rigidity = 1f, bool freezeOnInit = false, bool stuck1 = true, bool stuck2 = true)
+    public RopeObject(UpdatableAndDeletable owner, float segmentLength, float segmentMass, float elasticity, float windAffect, Vector2 endPos1, Vector2 endPos2, float rigidity = 1f, bool freezeOnInit = false, bool stuck1 = true, bool stuck2 = true, float gravity = 0.9f)
     {
         float ropeLength = Custom.Dist(endPos1, endPos2) + (stuck1 && stuck2 ? elasticity * 300 : 0);
 
@@ -84,6 +80,8 @@ public class RopeObject
         this.stuck1 = stuck1;
         this.stuck2 = stuck2;
         this.rigidity = rigidity;
+        this.gravity = gravity;
+        this.windAffect = windAffect;
     }
 
     public virtual void Update()
@@ -91,15 +89,28 @@ public class RopeObject
         //Create_Text(owner.room, ropeSegments[0].pos, "ACTUAL LENGTH: " + Custom.Dist(ropeSegments[0].pos, ropeSegments[EndIndex].pos), "Red", 0);
         //Create_Text(owner.room, ropeSegments[0].pos + new Vector2(0f, -20f), "ROPE LENGTH: " + ropeLength, "Yellow", 0);
 
+
+
         if (owner == null || owner.room == null)
         {
-            if (MiscData.ropeObjects.Contains(this))
-            { MiscData.ropeObjects.Remove(this); }
+            foreach (List<RopeObject> list in MiscData.ropeObjects.Values)
+            {
+                if (list.Contains(this))
+                {
+                    list.Remove(this);
+                }
+            }
         }
         else
         {
-            if (!MiscData.ropeObjects.Contains(this))
-            { MiscData.ropeObjects.Add(this); }
+            if (!MiscData.ropeObjects.ContainsKey(owner.room))
+            {
+                MiscData.ropeObjects.Add(owner.room, []);
+            }
+            if (!MiscData.ropeObjects[owner.room].Contains(this))
+            {
+                MiscData.ropeObjects[owner.room].Add(this);
+            }
         }
 
         if (freeze)
@@ -117,6 +128,11 @@ public class RopeObject
         ConnectSegments(-1);
         AttachEndSegments();
 
+        foreach (RopeSegment segment in ropeSegments)
+        {
+            Create_Square(owner.room, segment.pos, 5f, 5f, Vec(45), "Yellow", 0);
+        }
+
         float totalLength = 0;
         for (int i = 1; i < ropeSegments.Length; i++)
         {
@@ -132,15 +148,13 @@ public class RopeObject
     public virtual void AttachEndSegments()
     {
         if (stuck1)
-        {
-            ropeSegments[StartIndex].AttachToPos(endPos1);
-            Create_Square(owner.room, endPos1, 4f, 4f, Vec(45), "Blue", 0);
-        }
+        { ropeSegments[StartIndex].AttachToPos(endPos1); }
+        ropeSegments[StartIndex].ConnectToObject();
+
+
         if (stuck2)
-        {
-            ropeSegments[EndIndex].AttachToPos(endPos2);
-            Create_Square(owner.room, endPos2, 4f, 4f, Vec(45), "Green", 0);
-        }
+        { ropeSegments[EndIndex].AttachToPos(endPos2); }
+        ropeSegments[EndIndex].ConnectToObject();
     }
     public virtual void ConnectSegments(int dir)
     {
@@ -188,7 +202,14 @@ public class RopeObject
         }
     }
     public virtual void DetachObject(RopeAttachedObject obj)
-    { 
+    {
+    }
+
+    public void AttachObjectToEnd(PhysicalObject obj, int chunk, float strength, float detachDist)
+    {
+        RopeSegment endSegment = ropeSegments[EndIndex];
+
+        endSegment.AttachObject(new RopeAttachedObject(endSegment, obj, chunk, strength, detachDist));
     }
 
     public class RopeSegment
@@ -204,7 +225,7 @@ public class RopeObject
         { get { return owner.ropeSegments.IndexOf(this) == owner.EndIndex; } }
 
         public bool Stuck
-        { get { return (StartSegment && owner.stuck1) || (EndSegment && owner.stuck2); } }
+        { get { return StartSegment && owner.stuck1 || EndSegment && owner.stuck2; } }
 
         public RopeAttachedObject obj;
 
@@ -217,7 +238,7 @@ public class RopeObject
         {
             lastPos = pos;
             pos += vel;
-            //vel *= 0.99f;
+            vel *= 0.99f;
 
             if (owner.owner.room.PointSubmerged(pos))
             {
@@ -226,7 +247,7 @@ public class RopeObject
             }
             else
             {
-                vel.y -= owner.owner.room.gravity * 0.9f;
+                vel.y -= owner.owner.room.gravity * owner.gravity;
             }
 
             obj?.Update();
@@ -284,8 +305,6 @@ public class RopeObject
                 {
                     BodyChunk grabberChunk = obj.obj.grabbedBy[0].grabber.mainBodyChunk;
 
-                    Vector2 dirVec2 = Custom.DirVec(pos, grabberChunk.pos);
-
                     Vector2 newDir3 = -dirVec * dist * 0.5f;
 
                     grabberChunk.pos += newDir3;
@@ -320,6 +339,13 @@ public class RopeObject
         {
             vel += windDir * strength;
             vel += Custom.PerpendicularVector(windDir) * Random.Range(-1, 1) * strength * 0.5f;
+        }
+
+        public void HardSetPos(Vector2 pos, Vector2 lastPos, Vector2 vel)
+        {
+            this.pos = pos;
+            this.lastPos = pos;
+            this.vel = vel;
         }
     }
     public class RopeAttachedObject

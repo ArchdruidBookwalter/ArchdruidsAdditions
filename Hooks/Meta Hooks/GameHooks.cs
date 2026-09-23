@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.DevObjects;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -13,6 +10,8 @@ public static class GameHooks
     #region RainWorldGame Hooks
     internal static void RainWorldGame_Update(On.RainWorldGame.orig_Update orig, RainWorldGame self)
     {
+        //LogMethodStart("RAINWORLDGAME_UPDATE");
+
         if (PlayerData.TextBeingInputted)
         {
             self.lastPauseButton = true; self.lastRestartButton = true;
@@ -54,6 +53,8 @@ public static class GameHooks
                 debugEffectCooldown--;
             }
         }
+
+        //LogMethodEnd();
     }
     internal static void RainWorldGame_CommunicateWithUpcomingProcess(On.RainWorldGame.orig_CommunicateWithUpcomingProcess orig, RainWorldGame self, MainLoopProcess nextProcess)
     {
@@ -100,17 +101,16 @@ public static class GameHooks
                 }
             }
 
-            Data.SaveStateData.SaveStateDataContainer saveStateData = Data.SaveStateData.saveStateData[self.StoryCharacter];
-            if (playerInfected)
+            if (SaveStateData.AASaveDataContainer != null && playerInfected)
             {
                 //LogMessage("PLAYER IS INFECTED! SAVESTATE SHOULD NOT BE SAVED");
                 self.rainWorld.saveBackedUp = true;
 
-                saveStateData.infected = true;
+                SaveStateData.AASaveDataContainer.SetInfected(self.StoryCharacter, true);
             }
             else
             {
-                saveStateData.infected = false;
+                SaveStateData.AASaveDataContainer.SetInfected(self.StoryCharacter, false);
             }
         }
 
@@ -148,17 +148,11 @@ public static class GameHooks
     {
         //LogMethodStart("PLAYERPROGRESSION_GETORINITIATESAVESTATE");
 
-        if (self.currentSaveState == null && Data.SaveStateData.saveStateData.ContainsKey(saveStateNumber))
+        if (self.currentSaveState == null && SaveStateData.parasiteSaveState != null)
         {
-            Data.SaveStateData.SaveStateDataContainer saveData = Data.SaveStateData.saveStateData[saveStateNumber];
-            if (saveData.parasiteSaveState != null)
-            {
-                //LogMessage("LOADED PARASITE SAVE STATE!");
-
-                self.currentSaveState = saveData.parasiteSaveState;
-                self.currentSaveState.deathPersistentSaveData.winState.ResetLastShownValues();
-                saveData.parasiteSaveState = null;
-            }
+            self.currentSaveState = SaveStateData.parasiteSaveState;
+            self.currentSaveState.deathPersistentSaveData.winState.ResetLastShownValues();
+            SaveStateData.parasiteSaveState = null;
         }
 
         SaveState newSaveState = orig(self, saveStateNumber, game, setup, saveAsDeathOrQuit);
@@ -173,8 +167,8 @@ public static class GameHooks
 
         bool output;
 
-        Data.SaveStateData.SaveStateDataContainer saveStateData = Data.SaveStateData.saveStateData[self.PlayingAsSlugcat];
-        if (saveStateData.infected)
+        Data.SaveStateData.SaveStateDataContainer saveStateData = Data.SaveStateData.AASaveDataContainer;
+        if (saveStateData != null && saveStateData.GetBool("INFECTED", self.PlayingAsSlugcat))
         {
             //LogMessage("PLAYER IS INFECTED! NOT SAVING STATE TO DISK!");
 
@@ -193,7 +187,7 @@ public static class GameHooks
                 self.BackupRegionStatePreservation();
             }
 
-            saveStateData.parasiteSaveState = self.currentSaveState;
+            SaveStateData.parasiteSaveState = self.currentSaveState;
             self.currentSaveState = null;
 
             //LogMethodEnd();
@@ -211,11 +205,7 @@ public static class GameHooks
     {
         orig(self);
 
-        if (Data.SaveStateData.saveStateData.ContainsKey(self.PlayingAsSlugcat))
-        {
-            Data.SaveStateData.SaveStateDataContainer saveStateData = Data.SaveStateData.saveStateData[self.PlayingAsSlugcat];
-            saveStateData.parasiteSaveState = null;
-        }
+        SaveStateData.parasiteSaveState = null;
     }
     #endregion
 

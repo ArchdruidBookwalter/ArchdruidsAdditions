@@ -1,11 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.Decoration;
-using ArchdruidsAdditions.Objects.Physical_Objects;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using static System.Collections.Specialized.BitVector32;
 using static ArchdruidsAdditions.Data.PlayerData;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -19,76 +12,13 @@ public static class PlayerHooks
 
     internal static void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
     {
+        //LogMethodStart("PLAYER_UPDATE");
+
         orig(self, eu);
 
-        //Create_Square(self.room, self.room.MiddleOfTile(self.firstChunk.pos), 10f, 10f, Vec(0), Color.red, 0);
-        //Create_Text(self.room, self.room.MiddleOfTile(self.firstChunk.pos), self.IsTileSolid(0, 0, 0), Color.red, 0);
-
-        //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 20f), self.bodyMode, Color.yellow, 0);
-        //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 30f), self.animation, Color.yellow, 0);
-        //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 40f), "GOINTOCORRIDORCLIMB: " + self.goIntoCorridorClimb, Color.yellow, 0);
-
-        if (self.room != null && self.room.aimap != null && MiscData.boxHandlers.ContainsKey(self.room))
-        {
-            CollisionBoxHandler handler = MiscData.boxHandlers[self.room];
-
-            Vector2 mousePos = self.room.MiddleOfTile(new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + self.room.game.cameras[0].pos);
-            IntVector2 newTilePos = self.room.GetTilePosition(mousePos) - self.room.GetTilePosition(self.firstChunk.pos);
-
-            bool solid = self.IsTileSolid(0, newTilePos.x, newTilePos.y);
-
-            Create_Square(self.room, self.room.MiddleOfTile(mousePos), 20f, 20f, Vec(0), Color.red, 0);
-            Create_Text(self.room, self.room.MiddleOfTile(mousePos) + new Vector2(0f, 25f), solid, Color.red, 0);
-        }
-
-
-        //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 0f), self.animation.value, Color.yellow, 0);
-
-        //Debug.Log(self.coord.Tile.ToString());
-
-        //Create_Square(self.room, Futile.mousePosition, 5f, 5f, Vec(45), "Red", 0);
-        //Create_Text(self.room, Futile.mousePosition + new Vector3(0f, 20f), self.room.GetTilePosition(Futile.mousePosition), "Red", 0);
-
-        /*
-        if (debugCooldown > 0)
-        { debugCooldown--; }
-        else
-        {
-            if (self.input[0].spec)
-            {
-                if (self.input[0].thrw)
-                {
-                    recordCreatureRelationships = true;
-                }
-            }
-        }
-
-        if (recordCreatureRelationships)
-        {
-            if (templateID == StaticWorld.creatureTemplates.Length)
-            {
-                recordCreatureRelationships = false;
-                templateID = 0;
-            }
-            else
-            {
-                Debug.Log("");
-
-                CreatureTemplate creature = StaticWorld.creatureTemplates[templateID];
-
-                Debug.Log("-" + creature.name.ToUpper() + " RELATIONSHIPS: ");
-
-                for (int i = 0; i < creature.relationships.Length; i++)
-                {
-                    CreatureTemplate otherCreature = StaticWorld.creatureTemplates[i];
-
-                    Debug.Log("   " + otherCreature.name.ToUpper() + " - " + creature.relationships[i].type.value + " : " + creature.relationships[i].intensity);
-                }
-
-                templateID++;
-            }
-            debugCooldown = 200;
-        }*/
+        IntVector2 mousePos = self.room.GetTilePosition(new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + self.room.game.cameras[0].pos);
+        Create_Square(self.room, self.room.MiddleOfTile(mousePos), 20f, 20f, Vec(0), Color.red, 0);
+        Create_Text(self.room, self.room.MiddleOfTile(mousePos) + new Vector2(0f, 30f), mousePos.ToString(), Color.red, 0);
 
         AAPlayerState playerState = GetPlayerState(self.abstractCreature.ID.number);
         if (playerState != null)
@@ -172,16 +102,12 @@ public static class PlayerHooks
                 playerState.parasiteKillCounter = 0;
             }
         }
-    }
-    internal static void Player_MovementUpdate(On.Player.orig_MovementUpdate orig, Player self, bool eu)
-    {
-        orig(self, eu);
-    }
-    internal static void Player_UpdateAnimation(On.Player.orig_UpdateAnimation orig, Player self)
-    {
-        bool slideOnBox = false;
 
-        orig(self);
+        //LogMessage("LASTPOS: " + self.firstChunk.lastPos.ToString());
+        //LogMessage("VEL: " + self.firstChunk.vel.ToString());
+        //LogMessage("POS: " + self.firstChunk.pos.ToString());
+
+        //LogMethodEnd();
     }
     internal static void Player_checkInput(On.Player.orig_checkInput orig, Player self)
     {
@@ -227,10 +153,6 @@ public static class PlayerHooks
                 }
             }
         }
-    }
-    internal static void Player_NewRoom(On.Player.orig_NewRoom orig, Player self, Room newRoom)
-    {
-        orig(self, newRoom);
     }
 
     internal static Player.ObjectGrabability Player_Grabability(On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
@@ -389,7 +311,7 @@ public static class PlayerHooks
         return baseItemDir;
     }
 
-    internal static bool Player_IsObjectThrowable(On.Player.orig_IsObjectThrowable orig,  Player self, PhysicalObject obj)
+    internal static bool Player_IsObjectThrowable(On.Player.orig_IsObjectThrowable orig, Player self, PhysicalObject obj)
     {
         bool baseThrowability = orig(self, obj);
 
@@ -543,11 +465,9 @@ public static class PlayerHooks
 
         try
         {
-            //Debug.Log("<ArchdruidsAdditions> METHOD PLAYERGRAPHICS_UPDATE WAS CALLED! 1");
+            //LogMethodStart("PLAYERGRAPHICS_DRAWSPRITES");
 
             orig(self);
-
-            //Debug.Log("<ArchdruidsAdditions> METHOD PLAYERGRAPHICS_UPDATE WAS CALLED! 2");
 
             section = 1;
 
@@ -565,6 +485,13 @@ public static class PlayerHooks
                     self.malnourished = Mathf.Max(self.malnourished, playerState.parasiteMalnourishment);
                 }
             }
+
+            //LogMessage("LASTPOS: " + self.player.firstChunk.lastPos.ToString());
+            //LogMessage("VEL: " + self.player.firstChunk.vel.ToString());
+            //LogMessage("POS: " + self.player.firstChunk.pos.ToString());
+
+            //LogMethodEnd();
+
         }
         catch (Exception e)
         {

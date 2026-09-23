@@ -1,16 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Globalization;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Xml;
-using ArchdruidsAdditions.Data;
 using DevInterface;
 using SplashWater;
 using Watcher;
 
-namespace ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
+namespace ArchdruidsAdditions.Objects;
 
 #region Parasite Creature
 
@@ -49,9 +45,9 @@ public class Parasite : InsectoidCreature, IPlayerEdible, IHaveInjectedPoisonCol
     public int splatNoiseCooldown;
 
     public Color InjectedPoisonColor
-    {   
+    {
         get { return (graphicsModule as ParasiteGraphics).poisonColor; }
-        set { (graphicsModule as ParasiteGraphics).poisonColor = value; } 
+        set { (graphicsModule as ParasiteGraphics).poisonColor = value; }
     }
     public int dieCounter;
     public bool poisoned;
@@ -112,7 +108,7 @@ public class Parasite : InsectoidCreature, IPlayerEdible, IHaveInjectedPoisonCol
         List<BodyChunk> newBodyChunks = [];
         for (int i = 0; i < length; i++)
         {
-            newBodyChunks.Add(new(this, 0, default, Mathf.Lerp(2f, 0f, (float)i/(length + 1)), 0.05f));
+            newBodyChunks.Add(new(this, 0, default, Mathf.Lerp(2f, 0f, (float)i / (length + 1)), 0.05f));
         }
         bodyChunks = [.. newBodyChunks];
 
@@ -491,7 +487,7 @@ public class Parasite : InsectoidCreature, IPlayerEdible, IHaveInjectedPoisonCol
             }
         }
 
-        End:;
+    End:;
 
         if (splatNoiseCooldown == 0)
         {
@@ -733,7 +729,7 @@ public class Parasite : InsectoidCreature, IPlayerEdible, IHaveInjectedPoisonCol
 
         if (shocked)
         {
-            room.AddObject(new CreatureSpasmer(this, true, Random.Range (200, 400)));
+            room.AddObject(new CreatureSpasmer(this, true, Random.Range(200, 400)));
         }
     }
     public void BurrowOutOfCreature()
@@ -1584,7 +1580,8 @@ public class ParasiteIllnessEffect : CosmeticSprite
             { return parasiteStick; }
 
             foreach (AbstractPhysicalObject.AbstractObjectStick stick in parasite.stuckObjects)
-            { if (stick is AbstractParasiteStick parasiteStick)
+            {
+                if (stick is AbstractParasiteStick parasiteStick)
                 {
                     this.parasiteStick = parasiteStick;
                     return parasiteStick;
@@ -1739,7 +1736,7 @@ public class ParasiteIllnessEffect : CosmeticSprite
         {
             Player realizedPlayer = player.realizedCreature as Player;
 
-            AbstractPhysicalObject newEgg = new(room.world, Enums.AbstractObjectType.ParasiteEgg, null, room.GetWorldCoordinate(realizedPlayer.mainBodyChunk.pos), room.game.GetNewID())
+            AbstractPhysicalObject newEgg = new(room.world, AbstractObjectType.ParasiteEgg, null, room.GetWorldCoordinate(realizedPlayer.mainBodyChunk.pos), room.game.GetNewID())
             {
                 unrecognizedAttributes = ["GROW_ON_STARTUP"]
             };
@@ -1993,7 +1990,7 @@ public class ParasiteEgg : PhysicalObject, IDrawable
                     foreach (PhysicalObject obj in objList)
                     {
                         section = 2.2f;
-                        if (obj is Creature creature && !creature.dead && StaticWorld.GetCreatureTemplate(Enums.CreatureTemplateType.Parasite).relationships[creature.Template.index].type == CreatureTemplate.Relationship.Type.Eats)
+                        if (obj is Creature creature && !creature.dead && StaticWorld.GetCreatureTemplate(CreatureTemplateType.Parasite).relationships[creature.Template.index].type == CreatureTemplate.Relationship.Type.Eats)
                         {
                             section = 2.3f;
                             foreach (BodyChunk chunk in obj.bodyChunks)
@@ -2029,7 +2026,7 @@ public class ParasiteEgg : PhysicalObject, IDrawable
                         }
                     }
                 }
-                End:;
+            End:;
 
                 section = 3;
 
@@ -2212,7 +2209,7 @@ public class ParasiteEgg : PhysicalObject, IDrawable
 
             for (int i = 0; i < Random.Range(3, 4); i++)
             {
-                AbstractCreature parasite = new(room.world, StaticWorld.GetCreatureTemplate(Enums.CreatureTemplateType.Parasite), null, abstractPhysicalObject.pos, room.game.GetNewID());
+                AbstractCreature parasite = new(room.world, StaticWorld.GetCreatureTemplate(CreatureTemplateType.Parasite), null, abstractPhysicalObject.pos, room.game.GetNewID());
                 room.abstractRoom.AddEntity(parasite);
                 parasite.Realize();
 
@@ -2293,8 +2290,8 @@ public class ParasiteEgg : PhysicalObject, IDrawable
 
         mudSprite = MudUtils.MakeMudSprite(rCam, eggSprite);
         sprites.Add(mudSprite);
-        
-        sLeaser.sprites = [..sprites];
+
+        sLeaser.sprites = [.. sprites];
 
         AddToContainer(sLeaser, rCam, null);
     }
@@ -2396,7 +2393,7 @@ public class InfectedCorpse : UpdatableAndDeletable
 
         this.deadCreature = deadCreature;
         this.eggs = eggs;
-        
+
         slime = startup ? 0 : 500;
 
         foreach (AbstractPhysicalObject egg in eggs)
@@ -2545,7 +2542,7 @@ public class InfectedCorpseRepresentation : DevInterface.PlacedObjectRepresentat
 
     public class InfectedCorpsePanel : Panel
     {
-        public DevObjects.KeyboardInput creatureNameInput;
+        public KeyboardInput creatureNameInput;
         public InfectedCorpseSlider spawnChanceSlider;
 
         public InfectedCorpseData Data
@@ -2559,7 +2556,7 @@ public class InfectedCorpseRepresentation : DevInterface.PlacedObjectRepresentat
         public InfectedCorpsePanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, Vector2 size, string name) :
             base(owner, IDstring, parentNode, pos, size, name)
         {
-            creatureNameInput = new DevObjects.KeyboardInput(owner, "Creature", this, new Vector2(5f, 5f), "Creature:");
+            creatureNameInput = new KeyboardInput(owner, "Creature", this, new Vector2(5f, 5f), "Creature:");
             subNodes.Add(creatureNameInput);
 
             spawnChanceSlider = new InfectedCorpseSlider(owner, "SpawnChance", this, new Vector2(5f, 25f), "Spawn Chance: ", false, 110f, 32f);
@@ -2596,7 +2593,7 @@ public class InfectedCorpseRepresentation : DevInterface.PlacedObjectRepresentat
             CreatureTemplate.Type creatureType = WorldLoader.CreatureTypeFromString(creatureNameInput.Value);
             ModManager.DevTools = devTools;
 
-            if 
+            if
                 (creatureType != null && creatureType.index >= 0
                 && creatureType != CreatureTemplate.Type.StandardGroundCreature
                 && creatureType != CreatureTemplate.Type.LizardTemplate
@@ -2611,7 +2608,7 @@ public class InfectedCorpseRepresentation : DevInterface.PlacedObjectRepresentat
             }
         }
 
-        public class InfectedCorpseSlider : DevObjects.CustomSlider
+        public class InfectedCorpseSlider : CustomSlider
         {
             public InfectedCorpseData Data
             {

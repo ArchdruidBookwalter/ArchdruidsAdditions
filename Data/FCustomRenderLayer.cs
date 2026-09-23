@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ArchdruidsAdditions.Data;
 
@@ -90,7 +86,7 @@ public class FCustomShaderSprite : FSprite
     protected Vector2[] _uvs7;
     protected Vector2[] _uvs8;
     protected FCustomRenderLayer SpecialRenderLayer => (_renderLayer as FCustomRenderLayer)!;
-    
+
     public FCustomShaderSprite(string elementName) : this(Futile.atlasManager.GetElementWithName(elementName))
     { }
 

@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using ArchdruidsAdditions.Data;
-using ArchdruidsAdditions.Objects.Physical_Objects;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using EffExt;
+﻿using HarmonyLib;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -28,12 +24,12 @@ public static class PhysicalObjectHooks
             {
                 bool standOnBox = false;
 
-                if (MiscData.boxHandlers[self.owner.room].TrySnapToCollisionBox(self.pos, self.TerrainRad, out Vector2 surfaceSnapPos, out Vector2 surfaceDir, out IntVector2 surfaceContactPoint))
+                if (MiscData.boxHandlers[self.owner.room].TrySnapToCollisionBox(self.pos, self.lastPos, self.TerrainRad, out Vector2 surfaceSnapPos, out Vector2 surfaceDir, out IntVector2 surfaceContactPoint, out CollisionBox standingOnBox, self))
                 {
                     Vector2 newSnapPos = new(surfaceSnapPos.x, surfaceSnapPos.y + self.TerrainRad);
                     if (surfaceDir.y > 0)
                     {
-                        Create_Square(self.owner.room, self.pos, 20f, 20f, Vec(45), Color.red, 100);
+                        //Create_Square(self.owner.room, self.pos, 20f, 20f, Vec(45), Color.red, 100);
 
                         self.pos = newSnapPos;
                         self.terrainCurveNormal = surfaceDir;
@@ -69,6 +65,11 @@ public static class PhysicalObjectHooks
                             self.vel.y += vel2;
                             self.vel.x *= Mathf.Clamp(self.owner.surfaceFriction * 2f, 0f, 1f);
                             self.vel = Vector2.ClampMagnitude(self.vel, velM);
+
+                            if (standingOnBox != null)
+                            {
+                                self.vel += standingOnBox.vel;
+                            }
                         }
                     }
 
@@ -82,26 +83,30 @@ public static class PhysicalObjectHooks
 
                 foreach (CollisionBox box in MiscData.boxHandlers[self.owner.room].collisionBoxes)
                 {
-                    box.GetSnapPosAndContact(self.pos, self.TerrainRad, out Vector2 snapPos, out IntVector2 contactPoint, true);
-
-                    if (contactPoint.x != 0 || contactPoint.y != 0)
+                    if (box.owner != self.owner)
                     {
-                        float dist = Custom.Dist(snapPos, self.pos);
-                        if (dist < closestSnapPosDist)
+                        box.GetSnapPosAndContact(self.pos, self.lastPos, self.TerrainRad, out Vector2 snapPos, out IntVector2 contactPoint, true);
+
+                        if (contactPoint.x != 0 || contactPoint.y != 0)
                         {
-                            closestSnapPos = snapPos;
-                            closestContactPoint = contactPoint;
-                            closestSnapPosDist = dist;
-                            pushOutOfBox = true;
+                            float dist = Custom.Dist(snapPos, self.pos);
+                            if (dist < closestSnapPosDist)
+                            {
+                                closestSnapPos = snapPos;
+                                closestContactPoint = contactPoint;
+                                closestSnapPosDist = dist;
+                                pushOutOfBox = true;
+                            }
                         }
                     }
 
-                    Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + contactPoint.ToVector2() * 50, 1f, Color.red, 0);
+                    //Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + contactPoint.ToVector2() * 50, 1f, Color.red, 0);
                 }
 
                 if (pushOutOfBox)
                 {
-                    Create_Square(self.owner.room, self.pos, 20f, 20f, Vec(45), Color.green, 100);
+                    //Create_Square(self.owner.room, closestSnapPos, 5f, 5f, Vec(45), Color.red, 100);
+                    //Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + closestContactPoint.ToVector2() * 20f, 2f, Color.red, 100);
 
                     if (closestContactPoint.y > 0)
                     {
@@ -168,7 +173,7 @@ public static class PhysicalObjectHooks
                         }
                     }
 
-                    //Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + closestContactPoint.ToVector2() * 20f, 2f, Color.red, 0);
+                    //Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + closestContactPoint.ToVector2() * 20f, 2f, Color.red, 0);*/
                 }
             }
 
@@ -185,11 +190,6 @@ public static class PhysicalObjectHooks
         {
             BodyChunk chunk = self.bodyChunks[bChunk];
             Vector2 pos = chunk.pos + new Vector2(relativeX * 20f, relativeY * 20f);
-
-            if (self is Player player)
-            {
-                Create_Square(self.room, pos, 10f, 10f, Vec(0), Color.green, 0);
-            }
 
             return MiscData.boxHandlers[self.room].PositionInsideBox(pos, 0f, self is Player);
         }

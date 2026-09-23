@@ -1,7 +1,7 @@
 ﻿using HUD;
 using Menu;
 
-namespace ArchdruidsAdditions.Objects.HUDObjects;
+namespace ArchdruidsAdditions.Objects;
 
 public class ParasiteGrowthMeter : HudPart
 {
@@ -38,7 +38,7 @@ public class ParasiteGrowthMeter : HudPart
         }
         else
         {
-            pos = new Vector2(Mathf.Max(50f, hud.rainWorld.screenSize.x - 50), Mathf.Max(25f, (hud.rainWorld.screenSize.y / 2) - 15f * maxPoints));
+            pos = new Vector2(Mathf.Max(50f, hud.rainWorld.screenSize.x - 50), Mathf.Max(25f, hud.rainWorld.screenSize.y / 2 - 15f * maxPoints));
         }
 
         for (int i = 0; i < circles.Length; i++)

@@ -36,13 +36,13 @@ public static class MenuHooks
     }
     internal static void MenuScene_BuildScene(On.Menu.MenuScene.orig_BuildScene orig, MenuScene self)
     {
+        LogMethodStart("MENUSCENE_BUILDSCENE");
+
         orig(self);
 
         if (self.sceneID == MenuScene.SceneID.SleepScreen && self.menu is SleepAndDeathScreen sleepAndDeathScreen)
         {
-            //Debug.Log("");
-            //Debug.Log("METHOD MENUSCENE_BUILDSCENE WAS CALLED!");
-            //Debug.Log("");
+            LogMessage("BUILDING SLEEP SCREEN");
 
             SaveState saveState = sleepAndDeathScreen.myGamePackage.saveState;
 
@@ -55,6 +55,8 @@ public static class MenuHooks
                 Data.SleepScreenData.GetScreenData().animationTimer = 0;
                 Data.SleepScreenData.GetScreenData().shownParasite = true;
             }
+
+            LogMessage("SLEEPSCREENDATA COUNT: " + SleepScreenData.sleepScreenData.Count);
 
             bool infected = false;
             int parasiteGrowth = 0;
@@ -82,8 +84,8 @@ public static class MenuHooks
                 }
             }
 
-            //Debug.Log("PARASITE GROWTH: " + parasiteGrowth);
-            //Debug.Log("");
+            LogMessage("INFECTED: " + infected);
+            LogMessage("GROWTH: " + parasiteGrowth);
 
             if (infected)
             {
@@ -123,6 +125,8 @@ public static class MenuHooks
                 Data.SleepScreenData.sleepScreenData.Clear();
             }
         }
+
+        LogMethodEnd();
     }
     internal static void MenuScene_Update(On.Menu.MenuScene.orig_Update orig, MenuScene self)
     {
@@ -161,11 +165,16 @@ public static class MenuHooks
     }
     internal static void SleepAndDeathScreen_Update(On.Menu.SleepAndDeathScreen.orig_Update orig, SleepAndDeathScreen self)
     {
+        LogMethodStart("SLEEPANDDEATHSCREEN_UPDATE");
+
         orig(self);
 
         Data.SleepScreenData.SleepScreenDataContainer data = Data.SleepScreenData.GetScreenData();
         if (data != null && data.infected)
         {
+            LogMessage("INFECTED SCREEN UPDATED!");
+            LogMessage("ANIMATIONTIMER: " + data.animationTimer);
+
             MenuIllustration infectedIllustration2 = null;
             MenuIllustration normalIllustration2 = null;
 
@@ -230,6 +239,8 @@ public static class MenuHooks
                 data.animationTimer = 300;
             }
         }
+
+        LogMethodEnd();
     }
     internal static void SleepAndDeathScreen_GrafUpdate(On.Menu.SleepAndDeathScreen.orig_GrafUpdate orig, SleepAndDeathScreen self, float timeStacker)
     {
@@ -252,13 +263,23 @@ public static class MenuHooks
     }
     internal static bool SleepAndDeathScreen_Get_AllowFoodMeterTick(Func<SleepAndDeathScreen, bool> orig, SleepAndDeathScreen self)
     {
+        LogMethodStart("SLEEPANDDEATHSCREEN_GET_ALLOWFOODMETERTICK");
+
+        bool baseValue = orig(self);
+
         Data.SleepScreenData.SleepScreenDataContainer data = Data.SleepScreenData.GetScreenData();
         if (data != null && data.infected)
         {
+            LogMessage("SLEEP SCREEN IS INFECTED!");
+
+            LogMethodEnd();
+
             return data.animationTimer >= 300;
         }
 
-        return orig(self);
+        LogMethodEnd();
+
+        return baseValue;
     }
     internal static void SleepAndDeathScreen_FoodCountDownDone(On.Menu.SleepAndDeathScreen.orig_FoodCountDownDone orig, SleepAndDeathScreen self)
     {

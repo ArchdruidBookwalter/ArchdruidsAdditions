@@ -1,6 +1,4 @@
-﻿using ArchdruidsAdditions.Objects.PhysicalObjects.Creatures;
-using ArchdruidsAdditions.Objects.PhysicalObjects.Items;
-using MoreSlugcats;
+﻿using MoreSlugcats;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -46,6 +44,6 @@ public static class SlugpupHooks
             return false;
         }
 
-        return baseWant;    
+        return baseWant;
     }
 }

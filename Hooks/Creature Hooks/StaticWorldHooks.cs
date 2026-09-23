@@ -27,7 +27,7 @@ public static class StaticWorldHooks
         tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.OffScreenMovement, 1f, PathCost.Legality.Allowed));
         tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.BetweenRooms, 10f, PathCost.Legality.Allowed));
 
-        CreatureTemplate cloudFish = new CreatureTemplate(Enums.CreatureTemplateType.CloudFish, null, tileTRs, tileCRs,
+        CreatureTemplate cloudFish = new CreatureTemplate(CreatureTemplateType.CloudFish, null, tileTRs, tileCRs,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f))
         {
             bodySize = 0.4f,
@@ -66,7 +66,7 @@ public static class StaticWorldHooks
         tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.Slope, 1.5f, PathCost.Legality.Allowed));
         tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.CeilingSlope, 1.5f, PathCost.Legality.Allowed));
 
-        CreatureTemplate mimicCrab = new CreatureTemplate(Enums.CreatureTemplateType.MimicCrab, null, tileTRs, tileCRs, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 1f))
+        CreatureTemplate mimicCrab = new CreatureTemplate(CreatureTemplateType.MimicCrab, null, tileTRs, tileCRs, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 1f))
         {
             bodySize = 0.3f,
             AI = true,
@@ -107,7 +107,7 @@ public static class StaticWorldHooks
         tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.Slope, 1.5f, PathCost.Legality.Allowed));
         tileCRs.Add(new TileConnectionResistance(MovementConnection.MovementType.DropToWater, 20f, PathCost.Legality.Allowed));
 
-        CreatureTemplate parasite = new(Enums.CreatureTemplateType.Parasite, null, tileTRs, tileCRs,
+        CreatureTemplate parasite = new(CreatureTemplateType.Parasite, null, tileTRs, tileCRs,
             new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.5f))
         {
             bodySize = 0.1f,
@@ -180,9 +180,9 @@ public static class StaticWorldHooks
         CreatureTemplate.Relationship.Type Eats = CreatureTemplate.Relationship.Type.Eats;
         CreatureTemplate.Relationship.Type Pack = CreatureTemplate.Relationship.Type.Pack;
 
-        CreatureTemplate cloudFishTemplate = StaticWorld.GetCreatureTemplate(Enums.CreatureTemplateType.CloudFish);
-        CreatureTemplate parasiteTemplate = StaticWorld.GetCreatureTemplate(Enums.CreatureTemplateType.Parasite);
-        CreatureTemplate mimicCrabTemplate = StaticWorld.GetCreatureTemplate(Enums.CreatureTemplateType.MimicCrab);
+        CreatureTemplate cloudFishTemplate = StaticWorld.GetCreatureTemplate(CreatureTemplateType.CloudFish);
+        CreatureTemplate parasiteTemplate = StaticWorld.GetCreatureTemplate(CreatureTemplateType.Parasite);
+        CreatureTemplate mimicCrabTemplate = StaticWorld.GetCreatureTemplate(CreatureTemplateType.MimicCrab);
         CreatureTemplate[] newTemplates = [cloudFishTemplate, parasiteTemplate, mimicCrabTemplate];
 
         for (int i = 0; i < StaticWorld.creatureTemplates.Length; i++)
