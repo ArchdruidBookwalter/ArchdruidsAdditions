@@ -13,27 +13,7 @@ public static class MainHooks
     {
         orig(self);
 
-        /*
-        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.Bow))
-        {
-            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.Bow);
-        }
-        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ScarletFlowerBulb))
-        {
-            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.ScarletFlowerBulb);
-        }
-        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.ParrySword))
-        {
-            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.ParrySword);
-        }
-        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.Potato))
-        {
-            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.Potato);
-        }
-        if (!MultiplayerUnlocks.ItemUnlockList.Contains(Enums.SandboxUnlockID.LightningFruit))
-        {
-            MultiplayerUnlocks.ItemUnlockList.Add(Enums.SandboxUnlockID.LightningFruit);
-        }*/
+        SaveStateData.AASaveDataContainer ??= new();
 
         Debug.Log("<Archduid's Additions> LOADED METHOD: ON_MODS_INIT");
 
@@ -116,59 +96,31 @@ public static class MainHooks
 
         AAEnums.RegisterAllEnums();
 
-        //Debug.Log("<Archduid's Additions> ADDING MULTIPLAYER UNLOCKS TO LIST");
-
         foreach (MultiplayerUnlocks.SandboxUnlockID type in SandboxUnlockID.values)
         {
-            /*
-            if (type != null)
-            { Debug.Log(type.value); }
-            else
-            { Debug.Log("NULL"); }*/
-
             if (!MultiplayerUnlocks.ItemUnlockList.Contains(type))
             { MultiplayerUnlocks.ItemUnlockList.Add(type); }
         }
 
-        //Debug.Log("<Archduid's Additions> FINISHED ADDING MULTIPLAYER UNLOCKS TO LIST");
-
-        //Debug.Log("<Archduid's Additions> ASSIGNING PLACEDOBJECT CATEGORIES");
-
         foreach (PlacedObject.Type type in PlacedObjectType.values)
         {
-            /*
-            if (type != null)
-            { Debug.Log(type.value); }
-            else
-            { Debug.Log("NULL"); }*/
-
             if (type != null)
             {
                 try
                 { Pom.Pom.RegisterCategoryOverride(type, "Archdruid's Additions"); }
                 catch
-                {
-                    /*Debug.Log("<Archduid's Additions> " + type.value + " has already been placed in correct Devtools category.");*/
-                }
+                { }
             }
         }
-
-        //Debug.Log("<Archduid's Additions> ASSIGNED PLACEDOBJECT CATEGORIES");
 
         try
         {
             AssetBundle bundle = AssetBundle.LoadFromFile(AssetManager.ResolveFilePath(string.Concat(["Shaders", Path.DirectorySeparatorChar.ToString(), "rainworldaashaders",])));
-
             self.Shaders.Add("ArchAdds.CustomVectorCircle", FShader.CreateShader("ArchAdds.CustomVectorCircle", bundle.LoadAsset<Shader>("Assets/Shaders/CustomVectorCircle.shader")));
-
             Data.MiscData.CircleFade = Shader.PropertyToID("_CircleFade");
-
-            //Debug.Log("<Archduid's Additions> SUCCESSFULLY LOADED SHADERS!");
         }
         catch
-        {
-            //Debug.Log("<Archduid's Additions> FAILED TO ADD NEW SHADERS.");
-        }
+        { }
     }
     internal static void RainWorld_UnloadResources(On.RainWorld.orig_UnloadResources orig, RainWorld self)
     {
@@ -270,7 +222,7 @@ public static class MainHooks
                     try
                     { Pom.Pom.RegisterCategoryOverride(type, "Archdruid's Additions"); }
                     catch
-                    { /*Debug.Log("<Archduid's Additions> " + type.value + " has already been placed in correct Devtools category.");*/ }
+                    { }
                 }
 
                 break;

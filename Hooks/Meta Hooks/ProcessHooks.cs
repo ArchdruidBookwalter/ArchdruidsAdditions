@@ -9,7 +9,7 @@ public static class ProcessHooks
     {
         orig(self, deltaTime);
 
-        if (!Plugin.Options.useDefaultMouseCursor.Value)
+        if (!Plugin.Options.useDefaultMouseCursor.Value && !self.rainWorld.options.windowed)
         {
             Cursor.Hide();
         }
@@ -17,6 +17,16 @@ public static class ProcessHooks
         {
             Cursor.Show();
         }
+    }
+
+    internal static void ProcessManager_PostSwitchMainProcess(On.ProcessManager.orig_PostSwitchMainProcess orig, ProcessManager self, ProcessManager.ProcessID ID)
+    {
+        //LogMethodStart("PROCESSMANAGER_POSTSWITCHMAINPROCESS");
+        //LogMessage("ID: " + ID);
+
+        orig(self, ID);
+
+        //LogMethodEnd();
     }
 
     internal static void MainLoopProcess_RawUpdate(On.MainLoopProcess.orig_RawUpdate orig, MainLoopProcess self, float deltaTime)

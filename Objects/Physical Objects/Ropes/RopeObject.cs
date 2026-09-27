@@ -128,10 +128,11 @@ public class RopeObject
         ConnectSegments(-1);
         AttachEndSegments();
 
+        /*
         foreach (RopeSegment segment in ropeSegments)
         {
             Create_Square(owner.room, segment.pos, 5f, 5f, Vec(45), "Yellow", 0);
-        }
+        }*/
 
         float totalLength = 0;
         for (int i = 1; i < ropeSegments.Length; i++)

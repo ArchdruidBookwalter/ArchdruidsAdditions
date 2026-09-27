@@ -41,8 +41,6 @@ public sealed class Plugin : BaseUnityPlugin
 
     public void OnEnable()
     {
-        Debug.Log("<ArchdruidsAdditions> LOADING HOOKS.");
-
         EffectDefinitionBuilder builder1 = new("ForceRoomEnergy");
         builder1.SetEffectInitializer(LightRodPowerEffect.EffectSpawner);
         builder1.AddFloatField("DriftStrength", 0f, 0.1f, 0f, 0f, "DriftStrength");
@@ -263,6 +261,9 @@ public sealed class Plugin : BaseUnityPlugin
         On.PlayerProgression.GetOrInitiateSaveState += Hooks.GameHooks.PlayerProgression_GetOrInitiateSaveState;
         On.PlayerProgression.SaveWorldStateAndProgression += Hooks.GameHooks.PlayerProgression_SaveWorldStateAndProgression;
         On.PlayerProgression.ClearOutSaveStateFromMemory += Hooks.GameHooks.PlayerProgression_ClearOutSaveStateFromMemory;
+        On.PlayerProgression.DeleteSaveFile += Hooks.GameHooks.PlayerProgression_DeleteSaveFile;
+        On.PlayerProgression.WipeSaveState += Hooks.GameHooks.PlayerProgression_WipeSaveState;
+        On.PlayerProgression.Revert += Hooks.GameHooks.PlayerProgression_Revert;
 
         On.MoreSlugcats.SpeedRunTimer.GetTimerTickIncrement += Hooks.GameHooks.SpeedRunTimer_GetTimerTickIncrement;
         #endregion
@@ -315,6 +316,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         #region Process Hooks
         On.ProcessManager.Update += Hooks.ProcessHooks.ProcessManager_Update;
+        On.ProcessManager.PostSwitchMainProcess += Hooks.ProcessHooks.ProcessManager_PostSwitchMainProcess;
         On.MainLoopProcess.RawUpdate += Hooks.ProcessHooks.MainLoopProcess_RawUpdate;
         #endregion
 
@@ -403,7 +405,5 @@ public sealed class Plugin : BaseUnityPlugin
         #endregion
 
         //
-
-        Debug.Log("<ArchdruidsAdditions> HOOKS LOADED!");
     }
 }

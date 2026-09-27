@@ -206,6 +206,28 @@ public static class GameHooks
         orig(self);
 
         SaveStateData.parasiteSaveState = null;
+        foreach (SaveStateData.SaveStateDataContainer container in SaveStateData.saveStateDataContainers.Values)
+        { container.campaignDataValues.Remove(self.PlayingAsSlugcat); }
+    }
+    internal static void PlayerProgression_DeleteSaveFile(On.PlayerProgression.orig_DeleteSaveFile orig, PlayerProgression self)
+    {
+        orig(self);
+    }
+    internal static void PlayerProgression_WipeSaveState(On.PlayerProgression.orig_WipeSaveState orig, PlayerProgression self, SlugcatStats.Name name)
+    {
+        LogMethodStart("PLAYERPROGRESSION_WIPESAVESTATE");
+
+        orig(self, name);
+
+        SaveStateData.parasiteSaveState = null;
+        foreach (SaveStateData.SaveStateDataContainer container in SaveStateData.saveStateDataContainers.Values)
+        { container.campaignDataValues.Remove(self.PlayingAsSlugcat); }
+
+        LogMethodEnd();
+    }
+    internal static void PlayerProgression_Revert(On.PlayerProgression.orig_Revert orig, PlayerProgression self)
+    {
+        orig(self);
     }
     #endregion
 

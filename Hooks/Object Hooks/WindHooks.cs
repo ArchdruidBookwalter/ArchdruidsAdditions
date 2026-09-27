@@ -24,7 +24,7 @@ public static class WindHooks
 
                         segment.vel.x = self.ApplyWind(segment.vel.x, newVel, 0.02f);
                         segment.vel.y = self.ApplyWind(segment.vel.y, Mathf.Abs(newVel) * 0.2f, 0.1f);
-                        segment.vel += Custom.RNV() * newVel2 * Mathf.Max(segment.owner.windAffect, 0.2f) * 0.5f;
+                        segment.vel += Custom.RNV() * Mathf.Min(newVel2 * Mathf.Max(segment.owner.windAffect, 0.2f) * 0.5f, 3f);
                     }
                 }
             }
@@ -58,7 +58,7 @@ public static class WindHooks
 
                     segment.vel.x = ApplyWind(segment.vel.x, newVel, 0.02f);
                     segment.vel.y = ApplyWind(segment.vel.y, Mathf.Abs(newVel) * 0.2f, 0.1f);
-                    segment.vel += Custom.RNV() * newVel2 * Mathf.Max(segment.owner.windAffect, 0.2f) * 0.5f;
+                    segment.vel += Custom.RNV() * Mathf.Min(newVel2 * Mathf.Max(segment.owner.windAffect, 0.2f) * 0.5f, 2f);
                 }
             }
         }

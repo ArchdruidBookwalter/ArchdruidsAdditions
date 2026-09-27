@@ -36,13 +36,13 @@ public static class MenuHooks
     }
     internal static void MenuScene_BuildScene(On.Menu.MenuScene.orig_BuildScene orig, MenuScene self)
     {
-        LogMethodStart("MENUSCENE_BUILDSCENE");
+        //LogMethodStart("MENUSCENE_BUILDSCENE");
 
         orig(self);
 
         if (self.sceneID == MenuScene.SceneID.SleepScreen && self.menu is SleepAndDeathScreen sleepAndDeathScreen)
         {
-            LogMessage("BUILDING SLEEP SCREEN");
+            //LogMessage("BUILDING SLEEP SCREEN");
 
             SaveState saveState = sleepAndDeathScreen.myGamePackage.saveState;
 
@@ -56,7 +56,7 @@ public static class MenuHooks
                 Data.SleepScreenData.GetScreenData().shownParasite = true;
             }
 
-            LogMessage("SLEEPSCREENDATA COUNT: " + SleepScreenData.sleepScreenData.Count);
+            //LogMessage("SLEEPSCREENDATA COUNT: " + SleepScreenData.sleepScreenData.Count);
 
             bool infected = false;
             int parasiteGrowth = 0;
@@ -84,8 +84,8 @@ public static class MenuHooks
                 }
             }
 
-            LogMessage("INFECTED: " + infected);
-            LogMessage("GROWTH: " + parasiteGrowth);
+            //LogMessage("INFECTED: " + infected);
+            //LogMessage("GROWTH: " + parasiteGrowth);
 
             if (infected)
             {
@@ -126,7 +126,7 @@ public static class MenuHooks
             }
         }
 
-        LogMethodEnd();
+        //LogMethodEnd();
     }
     internal static void MenuScene_Update(On.Menu.MenuScene.orig_Update orig, MenuScene self)
     {

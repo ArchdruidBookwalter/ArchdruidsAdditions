@@ -22,60 +22,102 @@ public static class PhysicalObjectHooks
         {
             if (MiscData.boxHandlers.ContainsKey(self.owner.room))
             {
-                bool standOnBox = false;
-
-                if (MiscData.boxHandlers[self.owner.room].TrySnapToCollisionBox(self.pos, self.lastPos, self.TerrainRad, out Vector2 surfaceSnapPos, out Vector2 surfaceDir, out IntVector2 surfaceContactPoint, out CollisionBox standingOnBox, self))
+                if (MiscData.boxHandlers[self.owner.room].TrySnapToCollisionBox(self.pos, self.lastPos, self.TerrainRad, out Vector2 snapPos, out Vector2 surfaceDir, out IntVector2 contactPoint, out CollisionBox closestBox, self))
                 {
-                    Vector2 newSnapPos = new(surfaceSnapPos.x, surfaceSnapPos.y + self.TerrainRad);
-                    if (surfaceDir.y > 0)
+                    if (contactPoint.y != 0)
                     {
-                        //Create_Square(self.owner.room, self.pos, 20f, 20f, Vec(45), Color.red, 100);
-
-                        self.pos = newSnapPos;
-                        self.terrainCurveNormal = surfaceDir;
-
-                        float velY = -self.vel.y * surfaceDir.y;
-                        if (velY > self.owner.impactTreshhold)
+                        if (contactPoint.y < 0 && surfaceDir.y > 0f)
                         {
-                            self.owner.TerrainImpact(self.index, new IntVector2(0, -1), velY, self.lastContactPoint.y > -1);
+                            self.pos = snapPos;
+                            self.terrainCurveNormal = surfaceDir;
+
+                            float velY = -self.vel.y * surfaceDir.y;
+                            if (velY > self.owner.impactTreshhold)
+                            {
+                                self.owner.TerrainImpact(self.index, new IntVector2(0, -1), velY, self.lastContactPoint.y > -1);
+                            }
+
+                            if (self.terrainCurveNormal.y < TerrainCurve.maxSlideNormalY)
+                            {
+                                self.contactPoint.y = 0;
+                                self.vel -= surfaceDir * Mathf.Min(0f, Vector2.Dot(self.vel, surfaceDir) * (1f + self.owner.bounce * 0.2f));
+
+                                Vector2 newSurfaceDir = new(-surfaceDir.y, surfaceDir.x);
+                                self.vel -= Vector2.Dot(self.vel, newSurfaceDir) * Mathf.Clamp01(1f - self.owner.surfaceFriction * 2f) * newSurfaceDir;
+                            }
+                            else
+                            {
+                                self.contactPoint.y = -1;
+                                float velM = self.vel.magnitude;
+                                float vel2 = self.vel.x * -surfaceDir.x / surfaceDir.y;
+
+                                self.vel.y -= vel2;
+                                self.vel.y = Mathf.Abs(self.vel.y) * self.owner.bounce;
+                                if (self.vel.y < self.owner.gravity || self.vel.y < 1f + 9f * (1f - self.owner.bounce))
+                                {
+                                    self.vel.y *= 0f;
+                                }
+                                self.vel.y += vel2;
+                                self.vel.x *= Mathf.Clamp(self.owner.surfaceFriction * 2f, 0f, 1f);
+                                self.vel = Vector2.ClampMagnitude(self.vel, velM);
+                            }
+
+                            if (closestBox != null)
+                            { self.vel.x += closestBox.vel.x; }
                         }
-
-                        if (self.terrainCurveNormal.y < TerrainCurve.maxSlideNormalY)
+                        else if (contactPoint.y > 0)
                         {
-                            self.contactPoint.y = 0;
-                            self.vel -= surfaceDir * Mathf.Min(0f, Vector2.Dot(self.vel, surfaceDir) * (1f + self.owner.bounce * 0.2f));
-
-                            Vector2 newSurfaceDir = new(-surfaceDir.x, surfaceDir.y);
-                            self.vel -= Vector2.Dot(self.vel, newSurfaceDir) * Mathf.Clamp01(1f - self.owner.surfaceFriction * 2f) * newSurfaceDir;
-                        }
-                        else
-                        {
-                            standOnBox = true;
-
-                            self.contactPoint.y = -1;
-                            float velM = self.vel.magnitude;
-                            float vel2 = self.vel.x * -surfaceDir.x / surfaceDir.y;
-
-                            self.vel.y -= vel2;
-                            self.vel.y = Mathf.Abs(self.vel.y) * self.owner.bounce;
-                            if (self.vel.y < self.owner.gravity || self.vel.y < 1f + 9f * (1f - self.owner.bounce))
+                            self.pos.y = snapPos.y;
+                            if (self.vel.y > self.owner.impactTreshhold)
+                            {
+                                self.owner.TerrainImpact(self.index, new IntVector2(0, 1), Mathf.Abs(self.vel.y), self.lastContactPoint.y < 1);
+                            }
+                            self.contactPoint.y = 1;
+                            self.vel.y = -Mathf.Abs(self.vel.y) * self.owner.bounce;
+                            if (Mathf.Abs(self.vel.y) < 1f + 9f * (1f - self.owner.bounce))
                             {
                                 self.vel.y *= 0f;
                             }
-                            self.vel.y += vel2;
                             self.vel.x *= Mathf.Clamp(self.owner.surfaceFriction * 2f, 0f, 1f);
-                            self.vel = Vector2.ClampMagnitude(self.vel, velM);
-
-                            if (standingOnBox != null)
-                            {
-                                self.vel += standingOnBox.vel;
-                            }
                         }
                     }
 
-                    //Create_LineBetweenTwoPoints(self.owner.room, self.pos, surfaceSnapPos, 2f, Color.green, 0);
+                    if (contactPoint.x != 0)
+                    {
+                        if (contactPoint.x > 0)
+                        {
+                            self.pos.x = snapPos.x;
+                            if (self.vel.x > self.owner.impactTreshhold)
+                            {
+                                self.owner.TerrainImpact(self.index, new IntVector2(1, 0), Mathf.Abs(self.vel.x), self.lastContactPoint.x < 1);
+                            }
+                            self.contactPoint.x = 1;
+                            self.vel.x = -Mathf.Abs(self.vel.x) * self.owner.bounce;
+                            if (Mathf.Abs(self.vel.x) < 1f + 9f * (1f - self.owner.bounce))
+                            {
+                                self.vel.x = 0f;
+                            }
+                            self.vel.y *= Mathf.Clamp(self.owner.surfaceFriction * 2f, 0f, 1f);
+                        }
+                        else if (contactPoint.x < 0)
+                        {
+                            self.pos.x = snapPos.x;
+                            if (self.vel.x < -self.owner.impactTreshhold)
+                            {
+                                self.owner.TerrainImpact(self.index, new IntVector2(-1, 0), Mathf.Abs(self.vel.x), self.lastContactPoint.x > -1);
+                            }
+                            self.contactPoint.x = -1;
+                            self.vel.x = Mathf.Abs(self.vel.x) * self.owner.bounce;
+                            if (Mathf.Abs(self.vel.x) < 1f + 9f * (1f - self.owner.bounce))
+                            {
+                                self.vel.x = 0f;
+                            }
+                            self.vel.y *= Mathf.Clamp(self.owner.surfaceFriction * 2f, 0f, 1f);
+                        }
+                    }
                 }
 
+                /*
                 Vector2 closestSnapPos = self.pos;
                 IntVector2 closestContactPoint = new(0, 0);
                 float closestSnapPosDist = float.MaxValue;
@@ -85,22 +127,22 @@ public static class PhysicalObjectHooks
                 {
                     if (box.owner != self.owner)
                     {
-                        box.GetSnapPosAndContact(self.pos, self.lastPos, self.TerrainRad, out Vector2 snapPos, out IntVector2 contactPoint, true);
+                        box.GetSnapPosAndContact(self.pos, self.lastPos, self.TerrainRad, out Vector2 collisionSnapPos, out IntVector2 collisionContactPoint, true);
 
-                        if (contactPoint.x != 0 || contactPoint.y != 0)
+                        if (collisionContactPoint.x != 0 || collisionContactPoint.y != 0)
                         {
-                            float dist = Custom.Dist(snapPos, self.pos);
+                            float dist = Custom.Dist(collisionSnapPos, self.pos);
                             if (dist < closestSnapPosDist)
                             {
-                                closestSnapPos = snapPos;
-                                closestContactPoint = contactPoint;
+                                closestSnapPos = collisionSnapPos;
+                                closestContactPoint = collisionContactPoint;
                                 closestSnapPosDist = dist;
                                 pushOutOfBox = true;
                             }
                         }
                     }
 
-                    //Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + contactPoint.ToVector2() * 50, 1f, Color.red, 0);
+                    //Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + collisionContactPoint.ToVector2() * 50, 1f, Color.red, 0);
                 }
 
                 if (pushOutOfBox)
@@ -173,11 +215,16 @@ public static class PhysicalObjectHooks
                         }
                     }
 
-                    //Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + closestContactPoint.ToVector2() * 20f, 2f, Color.red, 0);*/
-                }
+                    //Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + closestContactPoint.ToVector2() * 20f, 2f, Color.red, 0);
+                }*/
             }
 
             //Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + self.ContactPoint.ToVector2() * 50, 2f, Color.red, 0);
+        }
+
+        if (self.terrainCurveNormal != null)
+        {
+            Create_LineBetweenTwoPoints(self.owner.room, self.pos, self.pos + self.terrainCurveNormal * 50, 2f, Color.red, 0);
         }
     }
 

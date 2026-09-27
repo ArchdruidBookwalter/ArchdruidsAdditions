@@ -16,9 +16,18 @@ public static class PlayerHooks
 
         orig(self, eu);
 
-        IntVector2 mousePos = self.room.GetTilePosition(new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + self.room.game.cameras[0].pos);
-        Create_Square(self.room, self.room.MiddleOfTile(mousePos), 20f, 20f, Vec(0), Color.red, 0);
-        Create_Text(self.room, self.room.MiddleOfTile(mousePos) + new Vector2(0f, 30f), mousePos.ToString(), Color.red, 0);
+        Vector2 mousePos = new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + self.room.game.cameras[0].pos;
+        //IntVector2 mouseTilePos = self.room.GetTilePosition(mousePos);
+        //Create_Square(self.room, self.room.MiddleOfTile(mouseTilePos), 20f, 20f, Vec(0), Color.red, 0);
+        //Create_Text(self.room, self.room.MiddleOfTile(mouseTilePos) + new Vector2(0f, 30f), mouseTilePos.ToString(), Color.red, 0);
+
+        if (MiscData.boxHandlers.ContainsKey(self.room))
+        {
+            if (MiscData.boxHandlers[self.room].PositionInsideBox(mousePos, 0f, false))
+            { Create_Square(self.room, mousePos, 5f, 5f, Vec(0), Color.green, 0); }
+            else
+            { Create_Square(self.room, mousePos, 5f, 5f, Vec(0), Color.red, 0); }
+        }
 
         AAPlayerState playerState = GetPlayerState(self.abstractCreature.ID.number);
         if (playerState != null)
