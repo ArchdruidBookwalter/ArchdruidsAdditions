@@ -263,7 +263,7 @@ public class Parasite : InsectoidCreature, IPlayerEdible, IHaveInjectedPoisonCol
                     {
                         if (Custom.Dist(connection.chunk1.pos, connection.chunk2.pos) > connection.distance * 50)
                         {
-                            //Create_LineBetweenTwoPoints(room, connection.chunk1.pos, connection.chunk2.pos, 5f, "Red", 0);
+                            //Create_LineBetweenTwoPoints(room, connection.chunk1.cornerPos, connection.chunk2.cornerPos, 5f, "Red", 0);
                             connection.chunk1.pos = connection.chunk2.pos + Custom.DirVec(connection.chunk2.pos, connection.chunk1.pos) * connection.distance * 50;
                         }
                     }
@@ -391,9 +391,9 @@ public class Parasite : InsectoidCreature, IPlayerEdible, IHaveInjectedPoisonCol
                             }
                         }
 
-                        //Create_Text(room, HeadChunk.pos, playerState.parasiteKillCounter, "Red", 0);
+                        //Create_Text(room, HeadChunk.cornerPos, playerState.parasiteKillCounter, "Red", 0);
 
-                        //Create_Text(room, HeadChunk.pos + new Vector2(0f, 10f), hurtTimer, "Red", 0);
+                        //Create_Text(room, HeadChunk.cornerPos + new Vector2(0f, 10f), hurtTimer, "Red", 0);
                     }
 
                     if (dieCounter > 0)
@@ -448,7 +448,7 @@ public class Parasite : InsectoidCreature, IPlayerEdible, IHaveInjectedPoisonCol
             /*
             if (ParasiteStick != null)
             {
-                Create_Text(room, HeadChunk.pos, ParasiteStick.growth, "Red", 0);
+                Create_Text(room, HeadChunk.cornerPos, ParasiteStick.growth, "Red", 0);
             }*/
 
         }
@@ -576,7 +576,7 @@ public class Parasite : InsectoidCreature, IPlayerEdible, IHaveInjectedPoisonCol
 
             if (!room.VisualContact(chunk1.pos, chunk2.pos) && ropeLength > 20)
             {
-                //Create_LineBetweenTwoPoints(room, chunk1.pos, chunk2.pos, 1f, "Red", 0);
+                //Create_LineBetweenTwoPoints(room, chunk1.cornerPos, chunk2.cornerPos, 1f, "Red", 0);
                 stuckOnTerrain = true;
             }
         }
@@ -1184,7 +1184,7 @@ public class ParasiteAI : ArtificialIntelligence, IUseARelationshipTracker
                 }
             }
 
-            //Create_Text(parasite.room, parasite.firstChunk.pos, jumping, "Red", 0);
+            //Create_Text(parasite.room, parasite.firstChunk.cornerPos, jumping, "Red", 0);
 
             if (shortcutCooldown > 0)
             {
@@ -1239,7 +1239,7 @@ public class ParasiteAI : ArtificialIntelligence, IUseARelationshipTracker
         //bool followPath = false;
         bool swimming = parasite.HeadChunk.submersion > 0.2;
 
-        //Create_Text(parasite.room, pos, behavior, "Yellow", 0);
+        //Create_Text(parasite.room, cornerPos, behavior, "Yellow", 0);
 
         Vector2 swimDir = Vector2.zero;
         moveDir = swimDir;
@@ -1318,11 +1318,11 @@ public class ParasiteAI : ArtificialIntelligence, IUseARelationshipTracker
                     parasite.WeightedPush(i + 1, i, -parasite.HeadChunk.vel.normalized, 2f);
                 }
 
-                //Create_Square(room, pos, 20f, 20f, Vec(45), "Blue", 0);
+                //Create_Square(room, cornerPos, 20f, 20f, Vec(45), "Blue", 0);
             }
             else if (map.getAItile(intPos).acc == AItile.Accessibility.Floor)
             {
-                //Create_Square(room, pos, 40f, 40f, Vec(45), "Purple", 0);
+                //Create_Square(room, cornerPos, 40f, 40f, Vec(45), "Purple", 0);
 
                 parasite.mainBodyChunk.vel.x += moveDir.x * (touchingGround ? speed : speed * 0.1f);
                 if ((room.GetTile(intPos).Terrain != Room.Tile.TerrainType.Slope && room.GetTile(intPos.x + (int)moveDir.x, intPos.y).Solid) ||
@@ -1680,9 +1680,9 @@ public class ParasiteIllnessEffect : CosmeticSprite
             return;
         }
 
-        //Create_Text(room, pos + new Vector2(0f, 30f), intensity, "Red", 0);
+        //Create_Text(room, cornerPos + new Vector2(0f, 30f), intensity, "Red", 0);
 
-        //Create_Text(room, pos + new Vector2(0f, 40f), timer, "Blue", 0);
+        //Create_Text(room, cornerPos + new Vector2(0f, 40f), timer, "Blue", 0);
 
         if (intensity > 0)
         {

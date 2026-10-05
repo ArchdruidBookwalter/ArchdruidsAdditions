@@ -81,6 +81,19 @@ public static class AbstractPhysicalObjectHooks
             {
                 self.realizedObject = new HangingPlatform(self.Room.realizedRoom, self, 200f, "Chandelier");
             }
+            else if (self.type == AbstractObjectType.LootCrate)
+            {
+                int size = 2;
+                int damage = 1;
+
+                if (self.unrecognizedAttributes != null && self.unrecognizedAttributes.Count() > 0)
+                {
+                    size = int.Parse(self.unrecognizedAttributes[0]);
+                    damage = int.Parse(self.unrecognizedAttributes[1]);
+                }
+
+                self.realizedObject = new LootCrate(self, self.Room.realizedRoom, size, damage);
+            }
         }
 
         //if (self.realizedObject != null)
@@ -90,12 +103,15 @@ public static class AbstractPhysicalObjectHooks
     {
         if (self.realizedObject is LightningFruit fruit)
         {
-            if (self.unrecognizedAttributes == null)
-            {
-                self.unrecognizedAttributes = new string[2];
-            }
+            self.unrecognizedAttributes ??= new string[2];
             self.unrecognizedAttributes[0] = fruit.charge.ToString();
             self.unrecognizedAttributes[1] = fruit.power.ToString();
+        }
+        if (self.realizedObject is LootCrate crate)
+        {
+            self.unrecognizedAttributes ??= new string[2];
+            self.unrecognizedAttributes[0] = crate.size.ToString();
+            self.unrecognizedAttributes[1] = crate.damage.ToString();
         }
 
         /*
@@ -138,7 +154,8 @@ public static class AbstractPhysicalObjectHooks
         if (type == AbstractObjectType.ScarletFlowerBulb ||
             type == AbstractObjectType.Potato ||
             type == AbstractObjectType.LightningFruit ||
-            type == AbstractObjectType.AshPepper)
+            type == AbstractObjectType.AshPepper || 
+            type == AbstractObjectType.LootCrate)
         {
             return true;
         }

@@ -10,11 +10,7 @@ public static class SharedPhysicsHooks
 
         if (MiscData.boxHandlers.ContainsKey(room))
         {
-            List<CollisionBox> boxes = MiscData.boxHandlers[room].collisionBoxes;
-            foreach (CollisionBox box in boxes)
-            {
-                baseData = box.UpdateCollisionData(baseData);
-            }
+            baseData = MiscData.boxHandlers[room].CheckCollisionForBoxes(baseData);
         }
 
         return baseData;

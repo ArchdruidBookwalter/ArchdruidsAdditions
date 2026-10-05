@@ -56,13 +56,17 @@ public static class PlayerData
 
         public Dictionary<string, string> GetCycleData()
         {
-            Dictionary<string, string> saveStrings = [];
+            if (player != null && parasiteID != null)
+            {
+                Dictionary<string, string> saveStrings = [];
 
-            saveStrings.Add("PLAYER", player.ID.number.ToString());
-            saveStrings.Add("INFECTED", infected.ToString());
-            saveStrings.Add("PARASITE", parasiteID.ToString());
+                saveStrings.Add("PLAYER", player.ID.number.ToString());
+                saveStrings.Add("INFECTED", infected.ToString());
+                saveStrings.Add("PARASITE", parasiteID.ToString());
 
-            return saveStrings;
+                return saveStrings;
+            }
+            return [];
         }
 
         public void ResetCycleOnlyData()

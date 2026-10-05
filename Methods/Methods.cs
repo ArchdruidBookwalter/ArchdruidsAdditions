@@ -219,10 +219,10 @@ namespace ArchdruidsAdditions.Methods
 
                     if (dist < rad)
                     {
-                        //Create_LineBetweenTwoPoints(room, adjPos, lightPos + camera.pos, 2f, sprite.shellColor, 1);
+                        //Create_LineBetweenTwoPoints(room, adjPos, lightPos + camera.cornerPos, 2f, sprite.shellColor, 1);
                     }
 
-                    //Create_Square(room, lightPos + camera.pos, scale, scale, Vec(0), sprite.shellColor, 1);
+                    //Create_Square(room, lightPos + camera.cornerPos, scale, scale, Vec(0), sprite.shellColor, 1);
                 }
 
                 lightSourceExposure = Mathf.Max(lightSourceExposure, 1f - adjustedDarkness) + addBrightness;

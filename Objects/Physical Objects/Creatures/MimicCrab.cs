@@ -394,8 +394,8 @@ public class MimicCrab : InsectoidCreature, IPlayerEdible
                 CollideWithObjects = true;
             }
 
-            //Create_Text(room, firstChunk.pos, touchingGround, "Red", 0);
-            //Create_LineBetweenTwoPoints(room, firstChunk.pos, firstChunk.pos + bodyRot * 30f, 2f, "Red", 0);
+            //Create_Text(room, firstChunk.cornerPos, touchingGround, "Red", 0);
+            //Create_LineBetweenTwoPoints(room, firstChunk.cornerPos, firstChunk.cornerPos + bodyRot * 30f, 2f, "Red", 0);
         }
         catch (Exception e)
         {
@@ -1037,7 +1037,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
             {
                 hideCoord = default;
 
-                //Create_LineBetweenTwoPoints(room, crab.firstChunk.pos, room.MiddleOfTile(lastDangerCoord), 1f, "Red", 0);
+                //Create_LineBetweenTwoPoints(room, crab.firstChunk.cornerPos, room.MiddleOfTile(lastDangerCoord), 1f, "Red", 0);
 
                 if (highestModule is ThreatTracker threatTracker2 && threatTracker2.mostThreateningCreature != null && threatTracker2.mostThreateningCreature.VisualContact)
                 { fleeCounter = 0; }
@@ -1075,7 +1075,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
                 crab.hideInShellCounter = 0;
             }
 
-            //Create_Text(room, crab.firstChunk.pos + new Vector2(0f, -20f), behavior.value, "Red", 0);
+            //Create_Text(room, crab.firstChunk.cornerPos + new Vector2(0f, -20f), behavior.value, "Red", 0);
 
             //LogMethodEnd();
         }
@@ -1122,7 +1122,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
 
                 terrainDir = Custom.DirVec(terrainPos1, terrainPos2);
 
-                //Create_LineBetweenTwoPoints(room, pos, pos + terrainDir * 30f, 2f, "Red", 0);
+                //Create_LineBetweenTwoPoints(room, cornerPos, cornerPos + terrainDir * 30f, 2f, "Red", 0);
             }
 
             section = 1;
@@ -1448,10 +1448,10 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
             section = 5;
 
             //if (leaderCanidate != null)
-            //{ Create_LineAndDot(room, pos, room.MiddleOfTile(leaderCanidate.BestGuessForPosition()), "Red", 0); }
+            //{ Create_LineAndDot(room, cornerPos, room.MiddleOfTile(leaderCanidate.BestGuessForPosition()), "Red", 0); }
 
             //Vector2 newDestination = room.MiddleOfTile(pathFinder.destination);
-            //Create_LineAndDot(room, pos, newDestination, "Yellow", 0);
+            //Create_LineAndDot(room, cornerPos, newDestination, "Yellow", 0);
 
             //LogMethodEnd();
         }
@@ -1497,7 +1497,7 @@ public class MimicCrabAI : ArtificialIntelligence, IUseARelationshipTracker, IUs
             float score = ValueOfObject(item);
 
             //if (item.representedItem.realizedObject != null)
-            //{ Create_Text(item.representedItem.realizedObject.room, item.representedItem.realizedObject.firstChunk.pos, score, "Red", 0); }
+            //{ Create_Text(item.representedItem.realizedObject.room, item.representedItem.realizedObject.firstChunk.cornerPos, score, "Red", 0); }
 
             if (score >= 0 && (shellCanidate is null || score > ValueOfObject(shellCanidate)))
             { shellCanidate = item; }

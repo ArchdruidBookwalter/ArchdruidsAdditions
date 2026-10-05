@@ -136,6 +136,19 @@ public static class DevtoolsHooks
             self.tempNodes.Add(pobjRep);
             self.subNodes.Add(pobjRep);
         }
+        else if (type == PlacedObjectType.LootCrate)
+        {
+            if (pobj == null)
+            {
+                self.RoomSettings.placedObjects.Add(pobj = new(type, null)
+                {
+                    pos = self.owner.game.cameras[0].pos + Vector2.Lerp(self.owner.mousePos, new(-683, 384), .25f) + Custom.DegToVec(UnityEngine.Random.value + 360f) * .2f
+                });
+            }
+            var pobjRep = new LootCrateRep(self.owner, type.ToString() + "_Rep", self, pobj, type.ToString());
+            self.tempNodes.Add(pobjRep);
+            self.subNodes.Add(pobjRep);
+        }
         else
         {
             orig(self, type, pobj);
@@ -192,6 +205,10 @@ public static class DevtoolsHooks
         {
             self.data = new HangingPlatformData(self);
         }
+        if (self.type == PlacedObjectType.LootCrate)
+        {
+            self.data = new LootCrateData(self);
+        }
         orig(self);
     }
     internal static void Panel_CopyToClipboard(On.DevInterface.Panel.orig_CopyToClipboard orig, Panel self)
@@ -201,7 +218,7 @@ public static class DevtoolsHooks
     internal static void Panel_PasteFromClipboard(On.DevInterface.Panel.orig_PasteFromClipboard orig, Panel self)
     {
         orig(self);
-        if (self is PotatoRepresentation.PotatoControlPanel panel)
+        if (self is PotatoRepresentation.PotatoPanel panel)
         {
             try
             {

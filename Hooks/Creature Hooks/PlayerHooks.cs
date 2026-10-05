@@ -16,18 +16,35 @@ public static class PlayerHooks
 
         orig(self, eu);
 
+        
         Vector2 mousePos = new Vector2(Futile.mousePosition.x, Futile.mousePosition.y) + self.room.game.cameras[0].pos;
-        //IntVector2 mouseTilePos = self.room.GetTilePosition(mousePos);
+        IntVector2 mouseTilePos = self.room.GetTilePosition(mousePos);
+        IntVector2 chunkTilePos = self.room.GetTilePosition(self.mainBodyChunk.pos);
+        IntVector2 relativeTilePos = mouseTilePos - chunkTilePos;
+
+        if (self.room != null)
+        {
+            if (self.IsTileSolid(0, relativeTilePos.x, relativeTilePos.y))
+            { Create_Square(self.room, self.room.MiddleOfTile(mouseTilePos), 20f, 20f, Vec(0), Color.red, 0); }
+            else
+            { Create_Square(self.room, self.room.MiddleOfTile(mouseTilePos), 20f, 20f, Vec(0), Color.green, 0); }
+
+            //Create_Text(self.room, self.room.MiddleOfTile(mouseTilePos) + new Vector2(0f, 30f), self.room.aimap.getAItile(mouseTilePos).acc, Color.white, 0);
+
+            //Create_Text(self.room, self.room.MiddleOfTile(mouseTilePos) + new Vector2(0f, 50f), self.room.aimap.getAItile(mouseTilePos).floorAltitude, Color.white, 0);
+        }
+
         //Create_Square(self.room, self.room.MiddleOfTile(mouseTilePos), 20f, 20f, Vec(0), Color.red, 0);
         //Create_Text(self.room, self.room.MiddleOfTile(mouseTilePos) + new Vector2(0f, 30f), mouseTilePos.ToString(), Color.red, 0);
 
+        /*
         if (MiscData.boxHandlers.ContainsKey(self.room))
         {
             if (MiscData.boxHandlers[self.room].PositionInsideBox(mousePos, 0f, false))
             { Create_Square(self.room, mousePos, 5f, 5f, Vec(0), Color.green, 0); }
             else
             { Create_Square(self.room, mousePos, 5f, 5f, Vec(0), Color.red, 0); }
-        }
+        }*/
 
         AAPlayerState playerState = GetPlayerState(self.abstractCreature.ID.number);
         if (playerState != null)
@@ -83,8 +100,8 @@ public static class PlayerHooks
                     self.Hypothermia = Mathf.Lerp(self.Hypothermia, 0f, 0.01f * playerState.spiceAmount);
                 }
 
-                //Create_Text(self.room, self.firstChunk.pos, playerState.spiceAmount, "Red", 0);
-                //Create_Text(self.room, self.firstChunk.pos + new Vector2(0f, 20f), playerState.spicyReactTimer, "Red", 0);
+                //Create_Text(self.room, self.firstChunk.cornerPos, playerState.spiceAmount, "Red", 0);
+                //Create_Text(self.room, self.firstChunk.cornerPos + new Vector2(0f, 20f), playerState.spicyReactTimer, "Red", 0);
             }
             else
             {
@@ -114,7 +131,7 @@ public static class PlayerHooks
 
         //LogMessage("LASTPOS: " + self.firstChunk.lastPos.ToString());
         //LogMessage("VEL: " + self.firstChunk.vel.ToString());
-        //LogMessage("POS: " + self.firstChunk.pos.ToString());
+        //LogMessage("POS: " + self.firstChunk.cornerPos.ToString());
 
         //LogMethodEnd();
     }
@@ -497,7 +514,7 @@ public static class PlayerHooks
 
             //LogMessage("LASTPOS: " + self.player.firstChunk.lastPos.ToString());
             //LogMessage("VEL: " + self.player.firstChunk.vel.ToString());
-            //LogMessage("POS: " + self.player.firstChunk.pos.ToString());
+            //LogMessage("POS: " + self.player.firstChunk.cornerPos.ToString());
 
             //LogMethodEnd();
 
@@ -507,7 +524,7 @@ public static class PlayerHooks
             Methods.Methods.Log_Exception(e, "PLAYERGRAPHICS_UPDATE", section);
         }
 
-        //Create_Text(self.player.room, self.player.mainBodyChunk.pos, self.malnourished, "Red", 0);
+        //Create_Text(self.player.room, self.player.mainBodyChunk.cornerPos, self.malnourished, "Red", 0);
     }
     internal static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
     {

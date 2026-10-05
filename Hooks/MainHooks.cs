@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Reflection;
 
 namespace ArchdruidsAdditions.Hooks;
@@ -12,6 +13,19 @@ public static class MainHooks
     internal static void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
     {
         orig(self);
+
+        if (!Plugin.loggedStrings)
+        {
+            foreach (string logString in Plugin.logStrings)
+            {
+                Debug.Log(logString);
+            }
+            foreach (Exception e in Plugin.logExceptions)
+            {
+                Debug.LogException(e);
+            }
+            Plugin.loggedStrings = true;
+        }
 
         SaveStateData.AASaveDataContainer ??= new();
 
@@ -77,6 +91,24 @@ public static class MainHooks
         }
         #endregion
 
+        #region Level Sprites
+
+        for (int i = 2; i < 6; i++)
+        {
+            for (int j = 1; j < 4; j++)
+            {
+                string spriteName = "Crate" + i + "x" + i + "_" + j;
+
+                Texture2D texture = new(1, 1);
+                string filePath = AssetManager.ResolveFilePath("atlases" + Path.DirectorySeparatorChar + "leveltextures" + Path.DirectorySeparatorChar + spriteName + ".png");
+                AssetManager.SafeWWWLoadTexture(ref texture, "file:///" + filePath, true, true);
+                HeavyTexturesCache.LoadAndCacheAtlasFromTexture(spriteName, texture, false);
+            }
+        }
+
+        #endregion
+
+        #region Other Stuff
         if (!Futile.atlasManager.DoesContainAtlas("Arc"))
         {
             Futile.atlasManager.LoadAtlas("atlases/Arc");
@@ -89,6 +121,7 @@ public static class MainHooks
         {
             Futile.atlasManager.LoadAtlas("atlases/BowlSymbol");
         }
+        #endregion
 
         #endregion
 
@@ -188,6 +221,19 @@ public static class MainHooks
         if (Futile.atlasManager.DoesContainAtlas("Bowl"))
         {
             Futile.atlasManager.UnloadAtlas("Bowl");
+        }
+
+        for (int i = 2; i < 6; i++)
+        {
+            for (int j = 1; j < 4; j++)
+            {
+                string spriteName = "Crate" + i + "x" + i + "_" + j;
+
+                if (Futile.atlasManager.DoesContainAtlas(spriteName))
+                {
+                    Futile.atlasManager.UnloadAtlas(spriteName);
+                }
+            }
         }
         #endregion
 

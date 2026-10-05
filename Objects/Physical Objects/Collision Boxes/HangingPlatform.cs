@@ -102,18 +102,18 @@ public class HangingPlatform : PhysicalObject
         Vector2 pos2 = Vector2.Lerp(bodyChunks[0].pos, bodyChunks[1].pos, 0.5f);
         Vector2 dir2 = -Custom.PerpendicularVector(Custom.DirVec(bodyChunks[0].pos, bodyChunks[1].pos));
 
-        element.pos = pos2 + dir2 * 10f;
+        element.pos = pos2 + dir2 * 5f;
         element.scale = new Vector2(Custom.Dist(bodyChunks[0].pos, bodyChunks[1].pos) / 12f, 60f / 8f);
         element.rotation = Custom.VecToDeg(dir2);
 
         box.Update(pos2, Vector2.Lerp(bodyChunks[0].vel, bodyChunks[1].vel, 0.5f), Custom.VecToDeg(dir2));
 
         //Create_Square(room, attachPos, 20f, 20f, Vec(45), Color.red, 0);
-        //Create_Square(room, AbstractChandelier.pObj.pos, 20f, 20f, Vec(45), Color.green, 0);
+        //Create_Square(room, AbstractChandelier.pObj.cornerPos, 20f, 20f, Vec(45), Color.green, 0);
 
-        //Create_Square(room, bodyChunks[0].pos, 20f, 20f, Vec(45), Color.red, 0);
-        //Create_Square(room, bodyChunks[1].pos, 20f, 20f, Vec(45), Color.green, 0);
-        //Create_LineBetweenTwoPoints(room, bodyChunks[0].pos, bodyChunks[1].pos, 1f, Color.yellow, 0);
+        //Create_Square(room, bodyChunks[0].cornerPos, 20f, 20f, Vec(45), Color.red, 0);
+        //Create_Square(room, bodyChunks[1].cornerPos, 20f, 20f, Vec(45), Color.green, 0);
+        //Create_LineBetweenTwoPoints(room, bodyChunks[0].cornerPos, bodyChunks[1].cornerPos, 1f, Color.yellow, 0);
     }
 
     public override void PlaceInRoom(Room placeRoom)
@@ -155,23 +155,25 @@ public class HangingPlatform : PhysicalObject
 
             Vector2[] boxVertices =
             [
-                new Vector2(40f, 30f),
-                new Vector2(-40f, 30f),
-                new Vector2(-40f, 10f),
+                new Vector2(110f, 10f),
+
+                new Vector2(50f, 10f),
+                new Vector2(50f, 30f),
+                new Vector2(-50f, 30f),
+                new Vector2(-50f, 10f),
+
                 new Vector2(-110f, 10f),
                 new Vector2(-110f, -10f),
-                new Vector2(-40f, -10f),
-                new Vector2(-40f, -30f),
-                new Vector2(40f, -30f),
-                new Vector2(40f, -10f),
-                new Vector2(110f, -10f),
-                new Vector2(110f, 10f),
-                new Vector2(40f, 10f)
+
+                new Vector2(-50f, -10f),
+                new Vector2(-50f, -30f),
+                new Vector2(50f, -30f),
+                new Vector2(50f, -10f),
+
+                new Vector2(110f, -10f)
             ];
             box = new(this, boxVertices);
         }
-
-        Debug.Log(tile);
     }
 
     public override void Destroy()

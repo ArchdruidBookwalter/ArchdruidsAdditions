@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace ArchdruidsAdditions;
 
@@ -49,7 +50,8 @@ public class AbstractObjectType
         AshPepper,
         ParasiteEgg,
         CrabShell,
-        BigChandelier;
+        BigChandelier,
+        LootCrate;
 
     public static List<AbstractPhysicalObject.AbstractObjectType> values = [];
 
@@ -64,6 +66,7 @@ public class AbstractObjectType
         ParasiteEgg = Register(nameof(ParasiteEgg));
         CrabShell = Register(nameof(CrabShell));
         BigChandelier = Register(nameof(BigChandelier));
+        LootCrate = Register(nameof(LootCrate));
 
         values.Add(Bow);
         values.Add(ScarletFlowerBulb);
@@ -74,6 +77,7 @@ public class AbstractObjectType
         values.Add(ParasiteEgg);
         values.Add(CrabShell);
         values.Add(BigChandelier);
+        values.Add(LootCrate);
     }
     public static void UnregisterValues()
     {
@@ -86,6 +90,7 @@ public class AbstractObjectType
         ParasiteEgg = Unregister(ParasiteEgg);
         CrabShell = Unregister(CrabShell);
         BigChandelier = Unregister(BigChandelier);
+        LootCrate = Unregister(LootCrate);
 
         values.Clear();
     }
@@ -208,7 +213,8 @@ public class PlacedObjectType
         CrabShellCircle,
         DecoChain,
         ShrineBowl,
-        BigChandelier;
+        BigChandelier,
+        LootCrate;
 
     public static List<PlacedObject.Type> values = [];
 
@@ -224,6 +230,7 @@ public class PlacedObjectType
         DecoChain = Register(nameof(DecoChain));
         ShrineBowl = Register(nameof(ShrineBowl));
         BigChandelier = Register(nameof(BigChandelier));
+        LootCrate = Register(nameof(LootCrate));
 
         values.Add(ScarletFlower);
         values.Add(Potato);
@@ -235,6 +242,7 @@ public class PlacedObjectType
         values.Add(DecoChain);
         values.Add(ShrineBowl);
         values.Add(BigChandelier);
+        values.Add(LootCrate);
     }
     public static void UnregisterValues()
     {
@@ -248,6 +256,7 @@ public class PlacedObjectType
         DecoChain = Unregister(DecoChain);
         ShrineBowl = Unregister(ShrineBowl);
         BigChandelier = Unregister(BigChandelier);
+        LootCrate = Unregister(LootCrate);
 
         values.Clear();
     }

@@ -560,7 +560,7 @@ public class AshPepperBush : CosmeticSprite
                 Vector2 pos = Vector2.Lerp(segmentPositions[i, 1], segmentPositions[i, 0], timeStacker) - camPos;
                 branchPositions.Add(pos);
 
-                //Create_Square(bush.room, pos, 2f, 2f, Vec(45), "Yellow", 0);
+                //Create_Square(bush.room, cornerPos, 2f, 2f, Vec(45), "Yellow", 0);
             }
 
             for (int i = 0; i < branchPositions.Count; i++)

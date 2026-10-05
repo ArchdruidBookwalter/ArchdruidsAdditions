@@ -40,15 +40,15 @@ public static class ScavengerHooks
             }
         }
 
-        //Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, -50f), self.animation, "Blue", 0);
-        //Create_Text(self.room, self.mainBodyChunk.pos + new Vector2(0f, -40f), self.AI.behavior, "Yellow", 0);
+        //Create_Text(self.room, self.mainBodyChunk.cornerPos + new Vector2(0f, -50f), self.animation, "Blue", 0);
+        //Create_Text(self.room, self.mainBodyChunk.cornerPos + new Vector2(0f, -40f), self.AI.behavior, "Yellow", 0);
     }
     internal static void Scavenger_Act(On.Scavenger.orig_Act orig, Scavenger self)
     {
         orig(self);
 
         /*
-        Vector2 pos = self.mainBodyChunk.pos;
+        Vector2 cornerPos = self.mainBodyChunk.cornerPos;
 
         int scavAimChargeThreshold = 50;
         CreatureTemplate.Type type = self.abstractCreature.creatureTemplate.type;
@@ -61,11 +61,11 @@ public static class ScavengerHooks
         {
             self.lookPoint = self.room.MiddleOfTile(self.AI.focusCreature.BestGuessForPosition());
 
-            if (bow.scavWithinRange && Custom.ManhattanDistance(self.AI.pathFinder.destination, self.abstractCreature.pos) > 5)
+            if (bow.scavWithinRange && Custom.ManhattanDistance(self.AI.pathFinder.destination, self.abstractCreature.cornerPos) > 5)
             {
                 bow.scavWithinRange = false;
             }
-            else if (Custom.ManhattanDistance(self.AI.pathFinder.destination, self.abstractCreature.pos) < 2)
+            else if (Custom.ManhattanDistance(self.AI.pathFinder.destination, self.abstractCreature.cornerPos) < 2)
             {
                 bow.scavWithinRange = true;
             }
@@ -79,7 +79,7 @@ public static class ScavengerHooks
             {
                 if (self.AI.focusCreature.representedCreature.realizedCreature != null)
                 {
-                    self.lookPoint = self.AI.focusCreature.representedCreature.realizedCreature.mainBodyChunk.pos;
+                    self.lookPoint = self.AI.focusCreature.representedCreature.realizedCreature.mainBodyChunk.cornerPos;
                 }
                 if (bow.grabbedBy[0].graspUsed == 0 &&
                     self.AI.IsThrowPathClearFromFriends(self.lookPoint, 50f) &&
@@ -258,8 +258,8 @@ public static class ScavengerHooks
     {
         int baseCollectScore = orig(self, obj, weaponFiltered);
 
-        //Create_Square(obj.room, obj.firstChunk.pos, 10f, 10f, Vec(45), "Purple", 0);
-        //Create_Text(obj.room, obj.firstChunk.pos + new Vector2(0f, 15f), baseCollectScore, "Purple", 0);
+        //Create_Square(obj.room, obj.firstChunk.cornerPos, 10f, 10f, Vec(45), "Purple", 0);
+        //Create_Text(obj.room, obj.firstChunk.cornerPos + new Vector2(0f, 15f), baseCollectScore, "Purple", 0);
 
         if (obj is ScarletFlowerBulb)
         {
@@ -350,7 +350,7 @@ public static class ScavengerHooks
 
                                 //Debug.Log("LOADED SPEAR INTO BOW");
 
-                                //Create_Square(self.scavenger.room, self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature.mainBodyChunk.pos, 20f, 20f, Vec(45), "Purple", 0);
+                                //Create_Square(self.scavenger.room, self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature.mainBodyChunk.cornerPos, 20f, 20f, Vec(45), "Purple", 0);
                             }
                         }
                     }
@@ -419,10 +419,10 @@ public static class ScavengerHooks
                 return float.MinValue;
             }
 
-            //Vector2 pos = self.scavenger.room.MiddleOfTile(testPos);
+            //Vector2 cornerPos = self.scavenger.room.MiddleOfTile(testPos);
 
-            //Create_Square(self.scavenger.room, pos, 10f, 10f, Vec(45), "White", 0);
-            //Create_Text(self.scavenger.room, pos + new Vector2(0f, 20f), origValue, "White", 0);
+            //Create_Square(self.scavenger.room, cornerPos, 10f, 10f, Vec(45), "White", 0);
+            //Create_Text(self.scavenger.room, cornerPos + new Vector2(0f, 20f), origValue, "White", 0);
             //Create_Square(self.scavenger.room, self.scavenger.room.MiddleOfTile(targetPos), 10f, 10f, Vec(45), "Purple", 0);
 
             float score = 0f;

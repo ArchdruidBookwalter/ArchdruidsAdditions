@@ -566,16 +566,16 @@ public class PotatoRepresentation : ConsumableRepresentation
 {
     public PotatoData data;
     public Handle rotationHandle;
-    new public PotatoControlPanel controlPanel;
+    new public PotatoPanel controlPanel;
     public FSprite panelLine;
     public FSprite handleLine;
 
-    public class PotatoControlPanel : ConsumableControlPanel, IDevUISignals
+    public class PotatoPanel : ConsumableControlPanel, IDevUISignals
     {
         public PotatoData data;
         public ColorEditor colorEditor;
         public Button natColorButton;
-        public PotatoControlPanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string name) :
+        public PotatoPanel(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos, string name) :
             base(owner, IDstring, parentNode, pos, name)
         {
             data = (parentNode as PotatoRepresentation).data;
@@ -597,7 +597,7 @@ public class PotatoRepresentation : ConsumableRepresentation
             public PotatoData data;
             public ColorEditor(DevUI owner, string IDstring, DevUINode parentNode, Vector2 pos) : base(owner, IDstring, parentNode, pos)
             {
-                data = (parentNode as PotatoControlPanel).data;
+                data = (parentNode as PotatoPanel).data;
                 subNodes.Add(new ColorSlider(owner, "Min_Hue_Slider", this, new Vector2(0f, 120f), "Min Hue: "));
                 subNodes.Add(new ColorSlider(owner, "Max_Hue_Slider", this, new Vector2(0f, 100f), "Max Hue: "));
                 subNodes.Add(new ColorSlider(owner, "Min_Sat_Slider", this, new Vector2(0f, 80f), "Min Saturation: "));

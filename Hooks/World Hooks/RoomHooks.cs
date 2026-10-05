@@ -1,4 +1,5 @@
 ﻿using System;
+using ArchdruidsAdditions.Objects;
 
 namespace ArchdruidsAdditions.Hooks;
 
@@ -210,6 +211,22 @@ public static class RoomHooks
                         self.abstractRoom.AddEntity(absObj);
                     }
                 }
+                else if (pObj.type == PlacedObjectType.LootCrate)
+                {
+                    int pObjIndex = placedObjects.IndexOf(pObj);
+                    LootCrateData data = pObj.data as LootCrateData;
+
+                    if (firstTimeRealized && (session is not StoryGameSession ||
+                        !(session as StoryGameSession).saveState.ItemConsumed(self.world, false, self.abstractRoom.index, pObjIndex)))
+                    {
+                        AbstractCrate absObj = new(self.world, AbstractObjectType.LootCrate, null, pObj, self.GetWorldCoordinate(pObj.pos), 
+                            self.game.GetNewID(), self.abstractRoom.index, pObjIndex, data);
+
+                        absObj.realizedObject = new LootCrate(absObj, self, data.size, 1);
+
+                        self.abstractRoom.AddEntity(absObj);
+                    }
+                }
             }
         }
 
@@ -245,6 +262,21 @@ public static class RoomHooks
             }
         }*/
 
+
+        return baseValue;
+    }
+    internal static Vector2 Room_FindGroundBelow(On.Room.orig_FindGroundBelow orig, Room self, Vector2 pos, out Vector2 dir, float maxDist = 200f)
+    {
+        Vector2 baseValue = orig(self, pos, out dir, maxDist);
+
+        if (MiscData.boxHandlers.ContainsKey(self) && MiscData.boxHandlers[self].TryGetSurfacePos(pos, 0f, out Vector2 surfacePos, out Vector2 surfaceDir, out float surfacePosDist) && surfacePosDist < maxDist)
+        {
+            dir = surfaceDir;
+
+            Create_LineBetweenTwoPoints(self, surfacePos, surfacePos + surfaceDir * 30f, 2f, Color.red, 0);
+
+            return surfacePos;
+        }
 
         return baseValue;
     }

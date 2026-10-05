@@ -6,13 +6,11 @@ public static class PathFinderHooks
 {
     internal static void PathFinder_ctor(On.PathFinder.orig_ctor orig, PathFinder self, ArtificialIntelligence AI, World world, AbstractCreature creature)
     {
-        /*
-        if (creature.creatureTemplate.type == Enums.CreatureTemplateType.Parasite)
+        if (creature.creatureTemplate.type == CreatureTemplate.Type.LizardTemplate)
         {
             self.visualize = true;
             self.visualizePath = true;
         }
-        */
 
         orig(self, AI, world, creature);
     }

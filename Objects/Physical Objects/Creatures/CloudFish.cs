@@ -1579,7 +1579,7 @@ public class CloudFishGraphics : GraphicsModule
 
                         Vector2 pos = Vector2.Lerp(startPos, endPos, j / 14f) - perpRot * curve;
 
-                        //Create_Square(connectedChunk.owner.room, pos + camPos, 1f, 1f, Vec(45), shellColor, 1);
+                        //Create_Square(connectedChunk.owner.room, cornerPos + camPos, 1f, 1f, Vec(45), shellColor, 1);
 
                         triMesh.MoveVertice(j, pos + perpRot * width);
                         triMesh.MoveVertice(j + 1, pos - perpRot * width);
@@ -2201,7 +2201,7 @@ public class CloudFishAI : ArtificialIntelligence
             }
         }
 
-        //Create_Square(cloudfish.room, pos, 10f, 10f, Vec(45), "Red", 0);
+        //Create_Square(cloudfish.room, cornerPos, 10f, 10f, Vec(45), "Red", 0);
     }
 
 
@@ -3392,8 +3392,8 @@ public class CloudFishAI : ArtificialIntelligence
                     cloudfish.bodyChunks[0].vel += perpVel1;
                     cloudfish.bodyChunks[2].vel += perpVel2;
 
-                    //Create_Square(room, cloudfish.bodyChunks[0].pos + perpVel1 * 20f, 1f, 40f, perpVel1, "Red", 0);
-                    //Create_Square(room, cloudfish.bodyChunks[2].pos + perpVel2 * 20f, 1f, 40f, perpVel2, "Red", 0);
+                    //Create_Square(room, cloudfish.bodyChunks[0].cornerPos + perpVel1 * 20f, 1f, 40f, perpVel1, "Red", 0);
+                    //Create_Square(room, cloudfish.bodyChunks[2].cornerPos + perpVel2 * 20f, 1f, 40f, perpVel2, "Red", 0);
                 }
             }
         }

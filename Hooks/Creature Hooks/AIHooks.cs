@@ -106,21 +106,17 @@ public static class AIHooks
 
                 if (shouldBeAfraid)
                 {
-                    //Create_Square(room, repCreature.realizedCreature.mainBodyChunk.pos, 20f, 20f, Vec(45), "Red", 0);
+                    //Create_Square(room, repCreature.realizedCreature.mainBodyChunk.cornerPos, 20f, 20f, Vec(45), "Red", 0);
                 }
                 else if (creatureIsParasite)
                 {
-                    //Create_Square(room, repCreature.realizedCreature.mainBodyChunk.pos, 20f, 20f, Vec(45), "Green", 0);
+                    //Create_Square(room, repCreature.realizedCreature.mainBodyChunk.cornerPos, 20f, 20f, Vec(45), "Green", 0);
                 }
             }
         }
     }
 
     internal static void ArtificialIntelligence_Update(On.ArtificialIntelligence.orig_Update orig, ArtificialIntelligence self)
-    {
-        orig(self);
-    }
-    internal static void LizardAI_Update(On.LizardAI.orig_Update orig, LizardAI self)
     {
         orig(self);
     }
@@ -193,25 +189,5 @@ public static class AIHooks
         }
 
         return baseResult;
-    }
-
-    internal static void BarnacleAI_SetGroupDiscomfortTick(On.Watcher.BarnacleAI.orig_SetGroupDiscomfortTick orig, BarnacleAI self, float tick)
-    {
-        if (tick == 0.0016666667f)
-        {
-            int creatures = 0;
-            foreach (AbstractCreature creature in self.realizedCreature.room.abstractRoom.creatures)
-            {
-                if (creature.realizedCreature != null && Custom.DistLess(creature.realizedCreature.mainBodyChunk.pos, self.realizedCreature.mainBodyChunk.pos, 200) && creature.realizedCreature is not MimicCrab)
-                { creatures++; }
-            }
-
-            if (creatures == 0)
-            {
-                return;
-            }
-        }
-
-        orig(self, tick);
     }
 }

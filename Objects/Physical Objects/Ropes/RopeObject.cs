@@ -86,8 +86,8 @@ public class RopeObject
 
     public virtual void Update()
     {
-        //Create_Text(owner.room, ropeSegments[0].pos, "ACTUAL LENGTH: " + Custom.Dist(ropeSegments[0].pos, ropeSegments[EndIndex].pos), "Red", 0);
-        //Create_Text(owner.room, ropeSegments[0].pos + new Vector2(0f, -20f), "ROPE LENGTH: " + ropeLength, "Yellow", 0);
+        //Create_Text(owner.room, ropeSegments[0].cornerPos, "ACTUAL LENGTH: " + Custom.Dist(ropeSegments[0].cornerPos, ropeSegments[EndIndex].cornerPos), "Red", 0);
+        //Create_Text(owner.room, ropeSegments[0].cornerPos + new Vector2(0f, -20f), "ROPE LENGTH: " + ropeLength, "Yellow", 0);
 
 
 
@@ -131,7 +131,7 @@ public class RopeObject
         /*
         foreach (RopeSegment segment in ropeSegments)
         {
-            Create_Square(owner.room, segment.pos, 5f, 5f, Vec(45), "Yellow", 0);
+            Create_Square(owner.room, segment.cornerPos, 5f, 5f, Vec(45), "Yellow", 0);
         }*/
 
         float totalLength = 0;
@@ -142,8 +142,8 @@ public class RopeObject
 
         float averageSegmentLength = totalLength / ropeSegments.Length;
 
-        //Create_Text(owner.room, ropeSegments[EndIndex].pos + new Vector2(-100f, 0f), "AVERAGE SEGMENT LENGTH: " + averageSegmentLength, "Red", 0);
-        //Create_Text(owner.room, ropeSegments[EndIndex].pos + new Vector2(-100f, -20f), "DESIRED SEGMENT LENGTH: " + segmentLength, "Red", 0);
+        //Create_Text(owner.room, ropeSegments[EndIndex].cornerPos + new Vector2(-100f, 0f), "AVERAGE SEGMENT LENGTH: " + averageSegmentLength, "Red", 0);
+        //Create_Text(owner.room, ropeSegments[EndIndex].cornerPos + new Vector2(-100f, -20f), "DESIRED SEGMENT LENGTH: " + segmentLength, "Red", 0);
     }
 
     public virtual void AttachEndSegments()

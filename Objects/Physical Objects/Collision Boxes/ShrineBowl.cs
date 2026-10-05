@@ -71,8 +71,8 @@ public class ShrineBowl : UpdatableAndDeletable, IDrawable
         Vector2[] collisionVertices =
         [
             new Vector2(30, 10),
-            new Vector2(5, -5),
-            new Vector2(-5, -5),
+            new Vector2(5, 0),
+            new Vector2(-5, 0),
             new Vector2(-30, 10),
             new Vector2(-30, -20),
             new Vector2(30, -20),
